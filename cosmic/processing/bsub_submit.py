@@ -44,9 +44,8 @@ def write_bsub_script(bsub_dir, script_path, config_path, config_key, bsub_kwarg
 
 def submit_bsub_script(bsub_script_path):
     try:
-        # comp_proc = sysrun(f'bsub < {bsub_script_path}')
-        # logger.info(comp_proc.stdout)
-        pass
+        comp_proc = sysrun(f'bsub < {bsub_script_path}')
+        logger.info(comp_proc.stdout)
     except sp.CalledProcessError as cpe:
         logger.error(f'Error submitting {bsub_script_path}')
         logger.error(cpe)
@@ -62,6 +61,8 @@ def main(config_filename):
 
     bsub_dir = Path('bsub_scripts')
     bsub_dir.mkdir(exist_ok=True)
+    output_dir = Path('processing_output')
+    output_dir.mkdir(exist_ok=True)
 
     script_path = Path(config.SCRIPT_PATH).absolute()
     config_path = Path(config_filename).absolute()

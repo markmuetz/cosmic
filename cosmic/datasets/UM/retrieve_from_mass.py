@@ -60,8 +60,8 @@ def run_moo_select(config, runid, stream, year, month, output_name, query_filepa
     cmd = f'moo select {query_filepath} moose:/crum/{runid}/{stream}.pp/ {output_dir}'
     logger.debug(f'  {cmd}')
     try:
-        # comp_proc = sysrun(cmd)
-        # logger.info(comp_proc.stdout)
+        comp_proc = sysrun(cmd)
+        logger.info(comp_proc.stdout)
         return None
     except sp.CalledProcessError as cpe:
         logger.error('===ERROR===')
