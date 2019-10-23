@@ -1,0 +1,2 @@
+class CosmicError(Exception):
+    pass
