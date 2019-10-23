@@ -23,6 +23,8 @@ setup(
     maintainer_email='mark.muetzelfeldt@reading.ac.uk',
     packages=[
         'cosmic.datasets.UM',
+        'cosmic.datasets.cmorph',
+        'cosmic.processing',
         ],
     scripts=[
         'bin/cosmic_retrieve_from_mass',
