@@ -13,6 +13,7 @@ BSUB_SCRIPT_TPL = """#!/bin/bash
 #BSUB -o processing_output/{script_name}_{config_name}_{config_key}_%J.out
 #BSUB -e processing_output/{script_name}_{config_name}_{config_key}_%J.err
 #BSUB -W {max_runtime}
+#BSUB -M {mem}
 
 python {script_path} {config_path} {config_key}
 """
@@ -29,6 +30,8 @@ def write_bsub_script(bsub_dir, script_path, config_path, config_key, bsub_kwarg
 
     bsub_script_filepath = bsub_dir / f'{script_name}_{config_name}_{config_key}.bsub'
     logger.debug(f'  writing {bsub_script_filepath}')
+    if 'mem' not in bsub_kwargs:
+        bsub_kwargs['mem'] = 16000
 
     bsub_script = BSUB_SCRIPT_TPL.format(script_name=script_name,
                                          script_path=script_path,
