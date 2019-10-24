@@ -1,4 +1,5 @@
 # coding: utf-8
+import os
 import sys
 import logging
 from pathlib import Path
@@ -17,7 +18,7 @@ def gen_asia_precip_filepath(runid, stream, year, month, output_dir):
             f'{runid[2:]}{stream[0]}.{stream[1:]}{year}{month:02}.asia_precip.nc')
 
 
-def extract_asia_precip(runid, stream, year, month, nc_dirpath):
+def extract_asia_precip(runid, stream, year, month, nc_dirpath, stratiform=False):
     output_filepath = gen_asia_precip_filepath(runid, stream, year, month, nc_dirpath)
     done_filename = (output_filepath.parent / (output_filepath.name + '.done'))
 
@@ -35,9 +36,14 @@ def extract_asia_precip(runid, stream, year, month, nc_dirpath):
     # N.B. loading 10 files per month.
     asia_precip_cubes = iris.load(str(nc_filename_glob), constraint_asia)
 
-    asia_rainfall = (asia_precip_cubes.extract(iris.Constraint(name='stratiform_rainfall_flux'))
+    rainfall_flux_name = 'rainfall_flux'
+    snowfall_flux_name = 'snowfall_flux'
+    if stratiform:
+        rainfall_flux_name += 'stratiform_'
+        snowfall_flux_name += 'stratiform_'
+    asia_rainfall = (asia_precip_cubes.extract(iris.Constraint(name=rainfall_flux_name))
                      .concatenate_cube())
-    asia_snowfall = (asia_precip_cubes.extract(iris.Constraint(name='stratiform_snowfall_flux'))
+    asia_snowfall = (asia_precip_cubes.extract(iris.Constraint(name=snowfall_flux_name))
                      .concatenate_cube())
 
     asia_total_precip = asia_rainfall + asia_snowfall
@@ -51,7 +57,7 @@ def main(config, nc_dirpath):
     logger.info(nc_dirpath)
     year = int(nc_dirpath.stem[-6:-2])
     month = int(nc_dirpath.stem[-2:])
-    extract_asia_precip(config.RUNID, config.STREAM, year, month, nc_dirpath)
+    extract_asia_precip(config.RUNID, config.STREAM, year, month, nc_dirpath, config.STRATIFORM)
 
 
 if __name__ == '__main__':
