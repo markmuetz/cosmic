@@ -6,7 +6,7 @@ import numpy as np
 import iris
 
 
-def convert_to_netcdf4_month(data_dir, year, month):
+def convert_to_netcdf4_month(data_dir, output_dir, year, month):
     lat = np.linspace(-59.875, 59.875, 480)
     lon = np.linspace(0.125, 360 - 0.125, 1440)
 
@@ -28,14 +28,16 @@ def convert_to_netcdf4_month(data_dir, year, month):
     time_coord = iris.coords.Coord(times, standard_name='time', 
                                    units=('hours since 1970-01-01 00:00:00'))
 
-    data = load_raw_0p25deg_3hrly_year(data_dir, year, month, '??')
+    data = _load_raw_0p25deg_3hrly_year(data_dir, year, month, '??')
 
     coords = [(time_coord, 0), (lat_coord, 1), (lon_coord, 2)]
     cmorph_ppt_cube = iris.cube.Cube(data.reshape(len(times), 480, 1440), 
                                      long_name='precipitation', units='mm hr-1',  
                                      dim_coords_and_dims=coords)
 
-    iris.save(cmorph_ppt_cube, f'data/cmorph_ppt_{year}{month:02}.nc', zlib=True)
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    iris.save(cmorph_ppt_cube, output_dir / f'cmorph_ppt_{year}{month:02}.nc', zlib=True)
 
 
 def extract_asia(data_dir, year):
@@ -49,7 +51,7 @@ def extract_asia(data_dir, year):
         iris.save(asia_cmorph_ppt_cube, str(output_filename), zlib=True)
 
 
-def load_raw_0p25deg_3hrly_year(data_dir, year, month, day):
+def _load_raw_0p25deg_3hrly_year(data_dir, year, month, day):
     if isinstance(year, int):
         year = f'{year:04}'
     if isinstance(month, int):
@@ -61,11 +63,11 @@ def load_raw_0p25deg_3hrly_year(data_dir, year, month, day):
     data = []
     for filename in filenames:
         print(filename)
-        data.append(load_raw_0p25deg_3hrly(filename))
+        data.append(_load_raw_0p25deg_3hrly(filename))
     return np.ma.masked_array(data)
 
 
-def load_raw_0p25deg_3hrly(filename):
+def _load_raw_0p25deg_3hrly(filename):
     with bz2.open(filename) as fp:
         buf = fp.read()
         raw_cmorph_data = np.frombuffer(buf, '<f4')
