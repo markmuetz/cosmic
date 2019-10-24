@@ -1,6 +1,7 @@
 import os
 import logging
 import subprocess as sp
+import re
 from pathlib import Path
 from timeit import default_timer as timer
 
@@ -11,9 +12,9 @@ logging.basicConfig(level=os.getenv('COSMIC_LOGLEVEL', 'INFO'),
 logger = logging.getLogger(__name__)
 
 
-def resolve_output_dir(config, runid, stream, year, month, output_type):
+def resolve_output_dir(config, runid, stream, year, month, output_name):
     return (config.BASE_OUTPUT_DIRPATH / runid / 
-            f'{stream}.pp' / f'{output_type}_{year}{month:02}')
+            f'{stream}.pp' / f'{output_name}_{year}{month:02}')
 
 
 def check_access(runid):
@@ -57,7 +58,7 @@ def write_stream_query(queries_dir, runid, stream, year, month, stashcodes, stre
 
 
 def run_moo_select(config, runid, stream, year, month, stream_info, query_filepath):
-    output_dir = resolve_output_dir(config, runid, stream, year, month, stream_info)
+    output_dir = resolve_output_dir(config, runid, stream, year, month, stream_info['output_name'])
     if not output_dir.exists():
         os.makedirs(output_dir)
     cmd = f'moo select {query_filepath} moose:/crum/{runid}/{stream}.pp/ {output_dir}'
