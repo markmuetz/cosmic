@@ -40,8 +40,70 @@ def gen_nc_precip_filenames(datadir, season, start_year, end_year,
     return nc_season
 
 
-def calc_precip_amount_freq_intensity(datadir, season, season_cube, precip_thresh, 
+def calc_precip_amount_freq_intensity_low_mem(season, season_cube, precip_thresh, 
+                                              num_per_day=24, convert_kgpm2ps1_to_mmphr=True):
+    print('calc season_mean')
+    season_mean = season_cube.collapsed('time', iris.analysis.MEAN)
+    print('calc season_std')
+    season_std = season_cube.collapsed('time', iris.analysis.STD_DEV)
+    season_mean.rename('precip_flux_mean')
+    season_std.rename('precip_flux_std')
 
+    factor = 3600 if convert_kgpm2ps1_to_mmphr else 1
+
+    assert season_cube.shape[0] % num_per_day == 0, 'Cube has wrong time dimension'
+    num_days = season_cube.shape[0] // num_per_day
+
+    season_freq_data = np.zeros((num_per_day, season_cube.shape[1], season_cube.shape[2]))
+    season_amount_data = np.zeros((num_per_day, season_cube.shape[1], season_cube.shape[2]))
+    # season_intensity_data = np.zeros((num_per_day, season_cube.shape[1], season_cube.shape[2]))
+
+    for i in range(num_days):
+        # N.B. only load slice into memory.
+        cube_slice = season_cube[i * num_per_day: (i + 1) * num_per_day].data * factor
+
+        freq_keep = cube_slice >= precip_thresh
+        season_freq_data += freq_keep
+        season_amount_data[freq_keep] = season_amount_data[freq_keep] + cube_slice[freq_keep]
+        # season_intensity_data = np.ma.masked_array(reshaped_data, mask=freq_mask).mean(axis=0)
+    season_freq_data /= num_days
+    season_amount_data /= num_days
+    season_intensity_data = season_amount_data / season_freq_data
+
+    # max_diff = np.max(np.abs(season_intensity_data * season_freq_data - season_amount_data))
+    # print(f'max diff: {max_diff}')
+
+    hourly_coords = [(season_cube[:num_per_day].coord('time'), 0),
+                     (season_cube.coord('latitude'), 1),
+                     (season_cube.coord('longitude'), 2)]
+
+    print('build freq cube')
+    season_hourly_freq = iris.cube.Cube(season_freq_data,
+                                        long_name=f'freq_of_precip_{season}',
+                                        units='',
+                                        dim_coords_and_dims=hourly_coords)
+
+    print('build amount cube')
+    season_hourly_amount = iris.cube.Cube(season_amount_data,
+                                          long_name=f'amount_of_precip_{season}',
+                                          units='mm hr-1',
+                                          dim_coords_and_dims=hourly_coords)
+
+    print('build intensity cube')
+    season_hourly_intensity = iris.cube.Cube(season_intensity_data,
+                                             long_name=f'intensity_of_precip_{season}',
+                                             units='mm hr-1',
+                                             dim_coords_and_dims=hourly_coords)
+
+    analysis_cubes = iris.cube.CubeList([season_mean, season_std,
+                                         season_hourly_freq, season_hourly_amount, 
+                                         season_hourly_intensity])
+    return analysis_cubes
+
+
+
+def calc_precip_amount_freq_intensity(season, season_cube, precip_thresh, 
+                                      num_per_day=24, convert_kgpm2ps1_to_mmphr=True):
     print('calc season_mean')
     season_mean = season_cube.collapsed('time', iris.analysis.MEAN)
     print('calc season_std')
@@ -50,15 +112,16 @@ def calc_precip_amount_freq_intensity(datadir, season, season_cube, precip_thres
     season_std.rename('precip_flux_std')
 
     # Reshape ndarray so that axis 1 is one day.
-    # I.e. reshaped_data[0] is the 1 hourly data for one day (24 of them) for all lat/lon.
+    # I.e. reshaped_data[0] is the 1 hourly data for one day (num_per_day of them) for all lat/lon.
     # Using -1 tells reshape to infer the dimension from the others.
     # Convert from kg m-2 s-1 to mm hr-1 by multiplying by 3600 (# s/hr)
     # N.B. I am not sure how this will deal with larger datasets as dereferencing data
     # causes all data to be loaded into memory.
     print('reshape data')
-    reshaped_data = season_cube.data.reshape(-1, 24, 
+    factor = 3600 if convert_kgpm2ps1_to_mmphr else 1
+    reshaped_data = season_cube.data.reshape(-1, num_per_day, 
                                              season_cube.shape[1], 
-                                             season_cube.shape[2]) * 3600
+                                             season_cube.shape[2]) * factor
 
     # The freq, amount and intensity must all be collapsed on the first dimension.
     print('calc freq')
@@ -75,7 +138,7 @@ def calc_precip_amount_freq_intensity(datadir, season, season_cube, precip_thres
     max_diff = np.max(np.abs(season_intensity_data * season_freq_data - season_amount_data))
     print(f'max diff: {max_diff}')
 
-    hourly_coords = [(season_cube[:24].coord('time'), 0),
+    hourly_coords = [(season_cube[:num_per_day].coord('time'), 0),
                      (season_cube.coord('latitude'), 1),
                      (season_cube.coord('longitude'), 2)]
 
