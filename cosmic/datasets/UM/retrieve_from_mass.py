@@ -32,14 +32,15 @@ def check_access(runid):
         raise
 
 
-def write_stream_query(queries_dir, runid, stream, year, month, stashcodes, output_name):
+def write_stream_query(queries_dir, runid, stream, year, month, stashcodes, stream_info):
     if len(stashcodes) == 1:
-        # No brackes surrounding one stashcode.
+        # No brackets surrounding one stashcode.
         stashcode_str = str(stashcode_str[0])
     else:
-        # Brackes surrounding comma separated list of stashcodes.
+        # Brackets surrounding comma separated list of stashcodes.
         stashcode_str = '(' + ', '.join([str(s) for s in stashcodes]) + ')'
 
+    output_name = stream_info['output_name']
     query_filepath = queries_dir / f'{runid}_{stream}_{year}{month:02}_{output_name}_select_query'
     logger.debug(f'  writing {query_filepath}')
     lines = []
@@ -47,14 +48,16 @@ def write_stream_query(queries_dir, runid, stream, year, month, stashcodes, outp
     lines.append(f'  stash={stashcode_str}')
     lines.append(f'  year={year}')
     lines.append(f'  mon={month}')
+    for element, element_val in stream_info['extra_elements']:
+        lines.append(f'  {element}={element_val}')
     lines.append('end')
     with open(query_filepath, 'w') as fp:
         fp.write('\n'.join(lines) + '\n')
     return query_filepath
 
 
-def run_moo_select(config, runid, stream, year, month, output_name, query_filepath):
-    output_dir = resolve_output_dir(config, runid, stream, year, month, output_name)
+def run_moo_select(config, runid, stream, year, month, stream_info, query_filepath):
+    output_dir = resolve_output_dir(config, runid, stream, year, month, stream_info)
     if not output_dir.exists():
         os.makedirs(output_dir)
     cmd = f'moo select {query_filepath} moose:/crum/{runid}/{stream}.pp/ {output_dir}'
@@ -73,10 +76,10 @@ def run_moo_select(config, runid, stream, year, month, output_name, query_filepa
 
 
 def retrieve_from_MASS(config, queries_dir, runid, stream,
-                       year, month, stashcodes, output_name):
+                       year, month, stashcodes, stream_info):
     query_filepath = write_stream_query(queries_dir, runid, stream, 
-                                        year, month, stashcodes, output_name)
-    run_moo_select(config, runid, stream, year, month, output_name, query_filepath)
+                                        year, month, stashcodes, stream_info)
+    run_moo_select(config, runid, stream, year, month, stream_info, query_filepath)
 
 
 def gen_years_months(start_year_month, end_year_month):
@@ -118,7 +121,6 @@ def main(config_filename):
                 logger.info(f'Retrieving {i+1}/{N} {runid}: {stream} {year}/{month} {stashcodes}')
                 start = timer()
                 retrieve_from_MASS(config, queries_dir, runid, stream,
-                                   year, month, stashcodes, 
-                                   stream_info['output_name'])
+                                   year, month, stashcodes, stream_info)
                 end = timer()
                 logger.info(f'Retrieved in {end - start:02f}s')
