@@ -1,4 +1,5 @@
 import os
+import sys
 import logging
 import subprocess as sp
 import re
@@ -7,7 +8,7 @@ from timeit import default_timer as timer
 
 from cosmic.util import load_config, sysrun
 
-logging.basicConfig(level=os.getenv('COSMIC_LOGLEVEL', 'INFO'), 
+logging.basicConfig(stream=sys.stdout, level=os.getenv('COSMIC_LOGLEVEL', 'INFO'), 
                     format='%(asctime)s %(levelname)8s: %(message)s')
 logger = logging.getLogger(__name__)
 

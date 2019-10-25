@@ -14,7 +14,7 @@ DEFAULT_DIR_TPL = 'precip_{year}{month:02}'
 DEFAULT_FILE_TPL = '{runid}{split_stream}{year}{month:02}.{loc}_precip.nc'
 DEFAULT_OUTPUT_FILE_TPL = '{runid}{split_stream}{season}.{loc}_precip.ppt_thresh_{thresh_text}.nc'
 
-logging.basicConfig(level=os.getenv('COSMIC_LOGLEVEL', 'INFO'), 
+logging.basicConfig(stream=sys.stdout, level=os.getenv('COSMIC_LOGLEVEL', 'INFO'), 
                     format='%(asctime)s %(levelname)8s: %(message)s')
 logger = logging.getLogger(__name__)
 

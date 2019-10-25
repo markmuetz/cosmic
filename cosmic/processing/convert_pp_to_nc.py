@@ -24,7 +24,7 @@ MONTH_MAP = {
     'dec': 12,
 }
 
-logging.basicConfig(level=os.getenv('COSMIC_LOGLEVEL', 'INFO'), 
+logging.basicConfig(stream=sys.stdout, level=os.getenv('COSMIC_LOGLEVEL', 'INFO'), 
                     format='%(asctime)s %(levelname)8s: %(message)s')
 logger = logging.getLogger(__name__)
 
