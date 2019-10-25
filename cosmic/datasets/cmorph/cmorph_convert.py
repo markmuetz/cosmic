@@ -48,7 +48,7 @@ def extract_asia(data_dir, year):
     for filename in filenames:
         asia_cmorph_ppt_cube = iris.load_cube(str(filename), constraint_asia)
         output_filename = filename.parent / (filename.stem + '.asia.nc')
-        iris.save(asia_cmorph_ppt_cube, str(output_filename), zlib=True)
+        iris.save(asia_cmorph_ppt_cube, str(output_filename), zlib=False)
 
 
 def _load_raw_0p25deg_3hrly_year(data_dir, year, month, day):
