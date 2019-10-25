@@ -164,7 +164,7 @@ def save_analysis_cubes(datadir, season, precip_thresh, analysis_cubes,
                                                        thresh_text=thresh_text, 
                                                        **output_file_kwargs)
     iris.save(analysis_cubes, str(output_filepath))
-    return season_cube, analysis_cubes
+    return analysis_cubes
 
 
 def default_main(season):
