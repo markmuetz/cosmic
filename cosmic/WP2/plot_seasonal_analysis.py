@@ -119,7 +119,7 @@ def plot_season_mean(datadir, runid, precip_thresh=0.1):
     savefig(f'figs/{runid}/season_mean/asia_{mode}_mean.png')
 
 
-def plot_season_gmt(datadir, runid, mode, precip_thresh=0.1):
+def plot_season_afi_gmt(datadir, runid, mode, precip_thresh=0.1):
     thresh_text = str(precip_thresh).replace('.', 'p')
     for i, season in enumerate(SEASONS):
         cube = iris.load_cube(f'{datadir}/{runid}a.p9{season}.asia_precip.ppt_thresh_{thresh_text}.nc',
@@ -156,6 +156,15 @@ def plot_season_gmt(datadir, runid, mode, precip_thresh=0.1):
             savefig(f'figs/{runid}/ppt_thresh_{thresh_text}/hourly/GMT/asia_{mode}_{season}_hr{j:02d}_GMT.png')
             plt.close('all')
 
+def plot_season_afi_mean(datadir, runid, mode, precip_thresh=0.1):
+    thresh_text = str(precip_thresh).replace('.', 'p')
+    for i, season in enumerate(SEASONS):
+        cube = iris.load_cube(f'{datadir}/{runid}a.p9{season}.asia_precip.ppt_thresh_{thresh_text}.nc',
+                              f'{mode}_of_precip_{season}')
+        lon_min, lon_max = cube.coord('longitude').points[[0, -1]]
+        lat_min, lat_max = cube.coord('latitude').points[[0, -1]]
+
+        extent = (lon_min, lon_max, lat_min, lat_max)
         plt.clf()
         ax = plt.axes(projection=ccrs.PlateCarree())
         fig = plt.gcf()
@@ -214,7 +223,7 @@ def plot_season_gmt(datadir, runid, mode, precip_thresh=0.1):
         plt.close('all')
 
 
-def plot_season_lst(datadir, runid, mode, precip_thresh=0.1):
+def plot_season_afi_lst(datadir, runid, mode, precip_thresh=0.1):
     thresh_text = str(precip_thresh).replace('.', 'p')
     for i, season in enumerate(SEASONS):
         cube = iris.load_cube(f'{datadir}/{runid}a.p9{season}.asia_precip.ppt_thresh_{thresh_text}.nc',
@@ -283,7 +292,7 @@ def gen_animations(datadir, runid, precip_thresh=0.1):
                 sysrun(cmd)
 
 
-def plot_diurnal_cycle(datadir, runid, mode, precip_thresh=0.1):
+def plot_afi_diurnal_cycle(datadir, runid, mode, precip_thresh=0.1):
     thresh_text = str(precip_thresh).replace('.', 'p')
     for season in SEASONS:
         cube = iris.load_cube(f'{datadir}/{runid}a.p9{season}.asia_precip.ppt_thresh_{thresh_text}.nc',
@@ -356,11 +365,12 @@ def main(basepath, runid):
         # plt.ion()
 
         for mode in ['amount', 'freq', 'intensity']:
-            plot_season_gmt(datadir, runid, mode, precip_thresh)
-            plot_season_lst(datadir, runid, mode, precip_thresh)
-            plot_diurnal_cycle(datadir, runid, mode, precip_thresh)
+            # plot_season_afi_gmt(datadir, runid, mode, precip_thresh)
+            # plot_season_afi_lst(datadir, runid, mode, precip_thresh)
+            plot_afi_diurnal_cycle(datadir, runid, mode, precip_thresh)
+            plot_season_afi_mean(datadir, runid, mode, precip_thresh)
 
-        gen_animations(datadir, runid, precip_thresh)
+        # gen_animations(datadir, runid, precip_thresh)
 
 if __name__ == '__main__':
     basepath = sys.argv[1]
