@@ -19,36 +19,40 @@ logging.basicConfig(stream=sys.stdout, level=os.getenv('COSMIC_LOGLEVEL', 'INFO'
 logger = logging.getLogger(__name__)
 
             
-def gen_nc_precip_filenames(datadir, season, start_year, end_year, 
+def gen_nc_precip_filenames(datadir, season, start_year_month, end_year_month, 
                             dir_tpl=DEFAULT_DIR_TPL, 
                             file_tpl=DEFAULT_FILE_TPL, 
-                            skip_spinup=True, 
                             **file_kwargs):
     nc_season = []
-    for year in range(start_year, end_year):
-        for month in range(1, 13):
-            if skip_spinup and year == start_year and month == 1:
-                continue  # skip spinup
-            nc_asia_precip = (datadir / 
-                              dir_tpl.format(year=year, month=month) / 
-                              file_tpl.format(year=year, month=month, **file_kwargs))
-            if not nc_asia_precip.exists():
-                continue
-            if month in range(3, 6) and season == 'mam':
-                nc_season.append(nc_asia_precip)
-            elif month in range(6, 9) and season == 'jja':
-                nc_season.append(nc_asia_precip)
-            elif month in range(9, 12) and season == 'son':
-                nc_season.append(nc_asia_precip)
-            elif month in [12, 1, 2] and season == 'djf':
-                nc_season.append(nc_asia_precip)
-    logger.debug(f'number of months in season: {len(nc_season)}')
+    curr_year_month = start_year_month
+    while curr_year_month <= end_year_month:
+        year, month = curr_year_month
+        nc_asia_precip = (datadir / 
+                          dir_tpl.format(year=year, month=month) / 
+                          file_tpl.format(year=year, month=month, **file_kwargs))
+        if not nc_asia_precip.exists():
+            raise Exception(f'{nc_asia_precip} does not exist')
+            continue
+        if month in range(3, 6) and season == 'mam':
+            nc_season.append(nc_asia_precip)
+        elif month in range(6, 9) and season == 'jja':
+            nc_season.append(nc_asia_precip)
+        elif month in range(9, 12) and season == 'son':
+            nc_season.append(nc_asia_precip)
+        elif month in [12, 1, 2] and season == 'djf':
+            nc_season.append(nc_asia_precip)
+        next_year, next_month = year, month + 1
+
+        if next_month == 13:
+            next_year, next_month = year + 1, 1
+        curr_year_month = (next_year, next_month)
+    logger.info(f'number of months in season: {len(nc_season)}')
     return nc_season
 
 
 def calc_precip_amount_freq_intensity(season, season_cube, precip_thresh, 
                                       num_per_day=24, convert_kgpm2ps1_to_mmphr=True,
-                                      calc_method='reshape', ignore_mask=True):
+                                      calc_method='low_mem', ignore_mask=True):
     if not ignore_mask:
         raise NotImplementedError('Results not 100% reliable, use at own risk')
 
@@ -88,7 +92,7 @@ def calc_precip_amount_freq_intensity(season, season_cube, precip_thresh,
         season_intensity_data = np.ma.masked_array(reshaped_data, mask=freq_mask).mean(axis=0).filled(0)
 
         max_diff = np.max(np.abs(season_intensity_data * season_freq_data - season_amount_data))
-        logger.debug(f'max diff: {max_diff}')
+        logger.info(f'max diff: {max_diff}')
     elif calc_method == 'low_mem':
         # Use a moving window over the array to calc freq and amount.
         # Will make use of freq * intensity = amount to calc intensity.
@@ -125,7 +129,7 @@ def calc_precip_amount_freq_intensity(season, season_cube, precip_thresh,
                                                     (season_freq_data == 0) | data_mask)
             season_intensity_data = np.ma.masked_array(season_amount_data / season_freq_data,
                                                        (season_freq_data == 0) | data_mask)
-    logger.debug(f'performed {calc_method} in {timer() - start:.02f}s')
+    logger.info(f'performed {calc_method} in {timer() - start:.02f}s')
 
     hourly_coords = [(season_cube[:num_per_day].coord('time'), 0),
                      (season_cube.coord('latitude'), 1),

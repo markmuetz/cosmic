@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 import importlib.util
 import subprocess as sp
@@ -9,6 +10,9 @@ def load_config(local_filename):
     config_filepath = Path.cwd() / local_filename
     if not config_filepath.exists():
         raise CosmicError(f'Config file {config_filepath} does not exist')
+
+    # Make sure any local imports in the config script work.
+    sys.path.append(str(config_filepath.parent))
 
     try:
         spec = importlib.util.spec_from_file_location('config', config_filepath)
