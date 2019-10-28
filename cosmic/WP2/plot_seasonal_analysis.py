@@ -60,9 +60,9 @@ def plot_season_mean(datadir, runid, precip_thresh=0.1):
     season_std_max = 0
 
     for i, season in enumerate(SEASONS):
-        season_mean = iris.load_cube(f'{datadir}/{runid}a.p9{season}.season_analysis.ppt_thresh_{thresh_text}.nc',
+        season_mean = iris.load_cube(f'{datadir}/{runid}a.p9{season}.asia_precip.ppt_thresh_{thresh_text}.nc',
                                      'precip_flux_mean')
-        season_std = iris.load_cube(f'{datadir}/{runid}a.p9{season}.season_analysis.ppt_thresh_{thresh_text}.nc',
+        season_std = iris.load_cube(f'{datadir}/{runid}a.p9{season}.asia_precip.ppt_thresh_{thresh_text}.nc',
                                     'precip_flux_std')
         season_mean_min = min(season_mean_min, season_mean.data.min() * 3600)
         season_mean_max = max(season_mean_max, season_mean.data.max() * 3600)
@@ -83,9 +83,9 @@ def plot_season_mean(datadir, runid, precip_thresh=0.1):
     plt.subplots_adjust(wspace=0.08, hspace=0.08, bottom=0.15, top=0.99)
 
     for i, season in enumerate(SEASONS):
-        season_mean = iris.load_cube(f'{datadir}/{runid}a.p9{season}.season_analysis.ppt_thresh_{thresh_text}.nc',
+        season_mean = iris.load_cube(f'{datadir}/{runid}a.p9{season}.asia_precip.ppt_thresh_{thresh_text}.nc',
                                      'precip_flux_mean')
-        season_std = iris.load_cube(f'{datadir}/{runid}a.p9{season}.season_analysis.ppt_thresh_{thresh_text}.nc',
+        season_std = iris.load_cube(f'{datadir}/{runid}a.p9{season}.asia_precip.ppt_thresh_{thresh_text}.nc',
                                     'precip_flux_std')
         ax0 = axes[i, 0]
         ax1 = axes[i, 1]
@@ -122,7 +122,7 @@ def plot_season_mean(datadir, runid, precip_thresh=0.1):
 def plot_season_gmt(datadir, runid, mode, precip_thresh=0.1):
     thresh_text = str(precip_thresh).replace('.', 'p')
     for i, season in enumerate(SEASONS):
-        cube = iris.load_cube(f'{datadir}/{runid}a.p9{season}.season_analysis.ppt_thresh_{thresh_text}.nc',
+        cube = iris.load_cube(f'{datadir}/{runid}a.p9{season}.asia_precip.ppt_thresh_{thresh_text}.nc',
                               f'{mode}_of_precip_{season}')
         lon_min, lon_max = cube.coord('longitude').points[[0, -1]]
         lat_min, lat_max = cube.coord('latitude').points[[0, -1]]
@@ -217,7 +217,7 @@ def plot_season_gmt(datadir, runid, mode, precip_thresh=0.1):
 def plot_season_lst(datadir, runid, mode, precip_thresh=0.1):
     thresh_text = str(precip_thresh).replace('.', 'p')
     for i, season in enumerate(SEASONS):
-        cube = iris.load_cube(f'{datadir}/{runid}a.p9{season}.season_analysis.ppt_thresh_{thresh_text}.nc',
+        cube = iris.load_cube(f'{datadir}/{runid}a.p9{season}.asia_precip.ppt_thresh_{thresh_text}.nc',
                               f'{mode}_of_precip_{season}')
         lon_min, lon_max = cube.coord('longitude').points[[0, -1]]
         lat_min, lat_max = cube.coord('latitude').points[[0, -1]]
@@ -286,7 +286,7 @@ def gen_animations(datadir, runid, precip_thresh=0.1):
 def plot_diurnal_cycle(datadir, runid, mode, precip_thresh=0.1):
     thresh_text = str(precip_thresh).replace('.', 'p')
     for season in SEASONS:
-        cube = iris.load_cube(f'{datadir}/{runid}a.p9{season}.season_analysis.ppt_thresh_{thresh_text}.nc',
+        cube = iris.load_cube(f'{datadir}/{runid}a.p9{season}.asia_precip.ppt_thresh_{thresh_text}.nc',
                               f'{mode}_of_precip_{season}')
         lon_min, lon_max = cube.coord('longitude').points[[0, -1]]
         lat_min, lat_max = cube.coord('latitude').points[[0, -1]]
@@ -349,9 +349,9 @@ def plot_diurnal_cycle(datadir, runid, mode, precip_thresh=0.1):
         plt.close('all')
 
 
-if __name__ == '__main__':
-    runid = sys.argv[1]
-    datadir = Path(f'/gws/nopw/j04/cosmic/mmuetz/data/u-{runid}/ap9.pp')
+def main(basepath, runid):
+    datadir = Path(f'{basepath}/u-{runid}/ap9.pp')
+
     for precip_thresh in [0.1]:
         # plt.ion()
 
@@ -361,3 +361,8 @@ if __name__ == '__main__':
             plot_diurnal_cycle(datadir, runid, mode, precip_thresh)
 
         gen_animations(datadir, runid, precip_thresh)
+
+if __name__ == '__main__':
+    basepath = sys.argv[1]
+    runid = sys.argv[2]
+    main(basepath, runid)
