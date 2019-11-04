@@ -1,9 +1,11 @@
 # coding: utf-8
 import sys
 from pathlib import Path
+import pickle
 
 import numpy as np
 from scipy.interpolate import interp1d
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 from matplotlib.colors import LogNorm, LinearSegmentedColormap
@@ -26,6 +28,14 @@ li2018_scale_colours = ['#d5e1fe', '#8db1fe', '#7e95fe', '#0062fe', '#009595', '
 li2018_diurnal = LinearSegmentedColormap.from_list('li2018_diurnal', li2018_diurnal_colours)
 li2018_scale = LinearSegmentedColormap.from_list('li2018_scale', li2018_scale_colours[:-1])
 li2018_scale_freq = LinearSegmentedColormap.from_list('li2018_scale', li2018_scale_colours[3:])
+
+def load_cmap_data(cmap_data_filename):
+    with open(cmap_data_filename, 'rb') as fp:
+        cmap_data = pickle.load(fp)
+        cmap = mpl.colors.ListedColormap(cmap_data['html_colours'])
+        norm = mpl.colors.BoundaryNorm(cmap_data['bounds'], cmap.N)
+        cbar_kwargs = cmap_data['cbar_kwargs']
+    return cmap, norm, cmap_data['bounds'], cbar_kwargs
 
 
 class VrangeNorm(colors.Normalize):
@@ -122,9 +132,9 @@ class SeasonAnalysisPlotter:
             ax1.set_xticks([60, 150])
             ax0.set_yticks([10, 50])
             ax1.set_yticks([10, 50])
-            # ax0.set_xlim((97.5, 122.5))
+            # ax0.set_xlim((97.5, 125))
             # ax0.set_ylim((18, 41))
-            # ax1.set_xlim((97.5, 122.5))
+            # ax1.set_xlim((97.5, 125))
             # ax1.set_ylim((18, 41))
 
             im0 = ax0.imshow(season_mean.data, origin='lower', norm=LogNorm(), extent=extent,
@@ -198,34 +208,46 @@ class SeasonAnalysisPlotter:
             plt.title(title)
             if mode == 'freq':
                 data = cube.data.mean(axis=0) * 100
-                kwargs = {'vmin': 0, 'cmap': li2018_scale_freq}
-                cbar_kwargs = {}
                 units = '%'
-                if self.precip_thresh == 0.1:
-                    # Consistent with Li 2018.
-                    kwargs['vmin'] = 3
-                    kwargs['vmax'] = 40
-                    ticks = [3, 5, 8, 15, 25, 40]
-                    kwargs['norm'] = VrangeNorm(ticks)
-                    cbar_kwargs['extend'] = 'both'
+                cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig2_cb2.pkl')
+                kwargs = {'vmin': 0, 'cmap': cmap}
+                cbar_kwargs['norm'] = norm
+                kwargs['vmin'] = 3
+                kwargs['vmax'] = 40
+
+                # if self.precip_thresh == 0.1:
+                #     # Consistent with Li 2018.
+                #     kwargs['vmin'] = 3
+                #     kwargs['vmax'] = 40
+                #     ticks = [3, 5, 8, 15, 25, 40]
+                #     kwargs['norm'] = VrangeNorm(ticks)
+                #     cbar_kwargs['extend'] = 'both'
             elif mode == 'amount':
-                data = cube.data.mean(axis=0)
-                kwargs = {'vmin': 1e-3, 'vmax': 1, 'cmap': li2018_scale}
-                cbar_kwargs = {'extend': 'max'}
-                units = 'mm hr$^{-1}$'
+                cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig2_cb1.pkl')
+                cbar_kwargs['norm'] = norm
+                data = cube.data.mean(axis=0) * 24  # mm/hr -> mm/day
+                kwargs = {'vmin': 1e-3, 'vmax': 12, 'cmap': cmap}
+                units = 'mm day$^{-1}$'
             elif mode == 'intensity':
+                cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig2_cb3.pkl')
+                cbar_kwargs['norm'] = norm
                 data = cube.data.mean(axis=0)
-                kwargs = {'vmin': 1e-2, 'vmax': 4, 'cmap': li2018_scale}
-                cbar_kwargs = {'extend': 'max'}
-                ticks = [0, 0.1, 0.3, 0.5, 0.8, 1.2, 1.8, 2.4, 3, 4]
-                kwargs['norm'] = VrangeNorm(ticks)
+                kwargs = {'vmin': 1e-2, 'vmax': 4, 'cmap': cmap}
+                # cbar_kwargs = {'extend': 'max'}
                 units = 'mm hr$^{-1}$'
-            im0 = ax.imshow(data, origin='lower', extent=extent, **kwargs)
-            rect = Rectangle((97.5, 18), 122.5 - 97.5, 41 - 18, linewidth=1, edgecolor='k', facecolor='none')
+            im0 = ax.imshow(data, origin='lower', norm=norm, extent=extent, **kwargs)
+            rect = Rectangle((97.5, 18), 125 - 97.5, 41 - 18, linewidth=1, edgecolor='k', facecolor='none')
             ax.add_patch(rect)
 
+            # cax = fig.add_axes([0.12, 0.1, 0.8, 0.03])
+            # cb = mpl.colorbar.ColorbarBase(cax, cmap=cmap,
+            #                                spacing='uniform',
+            #                                orientation='horizontal',
+            #                                label=f'{mode} precip. ({units})',
+            #                                **cbar_kwargs)
+
             plt.colorbar(im0, label=f'{mode} precip. ({units})',
-                         orientation='horizontal', **cbar_kwargs)
+                         orientation='horizontal', **cbar_kwargs, spacing='uniform')
             if mode == 'amount':
                 index_argmax = np.unravel_index(data.argmax(), data.shape)
                 print(f'max. amount: {data.max()} mm hr-1')
@@ -237,7 +259,7 @@ class SeasonAnalysisPlotter:
             self.savefig(f'ppt_thresh_{self.thresh_text}/hourly/mean/asia_{mode}_{season}_mean.png')
 
             # Same as Li 2018.
-            ax.set_xlim((97.5, 122.5))
+            ax.set_xlim((97.5, 125))
             ax.set_ylim((18, 41))
             ax.set_xticks([100, 110, 120])
             ax.set_yticks([20, 30, 40])
@@ -324,15 +346,16 @@ class SeasonAnalysisPlotter:
             title = f'{self.runid} diurnal cycle time {mode} {season} LST ppt_thresh={self.precip_thresh} mm hr$^{{-1}}$'
             print(title)
             plt.title(title)
-            im0 = ax.imshow(season_peak_time_LST, origin='lower', extent=extent, cmap=li2018_diurnal,
-                            vmin=0, vmax=24)
-            rect = Rectangle((97.5, 18), 122.5 - 97.5, 41 - 18, linewidth=1, edgecolor='k', facecolor='none')
-            ax.add_patch(rect)
 
-            plt.colorbar(im0, label=f'{mode} peak (hr)', orientation='horizontal')
+            cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig3_cb.pkl')
+            im0 = ax.imshow(season_peak_time_LST, origin='lower', extent=extent, cmap=cmap, norm=norm,
+                            vmin=0, vmax=24)
+            rect = Rectangle((97.5, 18), 125 - 97.5, 41 - 18, linewidth=1, edgecolor='k', facecolor='none')
+            ax.add_patch(rect)
+            plt.colorbar(im0, label=f'{mode} peak (hr)', orientation='horizontal', norm=norm, **cbar_kwargs)
             fig.set_size_inches(12, 8)
             self.savefig(f'ppt_thresh_{self.thresh_text}/diurnal_cycle/asia_diurnal_cycle_{mode}_{season}_peak.png')
-            ax.set_xlim((97.5, 122.5))
+            ax.set_xlim((97.5, 125))
             ax.set_ylim((18, 41))
             ax.set_xticks([100, 110, 120])
             ax.set_yticks([20, 30, 40])
@@ -358,13 +381,13 @@ class SeasonAnalysisPlotter:
                 kwargs = {'vmin': 1, 'vmax': 22, 'norm': LogNorm()}
 
             im0 = plt.imshow(season_strength, origin='lower', extent=extent, **kwargs)
-            rect = Rectangle((97.5, 18), 122.5 - 97.5, 41 - 18, linewidth=1, edgecolor='k', facecolor='none')
+            rect = Rectangle((97.5, 18), 125 - 97.5, 41 - 18, linewidth=1, edgecolor='k', facecolor='none')
             ax.add_patch(rect)
 
             plt.colorbar(im0, label=f'{mode} strength (-)', orientation='horizontal')
             fig.set_size_inches(12, 8)
             self.savefig(f'ppt_thresh_{self.thresh_text}/diurnal_cycle/asia_diurnal_cycle_{mode}_{season}_strength.png')
-            ax.set_xlim((97.5, 122.5))
+            ax.set_xlim((97.5, 125))
             ax.set_ylim((18, 41))
             ax.set_xticks([100, 110, 120])
             ax.set_yticks([20, 30, 40])
@@ -384,13 +407,13 @@ class SeasonAnalysisPlotter:
                     sysrun(cmd)
 
 
-def main(basepath, runid):
+def main(basepath, runid, precip_threshes=[0.1]):
     if runid == 'cmorph':
         datadir = Path(f'{basepath}/cmorph_data')
     else:
         datadir = Path(f'{basepath}/u-{runid}/ap9.pp')
 
-    for precip_thresh in [0.1]:
+    for precip_thresh in precip_threshes:
         plotter = SeasonAnalysisPlotter(datadir, runid, precip_thresh)
         # plt.ion()
 
@@ -405,4 +428,9 @@ def main(basepath, runid):
 if __name__ == '__main__':
     basepath = sys.argv[1]
     runid = sys.argv[2]
-    main(basepath, runid)
+    if len(sys.argv) > 3:
+        precip_threshes = [float(v) for v in sys.argv[3:]]
+        main(basepath, runid, precip_threshes)
+    else:
+        main(basepath, runid)
+
