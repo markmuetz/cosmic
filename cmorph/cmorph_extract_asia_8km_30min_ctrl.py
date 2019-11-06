@@ -5,8 +5,10 @@ SCRIPT_PATH = 'cmorph_extract_asia_8km_30min.py'
 
 BASEDIR = Path('/gws/nopw/j04/cosmic/mmuetz/data/cmorph_data/8km-30min')
 
-years = range(1998, 2019)
-months = range(1, 13)
+years = [1999]
+months = [4]
+# years = range(1998, 2019)
+# months = range(1, 13)
 years_months = list(itertools.product(years, months))
 
 CONFIG_KEYS = [f'{y}{m:02}' for y, m in years_months]
