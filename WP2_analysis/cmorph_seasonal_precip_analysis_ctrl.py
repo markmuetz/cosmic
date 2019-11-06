@@ -3,8 +3,10 @@ from pathlib import Path
 SCRIPT_PATH = 'cmorph_seasonal_precip_analysis.py'
 
 SEASONS = ['jja', 'son', 'djf', 'mam']
-PRECIP_THRESHES = [0.2, 0.4, 0.8, 1.6]
+PRECIP_THRESHES = [0.1]
 
+CMORPH_DATASET = '8km-30min'
+# CMORPH_DATASET = '0.25deg-3HRLY'
 START_YEAR_MONTH = (1998, 1)
 END_YEAR_MONTH = (2018, 12)
 
