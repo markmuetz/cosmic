@@ -15,8 +15,7 @@ import cartopy.crs as ccrs
 
 from cosmic.util import sysrun
 
-# SEASONS = ['jja', 'son', 'djf', 'mam']
-SEASONS = ['son', 'djf', 'mam']
+SEASONS = ['jja', 'son', 'djf', 'mam']
 MODES = ['amount', 'freq', 'intensity']
 
 li2018_diurnal_colours = ['#035965', '#046a63', '#057c56', '#06a026', '#20ba0d', '#5dcd09',
