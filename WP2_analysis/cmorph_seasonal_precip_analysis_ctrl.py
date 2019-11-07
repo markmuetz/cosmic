@@ -13,8 +13,8 @@ END_YEAR_MONTH = (2018, 12)
 BSUB_KWARGS = {
     'job_name': 'cmorph_spa',
     'queue': 'new_users',
-    'max_runtime': '02:00',
-    'mem': '64000',
+    'max_runtime': '20:00',
+    'mem': '16000',
 }
 
 CONFIG_KEYS = []
