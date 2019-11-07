@@ -74,6 +74,7 @@ def main(config_filename):
     logger.debug(config_path)
 
     for config_key in config.CONFIG_KEYS:
+        logger.info(f'config_key: {config_key}')
         bsub_script_filepath = write_bsub_script(bsub_dir, script_path, config_path, 
                                                  config_key, config.BSUB_KWARGS)
         submit_bsub_script(bsub_script_filepath)
