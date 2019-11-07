@@ -15,7 +15,8 @@ import cartopy.crs as ccrs
 
 from cosmic.util import sysrun
 
-SEASONS = ['jja', 'son', 'djf', 'mam']
+# SEASONS = ['jja', 'son', 'djf', 'mam']
+SEASONS = ['son', 'djf', 'mam']
 MODES = ['amount', 'freq', 'intensity']
 
 li2018_diurnal_colours = ['#035965', '#046a63', '#057c56', '#06a026', '#20ba0d', '#5dcd09',
@@ -73,7 +74,7 @@ class SeasonAnalysisPlotter:
 
     def load_cubes(self):
         for i, season in enumerate(SEASONS):
-            if self.runid == 'cmorph':
+            if self.runid[:6] == 'cmorph':
                 filename = f'cmorph_ppt_{season}.asia_precip.ppt_thresh_{self.thresh_text}.nc'
             else:
                 filename = f'{self.runid}a.p9{season}.asia_precip.ppt_thresh_{self.thresh_text}.nc'
@@ -330,9 +331,13 @@ class SeasonAnalysisPlotter:
 
             extent = (lon_min, lon_max, lat_min, lat_max)
             t_offset = cube.coord('longitude').points / 180 * 12
-            if self.runid == 'cmorph':
-                # CMORPH data is 3-hourly.
+            if self.runid == 'cmorph_0p25':
+                # CMORPH 0.25deg data is 3-hourly.
                 season_peak_time_GMT = cube.data.argmax(axis=0) * 3
+                season_peak_time_LST = (season_peak_time_GMT + t_offset[None, :] + 1.5) % 24
+            elif self.runid == 'cmorph_8km':
+                # CMORPH 8km data is 30-min-ly
+                season_peak_time_GMT = cube.data.argmax(axis=0) / 2
                 season_peak_time_LST = (season_peak_time_GMT + t_offset[None, :] + 1.5) % 24
             else:
                 # model data is 1-hourly.
@@ -408,8 +413,10 @@ class SeasonAnalysisPlotter:
 
 
 def main(basepath, runid, precip_threshes=[0.1]):
-    if runid == 'cmorph':
-        datadir = Path(f'{basepath}/cmorph_data')
+    if runid == 'cmorph_0p25':
+        datadir = Path(f'{basepath}/cmorph_data/0.25deg-3HRLY')
+    elif runid == 'cmorph_8km':
+        datadir = Path(f'{basepath}/cmorph_data/8km-30min')
     else:
         datadir = Path(f'{basepath}/u-{runid}/ap9.pp')
 
