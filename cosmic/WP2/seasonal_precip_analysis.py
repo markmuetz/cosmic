@@ -106,7 +106,7 @@ def calc_precip_amount_freq_intensity(season, season_cube, precip_thresh,
 
         for i in range(num_days):
             if i % 10 == 0:
-                logger.debug(f'calc for day {i}')
+                logger.info(f'calc for day {i + 1} of {num_days}')
             # N.B. only load slice into memory because slices *cube*, not *cube.data*.
             sliced_data = season_cube[i * num_per_day: (i + 1) * num_per_day].data * factor
             if ignore_mask:
