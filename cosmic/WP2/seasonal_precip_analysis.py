@@ -107,16 +107,23 @@ def calc_precip_amount_freq_intensity(season, season_cube, precip_thresh,
         for i in range(num_days):
             if i % 10 == 0:
                 logger.info(f'calc for day {i + 1} of {num_days}')
+            else:
+                logger.debug(f'calc for day {i + 1} of {num_days}')
             # N.B. only load slice into memory because slices *cube*, not *cube.data*.
+            logger.debug('loading slice')
             sliced_data = season_cube[i * num_per_day: (i + 1) * num_per_day].data * factor
             if ignore_mask:
+                logger.debug('filling missing values')
                 sliced_data = sliced_data.filled(0)
             else:
+                logger.debug('updating mask')
                 data_mask &= sliced_data.mask
 
             # freq_keep should not be masked. Do not want to add a masked var as it will keep the mask.
+            logger.debug('applying threshold')
             freq_keep = (sliced_data >= precip_thresh).data
             season_freq_data += freq_keep
+            logger.debug('calculating amount total')
             season_amount_data[freq_keep] = season_amount_data[freq_keep] + sliced_data[freq_keep]
 
         if ignore_mask:
