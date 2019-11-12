@@ -18,16 +18,6 @@ from cosmic.util import sysrun
 SEASONS = ['jja', 'son', 'djf', 'mam']
 MODES = ['amount', 'freq', 'intensity']
 
-li2018_diurnal_colours = ['#035965', '#046a63', '#057c56', '#06a026', '#20ba0d', '#5dcd09',
-                          '#89da06', '#b4e704', '#fef500', '#fee000', '#fed000', '#febd00',
-                          '#feab00', '#fe8f00', '#fe6a00', '#fe5600', '#fe2c00', '#fe1400',
-                          '#ae0040', '#840062', '#5b0085', '#023eaa', '#0123ce', '#0011e6']
-li2018_scale_colours = ['#d5e1fe', '#8db1fe', '#7e95fe', '#0062fe', '#009595', '#62fe00',
-                        '#95fe00', '#fefe00', '#fec500', '#fe7b00', '#fe1800', '#840062']
-
-li2018_diurnal = LinearSegmentedColormap.from_list('li2018_diurnal', li2018_diurnal_colours)
-li2018_scale = LinearSegmentedColormap.from_list('li2018_scale', li2018_scale_colours[:-1])
-li2018_scale_freq = LinearSegmentedColormap.from_list('li2018_scale', li2018_scale_colours[3:])
 
 def load_cmap_data(cmap_data_filename):
     with open(cmap_data_filename, 'rb') as fp:
@@ -38,31 +28,20 @@ def load_cmap_data(cmap_data_filename):
     return cmap, norm, cmap_data['bounds'], cbar_kwargs
 
 
-class VrangeNorm(colors.Normalize):
-    """Recreate colorbar used in Fig. 2 d e and f.
-
-    Taken from MidpointNormalize: https://matplotlib.org/3.1.1/tutorials/colors/colormapnorms.html"""
-    def __init__(self, vrange, clip=False):
-        self.vrange = np.array(vrange)
-        colors.Normalize.__init__(self, self.vrange[0], self.vrange[-1], clip)
-
-    def __call__(self, value, clip=None):
-        # I'm ignoring masked values and all kinds of edge cases to make a
-        # simple example...
-        # x, y = self.vrange, np.linspace(0, 1, len(self.vrange))
-        x = self.vrange
-        y = np.linspace(0, 1, len(self.vrange))
-        return np.ma.masked_array(np.interp(value, x, y))
-
-
 class SeasonAnalysisPlotter:
-    def __init__(self, datadir, runid, precip_thresh):
+    def __init__(self, datadir, runid, daterange, seasons, precip_thresh, resolution):
         self.datadir = datadir
         self.runid = runid
+        self.daterange = daterange
+        if seasons == 'all':
+            self.seasons = SEASONS
+        else:
+            self.seasons = seasons.split(',')
+        self.resolution = resolution
         self.precip_thresh = precip_thresh
         self.thresh_text = str(precip_thresh).replace('.', 'p')
         self.cubes = {}
-        self.figdir = Path(f'figs/{runid}')
+        self.figdir = Path(f'figs/{runid}/{daterange}')
         self.load_cubes()
 
     def savefig(self, filename):
@@ -72,11 +51,14 @@ class SeasonAnalysisPlotter:
         plt.savefig(str(filepath))
 
     def load_cubes(self):
-        for i, season in enumerate(SEASONS):
-            if self.runid == 'cmorph':
-                filename = f'cmorph_ppt_{season}.asia_precip.ppt_thresh_{self.thresh_text}.nc'
+        for i, season in enumerate(self.seasons):
+            if self.runid[:6] == 'cmorph':
+                if self.resolution:
+                    filename = f'cmorph_ppt_{season}.{self.daterange}.asia_precip.ppt_thresh_{self.thresh_text}.{self.resolution}.nc'
+                else:
+                    filename = f'cmorph_ppt_{season}.{self.daterange}.asia_precip.ppt_thresh_{self.thresh_text}.nc'
             else:
-                filename = f'{self.runid}a.p9{season}.asia_precip.ppt_thresh_{self.thresh_text}.nc'
+                filename = f'{self.runid}a.p9{season}.{self.daterange}.asia_precip.ppt_thresh_{self.thresh_text}.nc'
 
             season_mean = iris.load_cube(f'{self.datadir}/{filename}',
                                          'precip_flux_mean')
@@ -97,7 +79,7 @@ class SeasonAnalysisPlotter:
         season_std_min = 1e10
         season_std_max = 0
 
-        for i, season in enumerate(SEASONS):
+        for i, season in enumerate(self.seasons):
             season_mean = self.cubes[f'season_mean_{season}']
             season_std = self.cubes[f'season_std_{season}']
 
@@ -119,7 +101,7 @@ class SeasonAnalysisPlotter:
 
         plt.subplots_adjust(wspace=0.08, hspace=0.08, bottom=0.15, top=0.99)
 
-        for i, season in enumerate(SEASONS):
+        for i, season in enumerate(self.seasons):
             season_mean = self.cubes[f'season_mean_{season}']
             season_std = self.cubes[f'season_std_{season}']
             ax0 = axes[i, 0]
@@ -155,7 +137,7 @@ class SeasonAnalysisPlotter:
 
 
     def plot_season_afi_gmt(self, mode):
-        for i, season in enumerate(SEASONS):
+        for i, season in enumerate(self.seasons):
             cube = self.cubes[f'{mode}_{season}']
             lon_min, lon_max = cube.coord('longitude').points[[0, -1]]
             lat_min, lat_max = cube.coord('latitude').points[[0, -1]]
@@ -191,7 +173,7 @@ class SeasonAnalysisPlotter:
                 plt.close('all')
 
     def plot_season_afi_mean(self, mode):
-        for i, season in enumerate(SEASONS):
+        for i, season in enumerate(self.seasons):
             cube = self.cubes[f'{mode}_{season}']
             lon_min, lon_max = cube.coord('longitude').points[[0, -1]]
             lat_min, lat_max = cube.coord('latitude').points[[0, -1]]
@@ -269,7 +251,7 @@ class SeasonAnalysisPlotter:
 
 
     def plot_season_afi_lst(self, mode):
-        for i, season in enumerate(SEASONS):
+        for i, season in enumerate(self.seasons):
             cube = self.cubes[f'{mode}_{season}']
             lon_min, lon_max = cube.coord('longitude').points[[0, -1]]
             lat_min, lat_max = cube.coord('latitude').points[[0, -1]]
@@ -323,17 +305,21 @@ class SeasonAnalysisPlotter:
                 plt.close('all')
 
     def plot_afi_diurnal_cycle(self, mode):
-        for season in SEASONS:
+        for season in self.seasons:
             cube = self.cubes[f'{mode}_{season}']
             lon_min, lon_max = cube.coord('longitude').points[[0, -1]]
             lat_min, lat_max = cube.coord('latitude').points[[0, -1]]
 
             extent = (lon_min, lon_max, lat_min, lat_max)
             t_offset = cube.coord('longitude').points / 180 * 12
-            if self.runid == 'cmorph':
-                # CMORPH data is 3-hourly.
+            if self.runid == 'cmorph_0p25':
+                # CMORPH 0.25deg data is 3-hourly.
                 season_peak_time_GMT = cube.data.argmax(axis=0) * 3
                 season_peak_time_LST = (season_peak_time_GMT + t_offset[None, :] + 1.5) % 24
+            elif self.runid == 'cmorph_8km':
+                # CMORPH 8km data is 30-min-ly
+                season_peak_time_GMT = cube.data.argmax(axis=0) / 2
+                season_peak_time_LST = (season_peak_time_GMT + t_offset[None, :] + 0.25) % 24
             else:
                 # model data is 1-hourly.
                 season_peak_time_GMT = cube.data.argmax(axis=0)
@@ -396,7 +382,7 @@ class SeasonAnalysisPlotter:
             plt.close('all')
 
     def gen_animations(self):
-        for season in SEASONS:
+        for season in self.seasons:
             for mode in MODES:
                 for timemode in ['GMT', 'LST']:
                     infiles = f'ppt_thresh_{self.thresh_text}/hourly/{timemode}/asia_{mode}_{season}_hr*_{timemode}.png'
@@ -407,14 +393,16 @@ class SeasonAnalysisPlotter:
                     sysrun(cmd)
 
 
-def main(basepath, runid, precip_threshes=[0.1]):
-    if runid == 'cmorph':
-        datadir = Path(f'{basepath}/cmorph_data')
+def main(basepath, runid, daterange, seasons, resolution, precip_threshes=[0.1]):
+    if runid == 'cmorph_0p25':
+        datadir = Path(f'{basepath}/cmorph_data/0.25deg-3HRLY')
+    elif runid == 'cmorph_8km':
+        datadir = Path(f'{basepath}/cmorph_data/8km-30min')
     else:
         datadir = Path(f'{basepath}/u-{runid}/ap9.pp')
 
     for precip_thresh in precip_threshes:
-        plotter = SeasonAnalysisPlotter(datadir, runid, precip_thresh)
+        plotter = SeasonAnalysisPlotter(datadir, runid, daterange, seasons, precip_thresh, resolution)
         # plt.ion()
 
         for mode in MODES:
@@ -428,9 +416,12 @@ def main(basepath, runid, precip_threshes=[0.1]):
 if __name__ == '__main__':
     basepath = sys.argv[1]
     runid = sys.argv[2]
-    if len(sys.argv) > 3:
-        precip_threshes = [float(v) for v in sys.argv[3:]]
-        main(basepath, runid, precip_threshes)
+    daterange = sys.argv[3]
+    seasons = sys.argv[4]
+    resolution = sys.argv[5]
+    if len(sys.argv) > 6:
+        precip_threshes = [float(v) for v in sys.argv[6:]]
+        main(basepath, runid, daterange, seasons, resolution, precip_threshes)
     else:
-        main(basepath, runid)
+        main(basepath, runid, daterange, seasons, resolution)
 
