@@ -2,8 +2,8 @@ import iris
 
 
 def regrid(input_filepath, target_filepath):
-    input_cubes = iris.load(str(input_filepath))
-    target_cubes = iris.load(str(target_filepath))
+    input_cube = iris.load_cube(str(input_filepath))
+    target_cube = iris.load_cube(str(target_filepath))
 
     input_cube.coord('latitude').guess_bounds()
     input_cube.coord('longitude').guess_bounds()
