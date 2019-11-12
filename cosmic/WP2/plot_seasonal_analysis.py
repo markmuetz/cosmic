@@ -12,6 +12,7 @@ from matplotlib.colors import LogNorm, LinearSegmentedColormap
 from matplotlib.patches import Rectangle
 import iris
 import cartopy.crs as ccrs
+from scipy.ndimage.filters import gaussian_filter
 
 from cosmic.util import sysrun
 
@@ -238,6 +239,9 @@ class SeasonAnalysisPlotter:
                 print(f'lat, lon: {lat}, {lon}')
                 ax.plot(lon, lat, 'kx')
             fig.set_size_inches(12, 8)
+            print(extent)
+            ax.set_xticks(np.linspace(60, 150, 10))
+            ax.set_yticks(np.linspace(10, 50, 5))
             self.savefig(f'ppt_thresh_{self.thresh_text}/hourly/mean/asia_{mode}_{season}_mean.png')
 
             # Same as Li 2018.
@@ -304,7 +308,7 @@ class SeasonAnalysisPlotter:
                 self.savefig(f'ppt_thresh_{self.thresh_text}/hourly/LST/asia_{mode}_{season}_hr{j:02d}_LST.png')
                 plt.close('all')
 
-    def plot_afi_diurnal_cycle(self, mode):
+    def plot_afi_diurnal_cycle(self, mode, cmap_name='li2018fig3', overlay_style=None):
         for season in self.seasons:
             cube = self.cubes[f'{mode}_{season}']
             lon_min, lon_max = cube.coord('longitude').points[[0, -1]]
@@ -333,25 +337,65 @@ class SeasonAnalysisPlotter:
             print(title)
             plt.title(title)
 
-            cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig3_cb.pkl')
-            im0 = ax.imshow(season_peak_time_LST, origin='lower', extent=extent, cmap=cmap, norm=norm,
-                            vmin=0, vmax=24)
+            season_max = cube.data.max(axis=0)
+            season_mean = cube.data.mean(axis=0)
+            season_strength = season_max / season_mean
+
+            season_strength_filtered = gaussian_filter(season_strength, 3)
+            thresh_boundaries = [100 * 1 / 3, 100 * 2 / 3]
+            # thresh_boundaries = [100 * 1 / 4, 100 * 1 / 3]
+            filtered_med_thresh, filtered_strong_thresh = np.percentile(season_strength_filtered, 
+                                                                        thresh_boundaries)
+            med_thresh, strong_thresh = np.percentile(season_strength, 
+                                                      thresh_boundaries)
+
+            if cmap_name == 'li2018fig3':
+                cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig3_cb.pkl')
+                imshow_kwargs = {'cmap': cmap, 'norm': norm}
+                cbar_kwargs['norm'] = norm
+            elif cmap_name == 'sky_colour':
+                cmap = LinearSegmentedColormap.from_list('cmap',['k','pink','cyan','blue','red','k'], 
+                                                         N=24)
+                imshow_kwargs = {'cmap': cmap}
+                cbar_kwargs = {}
+
+            if overlay_style != 'alpha_overlay':
+                im0 = ax.imshow(season_peak_time_LST, origin='lower', extent=extent,
+                                vmin=0, vmax=24, **imshow_kwargs)
+            elif overlay_style == 'alpha_overlay':
+                peak_strong = np.ma.masked_array(season_peak_time_LST, 
+                                                 season_strength < strong_thresh)
+                peak_med = np.ma.masked_array(season_peak_time_LST, 
+                                              ((season_strength > strong_thresh) | 
+                                               (season_strength < med_thresh)))
+                peak_weak = np.ma.masked_array(season_peak_time_LST, 
+                                               season_strength > med_thresh)
+
+                im0 = ax.imshow(peak_strong, origin='lower', extent=extent,
+                                vmin=0, vmax=24, **imshow_kwargs)
+                ax.imshow(peak_med, origin='lower', extent=extent, alpha=0.66,
+                          vmin=0, vmax=24, **imshow_kwargs)
+                ax.imshow(peak_weak, origin='lower', extent=extent, alpha=0.33,
+                          vmin=0, vmax=24, **imshow_kwargs)
+
+            plt.colorbar(im0, label=f'{mode} peak (hr)', orientation='horizontal', 
+                         **cbar_kwargs)
+
+            if overlay_style == 'contour_overlay':
+                plt.contour(season_strength_filtered, [filtered_med_thresh, filtered_strong_thresh], colors=['w', 'w'], linestyles=['--', '-'], extent=extent)
+
             rect = Rectangle((97.5, 18), 125 - 97.5, 41 - 18, linewidth=1, edgecolor='k', facecolor='none')
             ax.add_patch(rect)
-            plt.colorbar(im0, label=f'{mode} peak (hr)', orientation='horizontal', norm=norm, **cbar_kwargs)
             fig.set_size_inches(12, 8)
-            self.savefig(f'ppt_thresh_{self.thresh_text}/diurnal_cycle/asia_diurnal_cycle_{mode}_{season}_peak.png')
+            self.savefig(f'ppt_thresh_{self.thresh_text}/diurnal_cycle/asia_diurnal_cycle_{mode}_{season}_peak.{cmap_name}.{overlay_style}.png')
             ax.set_xlim((97.5, 125))
             ax.set_ylim((18, 41))
             ax.set_xticks([100, 110, 120])
             ax.set_yticks([20, 30, 40])
             fig.set_size_inches(6, 8)
-            self.savefig(f'ppt_thresh_{self.thresh_text}/diurnal_cycle/china_diurnal_cycle_{mode}_{season}_peak.png')
-            plt.close('all')
+            self.savefig(f'ppt_thresh_{self.thresh_text}/diurnal_cycle/china_diurnal_cycle_{mode}_{season}_peak.{cmap_name}.{overlay_style}.png')
 
-            season_max = cube.data.max(axis=0)
-            season_mean = cube.data.mean(axis=0)
-            season_strength = season_max / season_mean
+            plt.close('all')
 
             ax = plt.axes(projection=ccrs.PlateCarree())
             fig = plt.gcf()
@@ -395,7 +439,7 @@ class SeasonAnalysisPlotter:
 
 def main(basepath, runid, daterange, seasons, resolution, precip_threshes=[0.1]):
     if runid == 'cmorph_0p25':
-        datadir = Path(f'{basepath}/cmorph_data/0.25deg-3HRLY')
+        datadir = Path(f'{basepath}/cmorph_data/0.25deg-3HLY')
     elif runid == 'cmorph_8km':
         datadir = Path(f'{basepath}/cmorph_data/8km-30min')
     else:
@@ -409,7 +453,7 @@ def main(basepath, runid, daterange, seasons, resolution, precip_threshes=[0.1])
             # plotter.plot_season_afi_gmt(mode)
             # plotter.plot_season_afi_lst(mode)
             plotter.plot_season_afi_mean(mode)
-            plotter.plot_afi_diurnal_cycle(mode)
+            plotter.plot_afi_diurnal_cycle(mode, overlay_style='alpha_overlay')
 
         # gen_animations()
 
@@ -419,6 +463,8 @@ if __name__ == '__main__':
     daterange = sys.argv[3]
     seasons = sys.argv[4]
     resolution = sys.argv[5]
+    if resolution == 'None':
+        resolution = None
     if len(sys.argv) > 6:
         precip_threshes = [float(v) for v in sys.argv[6:]]
         main(basepath, runid, daterange, seasons, resolution, precip_threshes)
