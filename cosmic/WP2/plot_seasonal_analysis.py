@@ -2,6 +2,7 @@
 import sys
 from pathlib import Path
 import pickle
+from argparse import ArgumentParser
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -437,7 +438,7 @@ class SeasonAnalysisPlotter:
                     sysrun(cmd)
 
 
-def main(basepath, runid, daterange, seasons, resolution, precip_threshes=[0.1]):
+def main(basepath, runid, daterange, seasons, resolution, precip_threshes):
     if runid == 'cmorph_0p25':
         datadir = Path(f'{basepath}/cmorph_data/0.25deg-3HLY')
     elif runid == 'cmorph_8km':
@@ -457,17 +458,16 @@ def main(basepath, runid, daterange, seasons, resolution, precip_threshes=[0.1])
 
         # gen_animations()
 
-if __name__ == '__main__':
-    basepath = sys.argv[1]
-    runid = sys.argv[2]
-    daterange = sys.argv[3]
-    seasons = sys.argv[4]
-    resolution = sys.argv[5]
-    if resolution == 'None':
-        resolution = None
-    if len(sys.argv) > 6:
-        precip_threshes = [float(v) for v in sys.argv[6:]]
-        main(basepath, runid, daterange, seasons, resolution, precip_threshes)
-    else:
-        main(basepath, runid, daterange, seasons, resolution)
 
+if __name__ == '__main__':
+    parser = ArgumentParser()
+    parser.add_argument('basepath')
+    parser.add_argument('runid')
+    parser.add_argument('daterange')
+    parser.add_argument('seasons')
+    parser.add_argument('resolution')
+    parser.add_argument('precip_threshes', type=float, nargs='+')
+    args = parser.parse_args()
+    if args.resolution == 'None':
+        args.resolution = None
+    main(**vars(args))
