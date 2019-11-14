@@ -15,7 +15,7 @@ import iris
 import cartopy.crs as ccrs
 from scipy.ndimage.filters import gaussian_filter
 
-from cosmic.util import sysrun
+from cosmic.util import sysrun, predominant_pixel_2d
 
 SEASONS = ['jja', 'son', 'djf', 'mam']
 MODES = ['amount', 'freq', 'intensity']
@@ -309,25 +309,42 @@ class SeasonAnalysisPlotter:
                 self.savefig(f'ppt_thresh_{self.thresh_text}/hourly/LST/asia_{mode}_{season}_hr{j:02d}_LST.png')
                 plt.close('all')
 
-    def plot_afi_diurnal_cycle(self, mode, cmap_name='li2018fig3', overlay_style=None):
+    def plot_afi_diurnal_cycle(self, mode, cmap_name='li2018fig3', overlay_style=None, predom_pixel=None):
         for season in self.seasons:
             cube = self.cubes[f'{mode}_{season}']
+            if predom_pixel:
+                nlat = cube.shape[1] // predom_pixel * predom_pixel
+                nlon = cube.shape[2] // predom_pixel * predom_pixel
+                cube = cube[:, :nlat, :nlon]
             lon_min, lon_max = cube.coord('longitude').points[[0, -1]]
             lat_min, lat_max = cube.coord('latitude').points[[0, -1]]
 
             extent = (lon_min, lon_max, lat_min, lat_max)
             t_offset = cube.coord('longitude').points / 180 * 12
+            def calc_predom_pixel_season_peak(peak):
+                predom = predominant_pixel_2d(peak, 
+                                             (predom_pixel, predom_pixel), 
+                                             'exact')
+                return predom.repeat(predom_pixel, axis=0).\
+                                     repeat(predom_pixel, axis=1)
+
             if self.runid == 'cmorph_0p25':
                 # CMORPH 0.25deg data is 3-hourly.
                 season_peak_time_GMT = cube.data.argmax(axis=0) * 3
+                if predom_pixel:
+                    season_peak_time_GMT[:, :] = calc_predom_pixel_season_peak(season_peak_time_GMT)
                 season_peak_time_LST = (season_peak_time_GMT + t_offset[None, :] + 1.5) % 24
             elif self.runid == 'cmorph_8km':
                 # CMORPH 8km data is 30-min-ly
                 season_peak_time_GMT = cube.data.argmax(axis=0) / 2
+                if predom_pixel:
+                    season_peak_time_GMT[:, :] = calc_predom_pixel_season_peak(season_peak_time_GMT)
                 season_peak_time_LST = (season_peak_time_GMT + t_offset[None, :] + 0.25) % 24
             else:
                 # model data is 1-hourly.
                 season_peak_time_GMT = cube.data.argmax(axis=0)
+                if predom_pixel:
+                    season_peak_time_GMT[:, :] = calc_predom_pixel_season_peak(season_peak_time_GMT)
                 season_peak_time_LST = (season_peak_time_GMT + t_offset[None, :] + 0.5) % 24
 
             ax = plt.axes(projection=ccrs.PlateCarree())
@@ -388,13 +405,13 @@ class SeasonAnalysisPlotter:
             rect = Rectangle((97.5, 18), 125 - 97.5, 41 - 18, linewidth=1, edgecolor='k', facecolor='none')
             ax.add_patch(rect)
             fig.set_size_inches(12, 8)
-            self.savefig(f'ppt_thresh_{self.thresh_text}/diurnal_cycle/asia_diurnal_cycle_{mode}_{season}_peak.{cmap_name}.{overlay_style}.png')
+            self.savefig(f'ppt_thresh_{self.thresh_text}/diurnal_cycle/asia_diurnal_cycle_{mode}_{season}_peak.{cmap_name}.{overlay_style}.predom_{predom_pixel}.png')
             ax.set_xlim((97.5, 125))
             ax.set_ylim((18, 41))
             ax.set_xticks([100, 110, 120])
             ax.set_yticks([20, 30, 40])
             fig.set_size_inches(6, 8)
-            self.savefig(f'ppt_thresh_{self.thresh_text}/diurnal_cycle/china_diurnal_cycle_{mode}_{season}_peak.{cmap_name}.{overlay_style}.png')
+            self.savefig(f'ppt_thresh_{self.thresh_text}/diurnal_cycle/china_diurnal_cycle_{mode}_{season}_peak.{cmap_name}.{overlay_style}.predom_{predom_pixel}.png')
 
             plt.close('all')
 
@@ -454,9 +471,9 @@ def main(basepath, runid, daterange, seasons, resolution, precip_threshes):
             # plotter.plot_season_afi_gmt(mode)
             # plotter.plot_season_afi_lst(mode)
             plotter.plot_season_afi_mean(mode)
-            plotter.plot_afi_diurnal_cycle(mode, overlay_style='alpha_overlay')
+            plotter.plot_afi_diurnal_cycle(mode, overlay_style=None, predom_pixel=None)
 
-        # gen_animations()
+        # plotter.gen_animations()
 
 
 if __name__ == '__main__':
