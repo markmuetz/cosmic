@@ -14,11 +14,48 @@ from matplotlib.patches import Rectangle
 import iris
 import cartopy.crs as ccrs
 from scipy.ndimage.filters import gaussian_filter
+import rasterio
 
 from cosmic.util import sysrun, predominant_pixel_2d
 
+from basmati.hydrosheds import load_hydrobasins_geodataframe
+from basmati.utils import build_raster_from_geometries
+
+
 SEASONS = ['jja', 'son', 'djf', 'mam']
 MODES = ['amount', 'freq', 'intensity']
+
+
+def daily_circular_mean(arr, axis=None):
+    """Calculate the mean time (in hr) of a given input array, along any axis
+
+    See: https://en.wikipedia.org/wiki/Mean_of_circular_quantities.
+    """
+    theta = (arr % 24) / 24 * 2 * np.pi
+    arr_x = np.sin(theta)
+    arr_y = np.cos(theta)
+    theta_mean = np.arctan2(arr_x.mean(axis=axis), arr_y.mean(axis=axis))
+    return (theta_mean / (2 * np.pi) * 24) % 24
+
+
+def build_raster(cube, hb):
+    print('Build raster')
+    nlat = cube.shape[1]
+    nlon = cube.shape[2]
+    lon_min, lon_max = cube.coord('longitude').points[[0, -1]]
+    lat_min, lat_max = cube.coord('latitude').points[[0, -1]]
+    scale_lon = (lon_max - lon_min) / (nlon - 1)
+    scale_lat = (lat_max - lat_min) / (nlat - 1)
+
+    # Check equal (N1280).
+    # assert scale_lon == 360 / 2560, 'lat does not match'
+    # assert scale_lat == 180 / 1920, 'lat does not match'
+    affine_tx = rasterio.transform.Affine(scale_lon, 0, lon_min,
+                                          0, scale_lat, lat_min)
+    raster = build_raster_from_geometries(hb.geometry,
+                                          (cube.shape[1], cube.shape[2]),
+                                          affine_tx)
+    return raster
 
 
 def load_cmap_data(cmap_data_filename):
@@ -45,6 +82,8 @@ class SeasonAnalysisPlotter:
         self.cubes = {}
         self.figdir = Path(f'figs/{runid}/{daterange}')
         self.load_cubes()
+        self.hb = load_hydrobasins_geodataframe('/home/markmuetz/HydroSHEDS', 'as', range(1, 9))
+        self.raster_cache = {}
 
     def savefig(self, filename):
         filepath = self.figdir / filename
@@ -443,6 +482,94 @@ class SeasonAnalysisPlotter:
             self.savefig(f'ppt_thresh_{self.thresh_text}/diurnal_cycle/china_diurnal_cycle_{mode}_{season}_strength.png')
             plt.close('all')
 
+    def plot_basin_afi_diurnal_cycle(self, mode, cmap_name='li2018fig3', basin_filter='level', scale=6):
+        hb = self.hb
+        for season in self.seasons:
+            cube = self.cubes[f'{mode}_{season}']
+            if basin_filter == 'level':
+                hb_filtered = hb[hb.LEVEL == scale]
+            elif basin_filter == 'area':
+                if scale == 'small':
+                    min_area, max_area = 2_000, 20_000
+                elif scale == 'medium':
+                    min_area, max_area = 20_000, 200_000
+                elif scale == 'large':
+                    min_area, max_area = 200_000, 2_000_000
+                hb_filtered = hb.area_select(min_area, max_area)
+
+            raster_cache_key = (basin_filter, scale)
+            if raster_cache_key in self.raster_cache:
+                raster = self.raster_cache[raster_cache_key]
+            else:
+                raster = build_raster(cube, hb_filtered)
+                self.raster_cache[raster_cache_key] = raster
+
+            lon_min, lon_max = cube.coord('longitude').points[[0, -1]]
+            lat_min, lat_max = cube.coord('latitude').points[[0, -1]]
+
+            extent = (lon_min, lon_max, lat_min, lat_max)
+            # plt.imshow(raster, origin='lower', extent=extent)
+
+            # plt.show()
+            t_offset = cube.coord('longitude').points / 180 * 12
+            if self.runid == 'cmorph_0p25':
+                # CMORPH 0.25deg data is 3-hourly.
+                season_peak_time_GMT = cube.data.argmax(axis=0) * 3
+                season_peak_time_LST = (season_peak_time_GMT + t_offset[None, :] + 1.5) % 24
+            elif self.runid == 'cmorph_8km':
+                # CMORPH 8km data is 30-min-ly
+                season_peak_time_GMT = cube.data.argmax(axis=0) / 2
+                season_peak_time_LST = (season_peak_time_GMT + t_offset[None, :] + 0.25) % 24
+            else:
+                # model data is 1-hourly.
+                season_peak_time_GMT = cube.data.argmax(axis=0)
+                season_peak_time_LST = (season_peak_time_GMT + t_offset[None, :] + 0.5) % 24
+
+            ax = plt.axes(projection=ccrs.PlateCarree())
+            fig = plt.gcf()
+            ax.coastlines()
+
+            title = f'{self.runid} diurnal cycle time {mode} {season} LST ppt_thresh={self.precip_thresh} mm hr$^{{-1}}$'
+            print(title)
+            plt.title(title)
+
+            if cmap_name == 'li2018fig3':
+                cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig3_cb.pkl')
+                imshow_kwargs = {'cmap': cmap, 'norm': norm}
+                cbar_kwargs['norm'] = norm
+            elif cmap_name == 'sky_colour':
+                cmap = LinearSegmentedColormap.from_list('cmap',['k','pink','cyan','blue','red','k'], 
+                                                         N=24)
+                imshow_kwargs = {'cmap': cmap}
+                cbar_kwargs = {}
+
+            basin_index = range(1, raster.max() + 1)
+
+            basin_mean_field = np.zeros(raster.shape, dtype=np.float)
+            for i in basin_index:
+                basin_mean_field[raster == i] = daily_circular_mean(season_peak_time_LST[raster == i])
+
+            ma_basin_mean_field = np.ma.masked_array(basin_mean_field, mask=raster == 0)
+
+            im0 = ax.imshow(ma_basin_mean_field, origin='lower', extent=extent,
+                            vmin=0, vmax=24, **imshow_kwargs)
+
+            plt.colorbar(im0, label=f'{mode} peak (hr)', orientation='horizontal', 
+                         **cbar_kwargs)
+
+            rect = Rectangle((97.5, 18), 125 - 97.5, 41 - 18, linewidth=1, edgecolor='k', facecolor='none')
+            ax.add_patch(rect)
+            fig.set_size_inches(12, 8)
+            self.savefig(f'ppt_thresh_{self.thresh_text}/basin_diurnal_cycle/asia_diurnal_cycle_{mode}_{season}_peak.{cmap_name}.{basin_filter}_{scale}.png')
+            ax.set_xlim((97.5, 125))
+            ax.set_ylim((18, 41))
+            ax.set_xticks([100, 110, 120])
+            ax.set_yticks([20, 30, 40])
+            fig.set_size_inches(6, 8)
+            self.savefig(f'ppt_thresh_{self.thresh_text}/basin_diurnal_cycle/china_diurnal_cycle_{mode}_{season}_peak.{cmap_name}.{basin_filter}_{scale}.png')
+
+            plt.close('all')
+
     def gen_animations(self):
         for season in self.seasons:
             for mode in MODES:
@@ -470,8 +597,9 @@ def main(basepath, runid, daterange, seasons, resolution, precip_threshes):
         for mode in MODES:
             # plotter.plot_season_afi_gmt(mode)
             # plotter.plot_season_afi_lst(mode)
-            plotter.plot_season_afi_mean(mode)
-            plotter.plot_afi_diurnal_cycle(mode, overlay_style=None, predom_pixel=None)
+            # plotter.plot_season_afi_mean(mode)
+            # plotter.plot_afi_diurnal_cycle(mode, overlay_style=None, predom_pixel=None)
+            plotter.plot_basin_afi_diurnal_cycle(mode, basin_filter='level', scale=3)
 
         # plotter.gen_animations()
 
