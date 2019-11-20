@@ -1,11 +1,11 @@
 import sys
 from pathlib import Path
-import pickle
 
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 import iris
+
+from cosmic.util import load_cmap_data
 
 MODES = ['amount', 'freq', 'intensity']
 
@@ -19,15 +19,6 @@ TITLE_RUNID_MAP = {
     'ak543': 'UM explicit conv.',
     'al508': 'UM parametrized conv.',
 }
-
-
-def load_cmap_data(cmap_data_filename):
-    with open(cmap_data_filename, 'rb') as fp:
-        cmap_data = pickle.load(fp)
-        cmap = mpl.colors.ListedColormap(cmap_data['html_colours'])
-        norm = mpl.colors.BoundaryNorm(cmap_data['bounds'], cmap.N)
-        cbar_kwargs = cmap_data['cbar_kwargs']
-    return cmap, norm, cmap_data['bounds'], cbar_kwargs
 
 
 class AFI_base:
@@ -96,13 +87,3 @@ class AFI_base:
 
     def save(self):
         plt.savefig(f'figs/{self.name}.{self.duration}.{self.season}.ppt_thresh_{self.precip_thresh}.png')
-
-
-if __name__ == '__main__':
-    datadir = sys.argv[1]
-    duration = sys.argv[2]
-    precip_thresh = sys.argv[3]
-    afi_mean = AFI_mean(datadir, duration, precip_thresh)
-    afi_mean.plot()
-    afi_mean.save()
-

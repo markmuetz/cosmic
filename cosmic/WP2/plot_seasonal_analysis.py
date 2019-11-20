@@ -1,12 +1,10 @@
 # coding: utf-8
 import sys
 from pathlib import Path
-import pickle
 from argparse import ArgumentParser
 
 import numpy as np
 from scipy.interpolate import interp1d
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 from matplotlib.colors import LogNorm, LinearSegmentedColormap
@@ -14,57 +12,15 @@ from matplotlib.patches import Rectangle
 import iris
 import cartopy.crs as ccrs
 from scipy.ndimage.filters import gaussian_filter
-import rasterio
 
-from cosmic.util import sysrun, predominant_pixel_2d
+from cosmic.util import (sysrun, predominant_pixel_2d, load_cmap_data,
+                         daily_circular_mean, build_raster_from_cube)
 
 from basmati.hydrosheds import load_hydrobasins_geodataframe
-from basmati.utils import build_raster_from_geometries
 
 
 SEASONS = ['jja', 'son', 'djf', 'mam']
 MODES = ['amount', 'freq', 'intensity']
-
-
-def daily_circular_mean(arr, axis=None):
-    """Calculate the mean time (in hr) of a given input array, along any axis
-
-    See: https://en.wikipedia.org/wiki/Mean_of_circular_quantities.
-    """
-    theta = (arr % 24) / 24 * 2 * np.pi
-    arr_x = np.sin(theta)
-    arr_y = np.cos(theta)
-    theta_mean = np.arctan2(arr_x.mean(axis=axis), arr_y.mean(axis=axis))
-    return (theta_mean / (2 * np.pi) * 24) % 24
-
-
-def build_raster(cube, hb):
-    print('Build raster')
-    nlat = cube.shape[1]
-    nlon = cube.shape[2]
-    lon_min, lon_max = cube.coord('longitude').points[[0, -1]]
-    lat_min, lat_max = cube.coord('latitude').points[[0, -1]]
-    scale_lon = (lon_max - lon_min) / (nlon - 1)
-    scale_lat = (lat_max - lat_min) / (nlat - 1)
-
-    # Check equal (N1280).
-    # assert scale_lon == 360 / 2560, 'lat does not match'
-    # assert scale_lat == 180 / 1920, 'lat does not match'
-    affine_tx = rasterio.transform.Affine(scale_lon, 0, lon_min,
-                                          0, scale_lat, lat_min)
-    raster = build_raster_from_geometries(hb.geometry,
-                                          (cube.shape[1], cube.shape[2]),
-                                          affine_tx)
-    return raster
-
-
-def load_cmap_data(cmap_data_filename):
-    with open(cmap_data_filename, 'rb') as fp:
-        cmap_data = pickle.load(fp)
-        cmap = mpl.colors.ListedColormap(cmap_data['html_colours'])
-        norm = mpl.colors.BoundaryNorm(cmap_data['bounds'], cmap.N)
-        cbar_kwargs = cmap_data['cbar_kwargs']
-    return cmap, norm, cmap_data['bounds'], cbar_kwargs
 
 
 class SeasonAnalysisPlotter:
@@ -501,7 +457,7 @@ class SeasonAnalysisPlotter:
             if raster_cache_key in self.raster_cache:
                 raster = self.raster_cache[raster_cache_key]
             else:
-                raster = build_raster(cube, hb_filtered)
+                raster = build_raster_from_cube(cube, hb_filtered)
                 self.raster_cache[raster_cache_key] = raster
 
             lon_min, lon_max = cube.coord('longitude').points[[0, -1]]

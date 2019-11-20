@@ -1,3 +1,4 @@
+from argparse import ArgumentParser
 import sys
 
 import numpy as np
@@ -71,9 +72,12 @@ class AFI_diurnal_cycle(AFI_base):
 
 
 if __name__ == '__main__':
-    datadir = sys.argv[1]
-    duration = sys.argv[2]
-    precip_thresh = sys.argv[3]
-    afi_diurnal_cycle = AFI_diurnal_cycle(datadir, duration, precip_thresh)
+    parser = ArgumentParser()
+    parser.add_argument('basedir')
+    parser.add_argument('duration')
+    parser.add_argument('precip-thresh')
+    args = parser.parse_args()
+
+    afi_diurnal_cycle = AFI_diurnal_cycle(args.datadir, args.duration, args.precip_thresh)
     afi_diurnal_cycle.plot()
     afi_diurnal_cycle.save()
