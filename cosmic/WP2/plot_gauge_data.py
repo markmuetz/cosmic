@@ -28,23 +28,21 @@ def plot_precip_station_jja_cressman(ax, df_precip_station_jja, stretch_lat, sea
                                      **kwargs):
     cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig2_cb1.pkl')
 
-    sorted_df_precip_station_jja = df_precip_station_jja.sort_values(by='precip')
-
     if stretch_lat:
-        lat = sorted_df_precip_station_jja.lat * 1.5
+        lat = df_precip_station_jja.lat * 1.5
     else:
-        lat = sorted_df_precip_station_jja.lat
+        lat = df_precip_station_jja.lat
 
-    gx, gy, griddata = interpolate_to_grid(sorted_df_precip_station_jja.lon, 
+    gx, gy, griddata = interpolate_to_grid(df_precip_station_jja.lon, 
                                            lat, 
-                                           sorted_df_precip_station_jja.precip, 
+                                           df_precip_station_jja.precip, 
                                            interp_type='cressman', minimum_neighbors=1,
                                            hres=grid_spacing, search_radius=search_rad)
     griddata = np.ma.masked_where(np.isnan(griddata), griddata)
-    lon_min = sorted_df_precip_station_jja.lon.min()
-    lon_max = sorted_df_precip_station_jja.lon.max()
-    lat_min = sorted_df_precip_station_jja.lat.min()
-    lat_max = sorted_df_precip_station_jja.lat.max()
+    lon_min = df_precip_station_jja.lon.min()
+    lon_max = df_precip_station_jja.lon.max()
+    lat_min = df_precip_station_jja.lat.min()
+    lat_max = df_precip_station_jja.lat.max()
     extent = (lon_min, lon_max, lat_min, lat_max)
 
     # Use to mask out ocean.

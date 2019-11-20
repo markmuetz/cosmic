@@ -553,11 +553,12 @@ def main(basepath, runid, daterange, seasons, resolution, precip_threshes):
         for mode in MODES:
             # plotter.plot_season_afi_gmt(mode)
             # plotter.plot_season_afi_lst(mode)
-            # plotter.plot_season_afi_mean(mode)
+            plotter.plot_season_afi_mean(mode)
             # plotter.plot_afi_diurnal_cycle(mode, overlay_style=None, predom_pixel=None)
-            plotter.plot_basin_afi_diurnal_cycle(mode, basin_filter='level', scale=3)
+            # plotter.plot_basin_afi_diurnal_cycle(mode, basin_filter='level', scale=3)
 
         # plotter.gen_animations()
+    return plotter
 
 
 if __name__ == '__main__':
@@ -571,4 +572,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.resolution == 'None':
         args.resolution = None
-    main(**vars(args))
+    plotter = main(**vars(args))
