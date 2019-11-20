@@ -3,8 +3,7 @@ from pathlib import Path
 
 import iris
 
-from cosmic.util import load_config
-from cosmic.WP2.regrid import regrid
+from cosmic.util import load_config, regrid
 
 
 def main(year, month):
