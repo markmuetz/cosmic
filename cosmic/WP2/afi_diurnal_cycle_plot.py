@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import cartopy.crs as ccrs
 
-from afi_base import AFI_base, load_cmap_data, MODES, TITLE_MODE_MAP, TITLE_RUNID_MAP
+from .afi_base import AFI_base, load_cmap_data, MODES, TITLE_MODE_MAP, TITLE_RUNID_MAP
 
 
 class AFI_diurnal_cycle(AFI_base):
@@ -22,7 +22,7 @@ class AFI_diurnal_cycle(AFI_base):
         for i in range(3):
             ax_row = []
             for j in range(3):
-                ax_row.append(plt.subplot(gs[i, j], projection=ccrs.PlateCarree()))
+                ax_row.append(self.fig.add_subplot(gs[i, j], projection=ccrs.PlateCarree()))
             fig_axes.append(ax_row)
         cb_axes.append(plt.subplot(gs[-1, :]))
         return np.array(fig_axes), np.array(cb_axes)
@@ -41,7 +41,6 @@ class AFI_diurnal_cycle(AFI_base):
         plt.colorbar(im, ax=cax, label=f'diurnal cycle (hr)', 
                      orientation='horizontal', norm=norm, **cbar_kwargs,
                      fraction=0.6, aspect=35)
-
 
     def plot_ax(self, ax, cube, runid, mode):
         lon_min, lon_max = cube.coord('longitude').points[[0, -1]]
@@ -73,9 +72,9 @@ class AFI_diurnal_cycle(AFI_base):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('basedir')
+    parser.add_argument('datadir')
     parser.add_argument('duration')
-    parser.add_argument('precip-thresh')
+    parser.add_argument('precip_thresh')
     args = parser.parse_args()
 
     afi_diurnal_cycle = AFI_diurnal_cycle(args.datadir, args.duration, args.precip_thresh)

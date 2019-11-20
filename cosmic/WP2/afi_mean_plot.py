@@ -1,3 +1,4 @@
+from argparse import ArgumentParser
 import sys
 
 import numpy as np
@@ -5,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import cartopy.crs as ccrs
 
-from afi_base import AFI_base, load_cmap_data, MODES, TITLE_MODE_MAP, TITLE_RUNID_MAP
+from .afi_base import AFI_base, load_cmap_data, MODES, TITLE_MODE_MAP, TITLE_RUNID_MAP
 
 
 class AFI_mean(AFI_base):
@@ -79,9 +80,9 @@ class AFI_mean(AFI_base):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('basedir')
+    parser.add_argument('datadir')
     parser.add_argument('duration')
-    parser.add_argument('precip-thresh')
+    parser.add_argument('precip_thresh')
     args = parser.parse_args()
 
     afi_mean = AFI_mean(args.datadir, args.duration, args.precip_thresh)
