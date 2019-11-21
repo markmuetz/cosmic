@@ -97,7 +97,7 @@ class AFI_base:
 
         self.add_titles_colourbars()
 
-        self.fig.subplots_adjust(top=0.95, bottom=0.05, left=0.07, right=0.99, wspace=0.1, hspace=0.1) 
+        self.fig.subplots_adjust(top=0.95, bottom=0.05, left=0.07, right=0.99, wspace=0.1, hspace=0.1)
 
     def save(self):
         plt.savefig(f'figs/{self.name}.{self.duration}.{self.season}.ppt_thresh_{self.precip_thresh}.png')

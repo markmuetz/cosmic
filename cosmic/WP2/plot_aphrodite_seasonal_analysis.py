@@ -10,8 +10,9 @@ from cosmic.util import load_cmap_data
 
 BASEDIR = Path('/home/markmuetz/mirrors/jasmin/gw_cosmic/mmuetz/data/aphrodite_data/025deg')
 
+
 def plot_aphrodite_seasonal_analysis():
-    ppt = iris.load_cube(str(BASEDIR / 'APHRO_MA_025deg_V1901.2009.nc'), 
+    ppt = iris.load_cube(str(BASEDIR / 'APHRO_MA_025deg_V1901.2009.nc'),
                          ' daily precipitation analysis interpolated onto 0.25deg grids')
     epoch2009 = dt.datetime(2009, 1, 1)
     time_index = np.array([epoch2009 + dt.timedelta(minutes=m) for m in ppt.coord('time').points])

@@ -58,8 +58,8 @@ def build_raster_from_lon_lat(lon_min, lon_max, lat_min, lat_max, nlon, nlat, hb
 
 
 def build_raster_from_cube(cube, hb):
-    nlat = cube.shape[1]
-    nlon = cube.shape[2]
+    nlat = cube.shape[-2]
+    nlon = cube.shape[-1]
     lon_min, lon_max = cube.coord('longitude').points[[0, -1]]
     lat_min, lat_max = cube.coord('latitude').points[[0, -1]]
     return build_raster_from_lon_lat(lon_min, lon_max, lat_min, lat_max, nlon, nlat, hb)
@@ -98,14 +98,14 @@ def sysrun(cmd):
 
     raises CalledProcessError if cmd is bad.
     to access output: sysrun(cmd).stdout"""
-    return sp.run(cmd, check=True, shell=True, stdout=sp.PIPE, stderr=sp.PIPE, encoding='utf8') 
+    return sp.run(cmd, check=True, shell=True, stdout=sp.PIPE, stderr=sp.PIPE, encoding='utf8')
 
 
-def predominant_pixel_2d(arr: np.ndarray, grain_size: List[int], 
+def predominant_pixel_2d(arr: np.ndarray, grain_size: List[int],
                          offset: Union[List[int], str] = 'exact') -> np.ndarray:
     """Find predominant pixel (mode) of a coarse grained a 2D arr based on grain_size
 
-    offsets the input array based on offset, so grain_size does not have to 
+    offsets the input array based on offset, so grain_size does not have to
     divide exactly into array size.
 
     :param arr: array to analyse
