@@ -8,11 +8,11 @@ import numpy as np
 
 from cosmic.util import load_cmap_data
 
-BASEDIR = Path('/home/markmuetz/mirrors/jasmin/gw_cosmic/mmuetz/data/aphrodite_data/025deg')
+aphrodite_dir = Path('aphrodite_data/025deg')
 
 
-def plot_aphrodite_seasonal_analysis():
-    ppt = iris.load_cube(str(BASEDIR / 'APHRO_MA_025deg_V1901.2009.nc'),
+def plot_aphrodite_seasonal_analysis(datadir):
+    ppt = iris.load_cube(str(datadir / aphrodite_dir / 'APHRO_MA_025deg_V1901.2009.nc'),
                          ' daily precipitation analysis interpolated onto 0.25deg grids')
     epoch2009 = dt.datetime(2009, 1, 1)
     time_index = np.array([epoch2009 + dt.timedelta(minutes=m) for m in ppt.coord('time').points])
@@ -42,7 +42,9 @@ def plot_aphrodite_seasonal_analysis():
     ax = plt.gca()
     ax.set_xlim((57, 150))
     ax.set_ylim((1, 56))
-    plt.savefig('figs/aphrodite/asia_aphrodite_2009_jja.png')
+    figdir = Path('figs/aphrodite')
+    figdir.mkdir(exist_ok=True, parents=True)
+    plt.savefig(figdir / 'asia_aphrodite_2009_jja.png')
 
     ax.set_xlim((97.5, 125))
     ax.set_ylim((18, 41))
@@ -50,8 +52,4 @@ def plot_aphrodite_seasonal_analysis():
     ax.set_yticks([20, 30, 40])
     fig.set_size_inches(6, 8)
 
-    plt.savefig('figs/aphrodite/china_aphrodite_2009_jja.png')
-
-
-if __name__ == '__main__':
-    plot_aphrodite_seasonal_analysis()
+    plt.savefig(figdir / 'china_aphrodite_2009_jja.png')
