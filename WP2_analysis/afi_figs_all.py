@@ -3,20 +3,29 @@ import itertools
 from cosmic.WP2.afi_mean_plot import AFI_mean
 from cosmic.WP2.afi_diurnal_cycle_plot import AFI_diurnal_cycle
 
-if __name__ == '__main__':
+from paths import PATHS
+
+
+def fig_afi_mean(duration, precip_thresh):
+    afi_mean = AFI_mean(PATHS['datadir'], duration, precip_thresh)
+    afi_mean.plot()
+    afi_mean.save()
+
+
+def fig_afi_diurnal_cycle(duration, precip_thresh):
+    afi_diurnal_cycle = AFI_diurnal_cycle(PATHS['datadir'], duration, precip_thresh)
+    afi_diurnal_cycle.plot()
+    afi_diurnal_cycle.save()
+
+
+def afi_all_figs_gen():
     durations = ['short', 'long']
     precip_threshes = [0.05, 0.1, 0.2]
     for duration, precip_thresh in itertools.product(durations, precip_threshes):
-        afi_mean = AFI_mean('/home/markmuetz/mirrors/jasmin/gw_cosmic/mmuetz/data', 
-                            duration,
-                            precip_thresh)
-        afi_mean.plot()
-        afi_mean.save()
+        yield (fig_afi_mean, (duration, precip_thresh), {})
+        yield (fig_afi_diurnal_cycle, (duration, precip_thresh), {})
 
-        afi_dc = AFI_diurnal_cycle('/home/markmuetz/mirrors/jasmin/gw_cosmic/mmuetz/data', 
-                                   duration,
-                                   precip_thresh)
 
-        afi_dc.plot()
-        afi_dc.save()
-
+if __name__ == '__main__':
+    for fn, args, kwargs in afi_all_figs_gen():
+        print(f'{fn.__name__}({args}, {kwargs}')

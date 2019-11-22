@@ -10,6 +10,7 @@ import cosmic.WP2.seasonal_precip_analysis as spa
 def fmt_year_month(year, month):
     return f'{year}{month:02}'
 
+
 def main(start_year_month, end_year_month, 
          split_stream, loc, runid, precip_thresh, season):
     suite = f'u-{runid}'

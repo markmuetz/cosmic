@@ -6,11 +6,12 @@ import iris
 from cosmic.util import load_config
 import cosmic.WP2.seasonal_precip_analysis as spa
 
+
 def fmt_year_month(year, month):
     return f'{year}{month:02}'
 
-def main(cmorph_dataset, resolution, start_year_month, end_year_month, season, precip_thresh):
 
+def main(cmorph_dataset, resolution, start_year_month, end_year_month, season, precip_thresh):
     datadir = Path(f'/gws/nopw/j04/cosmic/mmuetz/data/cmorph_data/{cmorph_dataset}')
     if resolution:
         file_tpl = 'cmorph_ppt_{year}{month:02}.asia.{resolution}.nc'
