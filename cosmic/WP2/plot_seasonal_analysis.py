@@ -24,21 +24,22 @@ MODES = ['amount', 'freq', 'intensity']
 
 
 class SeasonAnalysisPlotter:
-    def __init__(self, datadir, runid, daterange, seasons, precip_thresh, resolution):
+    def __init__(self, datadir, hydrosheds_dir, runid, daterange, seasons, precip_thresh, resolution):
         self.datadir = datadir
+        self.hydrosheds_dir = hydrosheds_dir
         self.runid = runid
         self.daterange = daterange
         if seasons == 'all':
             self.seasons = SEASONS
         else:
-            self.seasons = seasons.split(',')
+            self.seasons = seasons
         self.resolution = resolution
         self.precip_thresh = precip_thresh
         self.thresh_text = str(precip_thresh).replace('.', 'p')
         self.cubes = {}
         self.figdir = Path(f'figs/{runid}/{daterange}')
         self.load_cubes()
-        self.hb = load_hydrobasins_geodataframe('/home/markmuetz/HydroSHEDS', 'as', range(1, 9))
+        self.hb = load_hydrobasins_geodataframe(self.hydrosheds_dir, 'as', range(1, 9))
         self.raster_cache = {}
 
     def savefig(self, filename):
@@ -538,7 +539,7 @@ class SeasonAnalysisPlotter:
                     sysrun(cmd)
 
 
-def main(basepath, runid, daterange, seasons, resolution, precip_threshes):
+def main(basepath, hydrosheds_dir, runid, daterange, seasons, resolution, precip_threshes):
     if runid == 'cmorph_0p25':
         datadir = Path(f'{basepath}/cmorph_data/0.25deg-3HLY')
     elif runid == 'cmorph_8km':
@@ -547,7 +548,7 @@ def main(basepath, runid, daterange, seasons, resolution, precip_threshes):
         datadir = Path(f'{basepath}/u-{runid}/ap9.pp')
 
     for precip_thresh in precip_threshes:
-        plotter = SeasonAnalysisPlotter(datadir, runid, daterange, seasons, precip_thresh, resolution)
+        plotter = SeasonAnalysisPlotter(datadir, hydrosheds_dir, runid, daterange, seasons, precip_thresh, resolution)
         # plt.ion()
 
         for mode in MODES:
@@ -564,6 +565,7 @@ def main(basepath, runid, daterange, seasons, resolution, precip_threshes):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('basepath')
+    parser.add_argument('hydrosheds_dir')
     parser.add_argument('runid')
     parser.add_argument('daterange')
     parser.add_argument('seasons')

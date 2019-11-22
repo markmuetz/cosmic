@@ -1,4 +1,3 @@
-from argparse import ArgumentParser
 import datetime as dt
 from pathlib import Path
 
@@ -6,37 +5,39 @@ import iris
 from metpy.interpolate import interpolate_to_grid
 import numpy as np
 
-from plot_gauge_data import load_data
+from .plot_gauge_data import load_data
+
+DATASETS = [
+    'cmorph_0p25',
+    'cmorph_8km_N1280',
+    'aphrodite',
+    'gauge_china_2419',
+    'u-ak543',
+    'u-al508',
+    'u-am754',
+]
 
 
-if __name__ == '__main__':
-    parser = ArgumentParser()
-    parser.add_argument('basepath')
-    parser.add_argument('dataset')
-    args = parser.parse_args()
+def extract_dataset(datadir, dataset):
+    constraint_china = (iris.Constraint(coord_values={'latitude': lambda cell: 18 < cell < 41})
+                        & iris.Constraint(coord_values={'longitude': lambda cell: 97.5 < cell < 125}))
 
-    constraint_china = (iris.Constraint(coord_values={'latitude':lambda cell: 18 < cell < 41})
-                        & iris.Constraint(coord_values={'longitude':lambda cell: 97.5 < cell < 125}))
-
-    if Path('data/cmorph_0p25_china_jja_2009_amount.nc').exists():
-        amount_jja_china_ref = iris.load_cube('data/cmorph_0p25_china_jja_2009_amount.nc')
-
-    if args.dataset == 'cmorph_0p25':
-        datadir = Path(f'{args.basepath}/cmorph_data/0.25deg-3HLY')
+    if dataset == 'cmorph_0p25':
+        datadir = Path(f'{datadir}/cmorph_data/0.25deg-3HLY')
         season = 'jja'
         filename = f'cmorph_ppt_{season}.200906-200908.asia_precip.ppt_thresh_0p1.nc'
         amount_jja = iris.load_cube(f'{datadir}/{filename}',
                                     f'amount_of_precip_{season}')
         amount_jja_china = amount_jja.collapsed('time', iris.analysis.MEAN).extract(constraint_china)
-    elif args.dataset == 'cmorph_8km_N1280':
-        datadir = Path(f'{args.basepath}/cmorph_data/8km-30min')
+    elif dataset == 'cmorph_8km_N1280':
+        datadir = Path(f'{datadir}/cmorph_data/8km-30min')
         season = 'jja'
         filename = f'cmorph_ppt_{season}.200906-200908.asia_precip.ppt_thresh_0p1.N1280.nc'
         amount_jja = iris.load_cube(f'{datadir}/{filename}',
                                     f'amount_of_precip_{season}')
         amount_jja_china = amount_jja.collapsed('time', iris.analysis.MEAN).extract(constraint_china)
-    elif args.dataset == 'aphrodite':
-        datadir = Path(f'{args.basepath}/aphrodite_data/025deg')
+    elif dataset == 'aphrodite':
+        datadir = Path(f'{datadir}/aphrodite_data/025deg')
         amount = iris.load_cube(str(datadir / 'APHRO_MA_025deg_V1901.2009.nc'),
                                 ' daily precipitation analysis interpolated onto 0.25deg grids')
         epoch2009 = dt.datetime(2009, 1, 1)
@@ -45,8 +46,7 @@ if __name__ == '__main__':
         amount_jja = amount[jja]
         amount_jja_mean = amount_jja.collapsed('time', iris.analysis.MEAN)
         amount_jja_china = amount_jja_mean.extract(constraint_china)
-    elif args.dataset == 'gauge_china_2419':
-        datadir = Path(f'{args.basepath}')
+    elif dataset == 'gauge_china_2419':
         df_station_info, df_precip, df_precip_jja, df_precip_station_jja = load_data(datadir)
         if False:
             lat = df_precip_station_jja.lat * 1.5
@@ -70,22 +70,14 @@ if __name__ == '__main__':
                                          long_name='precipitation', units='mm hr-1',
                                          dim_coords_and_dims=coords)
         amount_jja_china = amount_jja_mean.extract(constraint_china)
-    elif args.dataset[:2] == 'u-':
+    elif dataset[:2] == 'u-':
         # UM run:
-        runid = args.dataset[2:7]
-        datadir = Path(f'{args.basepath}/u-{runid}/ap9.pp')
+        runid = dataset[2:7]
+        datadir = Path(f'{datadir}/u-{runid}/ap9.pp')
         season = 'jja'
         filename = f'{runid}a.p9{season}.200806-200808.asia_precip.ppt_thresh_0p1.nc'
         amount_jja = iris.load_cube(f'{datadir / filename}',
                                     f'amount_of_precip_{season}')
         amount_jja_china = amount_jja.collapsed('time', iris.analysis.MEAN).extract(constraint_china)
 
-
-    iris.save(amount_jja_china, f'data/{args.dataset}_china_jja_2009_amount.nc')
-
-
-
-    print(args)
-    lon_min, lon_max = (97.5, 125)
-    lat_min, lat_max = (18, 41)
-
+    iris.save(amount_jja_china, f'data/{dataset}_china_jja_2009_amount.nc')

@@ -1,7 +1,3 @@
-from argparse import ArgumentParser
-import itertools
-from pathlib import Path
-
 import iris
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -13,7 +9,7 @@ from cosmic.util import build_raster_from_cube
 from basmati.hydrosheds import load_hydrobasins_geodataframe
 
 
-def compare_mean_precip(dataset1, dataset2, land_only=False, check_calcs=False):
+def compare_mean_precip(hydrosheds_dir, dataset1, dataset2, land_only=False, check_calcs=False):
     cube1 = iris.load_cube(f'data/{dataset1}_china_jja_2009_amount.nc')
     cube2 = iris.load_cube(f'data/{dataset2}_china_jja_2009_amount.nc')
 
@@ -57,7 +53,7 @@ def compare_mean_precip(dataset1, dataset2, land_only=False, check_calcs=False):
     full_mask |= np.isnan(raw_data1)
     full_mask |= np.isnan(raw_data2)
     if land_only:
-        hb = load_hydrobasins_geodataframe('/home/markmuetz/HydroSHEDS', 'as', [1])
+        hb = load_hydrobasins_geodataframe(hydrosheds_dir, 'as', [1])
         raster = build_raster_from_cube(cube1, hb)
         full_mask |= raster == 0
 
@@ -114,29 +110,4 @@ def compare_mean_precip(dataset1, dataset2, land_only=False, check_calcs=False):
         plt.savefig(f'figs/compare_jja_2009_{dataset1}_vs_{dataset2}.land_only.png')
     else:
         plt.savefig(f'figs/compare_jja_2009_{dataset1}_vs_{dataset2}.png')
-
-
-if __name__ == '__main__':
-    parser = ArgumentParser()
-    parser.add_argument('--all', action='store_true')
-    parser.add_argument('--dataset1')
-    parser.add_argument('--dataset2')
-    parser.add_argument('--land-only', action='store_true')
-    parser.add_argument('--check-calcs', action='store_true')
-    args = parser.parse_args()
-
-    lowres_datasets = ['gauge_china_2419', 'aphrodite', 'cmorph_0p25']
-    hires_datasets = ['cmorph_8km_N1280', 'u-ak543_native', 'u-al508_native', 'u-am754_native']
-
-    if args.all:
-        for d1, d2 in itertools.combinations(lowres_datasets, 2):
-            print(f'  comparing {d1} vs {d2}')
-            compare_mean_precip(d1, d2, check_calcs=args.check_calcs)
-        for d1, d2 in itertools.combinations(hires_datasets, 2):
-            print(f'  comparing {d1} vs {d2}')
-            compare_mean_precip(d1, d2, land_only=False, check_calcs=args.check_calcs)
-            compare_mean_precip(d1, d2, land_only=True, check_calcs=args.check_calcs)
-    else:
-        compare_mean_precip(args.dataset1, args.dataset2, args.land_only, check_calcs=args.check_calcs)
-
-    plt.close('all')
+    plt.close(fig)

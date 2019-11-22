@@ -36,6 +36,9 @@ class AFI_base:
         self.load_cubes()
         self.fig_axes, self.cb_axes = self.gen_axes()
 
+    def __str__(self):
+        return f'{self.__class__.__name__}: {self.duration}, {self.precip_thresh}'
+
     def load_cubes(self):
         for runid in self.runids:
             self.cubes[runid] = {}
@@ -73,15 +76,15 @@ class AFI_base:
                 ax.set_ylim((18, 41))
                 xticks = [100, 110, 120]
                 ax.set_xticks(xticks)
-                ax.set_xticklabels([f'${t}\degree$ E' for t in xticks])
+                ax.set_xticklabels([f'${t}\\degree$ E' for t in xticks])
                 ax.set_xticks(np.linspace(98, 124, 14), minor=True)
 
                 yticks = [20, 30, 40]
                 ax.set_yticks(yticks)
-                ax.set_yticklabels([f'${t}\degree$ N' for t in yticks])
+                ax.set_yticklabels([f'${t}\\degree$ N' for t in yticks])
                 ax.set_yticks(np.linspace(18, 40, 12), minor=True)
                 ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False,
-                   bottom=True, top=True, left=True, right=True, which='both')
+                               bottom=True, top=True, left=True, right=True, which='both')
                 if i != 2:
                     ax.get_xaxis().set_ticklabels([])
 
@@ -90,7 +93,6 @@ class AFI_base:
                 else:
                     ax.get_yaxis().set_ticklabels([])
                 c = string.ascii_lowercase[i * len(self.runids) + j]
-                print(f'  {c}')
                 ax.text(0.01, 1.04, f'({c})', size=12, transform=ax.transAxes)
 
             self.image_grid.append(images)
