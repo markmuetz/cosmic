@@ -8,6 +8,7 @@ from extract_china_jja_2009_mean_precip import extract_all_dataset_gen
 from compare_china_jja_2009_mean_precip import all_compares_gen
 from plot_gauge_data import all_plot_gauge_data_gen
 from plot_seasonal_analysis import all_seasonal_analysis_gen
+from plot_aphrodite_seasonal_analysis import all_aphrodite_gen
 
 fn_generators = [
     extract_all_dataset_gen,
@@ -15,6 +16,7 @@ fn_generators = [
     all_compares_gen,
     all_plot_gauge_data_gen,
     all_seasonal_analysis_gen,
+    all_aphrodite_gen,
 ]
 
 
