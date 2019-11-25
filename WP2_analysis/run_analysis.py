@@ -3,6 +3,8 @@ from pathlib import Path
 import hashlib
 import warnings
 
+from basmati.bcolors import Bcolors
+
 from afi_figs_all import afi_all_figs_gen
 from extract_china_jja_2009_mean_precip import extract_all_dataset_gen
 from compare_china_jja_2009_mean_precip import all_compares_gen
@@ -48,7 +50,7 @@ if __name__ == '__main__':
     success = []
     fail = []
     for i, (fn, args, kwargs) in enumerate(tasks):
-        print(f'{i + 1}/{len(tasks)}: {fn.__name__}, {args}, {kwargs}')
+        Bcolors.print(f'{i + 1}/{len(tasks)}: {fn.__name__}, {args}, {kwargs}', ['bold', 'okblue'])
         task_hash_key = task_hash(fn, args, kwargs)
         assert task_hash_key not in hashes
         hashes.add(task_hash_key)
@@ -63,7 +65,7 @@ if __name__ == '__main__':
         except Exception as e:
             warnings.warn(f'Could not run {fn.__name__}, {args}, {kwargs}:')
             fail.append((fn, args, kwargs))
-            print(e)
+            Bcolors.print(e, ['bold', 'fail'])
 
     print()
     print(f'Cached: {len(cached)}')
