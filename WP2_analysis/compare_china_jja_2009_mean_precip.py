@@ -10,10 +10,12 @@ def all_compares_gen(check_calcs=True):
     hires_datasets = ['cmorph_8km_N1280', 'u-ak543_native', 'u-al508_native', 'u-am754_native']
 
     for d1, d2 in itertools.combinations(lowres_datasets, 2):
-        yield compare_mean_precip, (PATHS['hydrosheds_dir'], d1, d2), {'check_calcs': check_calcs}
+        yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2), {'check_calcs': check_calcs}
     for d1, d2 in itertools.combinations(hires_datasets, 2):
-        yield compare_mean_precip, (PATHS['hydrosheds_dir'], d1, d2), {'check_calcs': check_calcs, 'land_only': False}
-        yield compare_mean_precip, (PATHS['hydrosheds_dir'], d1, d2), {'check_calcs': check_calcs, 'land_only': True}
+        yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2), {'check_calcs': check_calcs,
+                                                                                         'land_only': False}
+        yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2), {'check_calcs': check_calcs,
+                                                                                         'land_only': True}
 
 
 if __name__ == '__main__':

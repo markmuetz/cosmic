@@ -6,10 +6,12 @@ ALL_PATHS = {
     'mistakenot': {
         'datadir': Path('/home/markmuetz/mirrors/jasmin/gw_cosmic/mmuetz/data'),
         'hydrosheds_dir': Path('/home/markmuetz/HydroSHEDS'),
+        'figsdir': Path('figs/mistakenot'),
     },
     'jasmin': {
         'datadir': Path('/gws/nopw/j04/cosmic/mmuetz/data'),
         'hydrosheds_dir': Path('/gws/nopw/j04/cosmic/mmuetz/HydroSHEDS'),
+        'figsdir': Path('figs/jasmin'),
     }
 }
 

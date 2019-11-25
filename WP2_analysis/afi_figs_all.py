@@ -7,13 +7,13 @@ from paths import PATHS
 
 
 def fig_afi_mean(duration, precip_thresh):
-    afi_mean = AFI_mean(PATHS['datadir'], duration, precip_thresh)
+    afi_mean = AFI_mean(PATHS['datadir'], PATHS['figsdir'], duration, precip_thresh)
     afi_mean.plot()
     afi_mean.save()
 
 
 def fig_afi_diurnal_cycle(duration, precip_thresh):
-    afi_diurnal_cycle = AFI_diurnal_cycle(PATHS['datadir'], duration, precip_thresh)
+    afi_diurnal_cycle = AFI_diurnal_cycle(PATHS['datadir'], PATHS['figsdir'], duration, precip_thresh)
     afi_diurnal_cycle.plot()
     afi_diurnal_cycle.save()
 

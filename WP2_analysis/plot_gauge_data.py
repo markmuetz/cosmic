@@ -17,7 +17,7 @@ def get_args():
 
 def all_plot_gauge_data_gen():
     kwargs = {'stretch_lat': True, 'search_rad': 0.48, 'grid_spacing': 0.2}
-    yield plot_li2018_fig2a_reproduction, (PATHS['datadir'], PATHS['hydrosheds_dir']), kwargs
+    yield plot_li2018_fig2a_reproduction, (PATHS['datadir'], PATHS['hydrosheds_dir'], PATHS['figsdir']), kwargs
 
 
 if __name__ == '__main__':

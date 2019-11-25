@@ -4,4 +4,4 @@ from paths import PATHS
 
 
 def all_aphrodite_gen():
-    yield plot_aphrodite_seasonal_analysis, (PATHS['datadir'], ), {}
+    yield plot_aphrodite_seasonal_analysis, (PATHS['datadir'], PATHS['figsdir']), {}
