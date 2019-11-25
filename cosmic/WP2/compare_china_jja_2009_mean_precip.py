@@ -9,7 +9,7 @@ from cosmic.util import build_raster_from_cube
 from basmati.hydrosheds import load_hydrobasins_geodataframe
 
 
-def compare_mean_precip(hydrosheds_dir, dataset1, dataset2, land_only=False, check_calcs=False):
+def compare_mean_precip(hydrosheds_dir, figsdir, dataset1, dataset2, land_only=False, check_calcs=False):
     cube1 = iris.load_cube(f'data/{dataset1}_china_jja_2009_amount.nc')
     cube2 = iris.load_cube(f'data/{dataset2}_china_jja_2009_amount.nc')
 
@@ -82,9 +82,9 @@ def compare_mean_precip(hydrosheds_dir, dataset1, dataset2, land_only=False, che
         cbar_ax = fig.add_axes([0.15, 0.11, 0.7, 0.03])
         fig.colorbar(im, cax=cbar_ax, orientation='horizontal', label='precip (mm day$^{-1}$)')
         if land_only:
-            plt.savefig(f'figs/compare_check_calcs_jja_2009_{dataset1}_vs_{dataset2}.land_only.png')
+            plt.savefig(f'{figsdir}/compare_check_calcs_jja_2009_{dataset1}_vs_{dataset2}.land_only.png')
         else:
-            plt.savefig(f'figs/compare_check_calcs_jja_2009_{dataset1}_vs_{dataset2}.png')
+            plt.savefig(f'{figsdir}/compare_check_calcs_jja_2009_{dataset1}_vs_{dataset2}.png')
 
     fig = plt.figure(title, figsize=(10, 10))
     plt.clf()
@@ -107,7 +107,7 @@ def compare_mean_precip(hydrosheds_dir, dataset1, dataset2, land_only=False, che
                                 f'p = {res.pvalue:.2f}'))
     ax.legend(loc=2)
     if land_only:
-        plt.savefig(f'figs/compare_jja_2009_{dataset1}_vs_{dataset2}.land_only.png')
+        plt.savefig(f'{figsdir}/compare_jja_2009_{dataset1}_vs_{dataset2}.land_only.png')
     else:
-        plt.savefig(f'figs/compare_jja_2009_{dataset1}_vs_{dataset2}.png')
+        plt.savefig(f'{figsdir}/compare_jja_2009_{dataset1}_vs_{dataset2}.png')
     plt.close(fig)

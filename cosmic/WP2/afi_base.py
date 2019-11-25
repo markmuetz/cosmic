@@ -23,8 +23,9 @@ TITLE_RUNID_MAP = {
 
 
 class AFI_base:
-    def __init__(self, datadir, duration, precip_thresh):
+    def __init__(self, datadir, figsdir, duration, precip_thresh):
         self.datadir = Path(datadir)
+        self.figsdir = Path(figsdir)
         self.duration = duration
         self.precip_thresh = precip_thresh
         self.thresh_text = str(precip_thresh).replace('.', 'p')
@@ -102,5 +103,5 @@ class AFI_base:
         self.fig.subplots_adjust(top=0.95, bottom=0.05, left=0.07, right=0.99, wspace=0.1, hspace=0.1)
 
     def save(self):
-        plt.savefig(f'figs/{self.name}.{self.duration}.{self.season}.ppt_thresh_{self.precip_thresh}.png')
+        plt.savefig(f'{self.figsdir}/{self.name}.{self.duration}.{self.season}.ppt_thresh_{self.precip_thresh}.png')
         plt.close('all')

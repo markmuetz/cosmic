@@ -10,9 +10,7 @@ from .afi_base import AFI_base, load_cmap_data, MODES, TITLE_MODE_MAP, TITLE_RUN
 
 
 class AFI_mean(AFI_base):
-    def __init__(self, datadir, duration, precip_thresh):
-        super().__init__(datadir, duration, precip_thresh)
-        self.name = 'afi_mean'
+    name = 'afi_mean'
 
     def gen_axes(self):
         self.fig = plt.figure(figsize=(10, 10))

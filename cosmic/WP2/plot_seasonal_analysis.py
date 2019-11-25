@@ -24,9 +24,10 @@ MODES = ['amount', 'freq', 'intensity']
 
 
 class SeasonAnalysisPlotter:
-    def __init__(self, datadir, hydrosheds_dir, runid, daterange, seasons, precip_thresh, resolution):
+    def __init__(self, datadir, hydrosheds_dir, figsdir, runid, daterange, seasons, precip_thresh, resolution):
         self.datadir = datadir
         self.hydrosheds_dir = hydrosheds_dir
+        self.figsdir = Path(f'{figsdir}/{runid}/{daterange}')
         self.runid = runid
         self.daterange = daterange
         if seasons == 'all':
@@ -37,13 +38,12 @@ class SeasonAnalysisPlotter:
         self.precip_thresh = precip_thresh
         self.thresh_text = str(precip_thresh).replace('.', 'p')
         self.cubes = {}
-        self.figdir = Path(f'figs/{runid}/{daterange}')
         self.load_cubes()
         self.hb = load_hydrobasins_geodataframe(self.hydrosheds_dir, 'as', range(1, 9))
         self.raster_cache = {}
 
     def savefig(self, filename):
-        filepath = self.figdir / filename
+        filepath = self.figsdir / filename
         dirname = filepath.absolute().parent
         dirname.mkdir(parents=True, exist_ok=True)
         plt.savefig(str(filepath))
@@ -539,7 +539,7 @@ class SeasonAnalysisPlotter:
                     sysrun(cmd)
 
 
-def main(basepath, hydrosheds_dir, runid, daterange, seasons, resolution, precip_threshes):
+def main(basepath, hydrosheds_dir, figsdir, runid, daterange, seasons, resolution, precip_threshes):
     if runid == 'cmorph_0p25':
         datadir = Path(f'{basepath}/cmorph_data/0.25deg-3HLY')
     elif runid == 'cmorph_8km':
@@ -548,7 +548,8 @@ def main(basepath, hydrosheds_dir, runid, daterange, seasons, resolution, precip
         datadir = Path(f'{basepath}/u-{runid}/ap9.pp')
 
     for precip_thresh in precip_threshes:
-        plotter = SeasonAnalysisPlotter(datadir, hydrosheds_dir, runid, daterange, seasons, precip_thresh, resolution)
+        plotter = SeasonAnalysisPlotter(datadir, hydrosheds_dir, figsdir, runid, daterange,
+                                        seasons, precip_thresh, resolution)
         # plt.ion()
 
         for mode in MODES:

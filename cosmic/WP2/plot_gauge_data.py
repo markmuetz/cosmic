@@ -67,7 +67,7 @@ def plot_precip_station_jja_cressman(ax, hydrosheds_dir, df_precip_station_jja, 
     return im
 
 
-def plot_li2018_fig2a_reproduction(datadir, hydrosheds_dir, **kwargs):
+def plot_li2018_fig2a_reproduction(datadir, hydrosheds_dir, figsdir, **kwargs):
     df_station_info, df_precip, df_precip_jja, df_precip_station_jja = load_data(datadir)
     # plt.figure('precip_gauge_china_2419_cressman', figsize=(10, 8))
     fig = plt.figure('precip_gauge_china_2419_cressman')
@@ -94,6 +94,5 @@ def plot_li2018_fig2a_reproduction(datadir, hydrosheds_dir, **kwargs):
     plt.tight_layout()
     plt.subplots_adjust(top=0.898, left=0.15, right=0.965, bottom=0.097)
     plt.title(kwargs_str)
-    figpath = Path('figs/gauge_data')
-    figpath.mkdir(exist_ok=True, parents=True)
-    plt.savefig(figpath / f'precip_station_jja_cressman.{kwargs_str}.png')
+    figsdir.mkdir(exist_ok=True, parents=True)
+    plt.savefig(figsdir / f'precip_station_jja_cressman.{kwargs_str}.png')
