@@ -8,6 +8,11 @@ ALL_PATHS = {
         'hydrosheds_dir': Path('/home/markmuetz/HydroSHEDS'),
         'figsdir': Path('figs/mistakenot'),
     },
+    'zerogravitas': {
+        'datadir': Path('/home/markmuetz/mirrors/jasmin/gw_cosmic/mmuetz/data'),
+        'hydrosheds_dir': Path('/home/markmuetz/HydroSHEDS'),
+        'figsdir': Path('figs/zerogravitas'),
+    },
     'jasmin': {
         'datadir': Path('/gws/nopw/j04/cosmic/mmuetz/data'),
         'hydrosheds_dir': Path('/gws/nopw/j04/cosmic/mmuetz/HydroSHEDS'),
