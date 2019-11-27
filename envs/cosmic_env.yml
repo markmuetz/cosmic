@@ -56,6 +56,7 @@ dependencies:
   - heapdict=1.0.1=py_0
   - icu=64.2=he1b5a44_1
   - idna=2.8=py38_1000
+  - imageio=2.6.1=py38_0
   - ipdb=0.12.2=py_0
   - ipython=7.9.0=py38h5ca1d4c_1
   - ipython_genutils=0.2.0=py_1
