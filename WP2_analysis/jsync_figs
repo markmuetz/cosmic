@@ -1,0 +1,1 @@
+rsync -Rxav JasminXferRdg:/gws/nopw/j04/cosmic/mmuetz/cosmic_ctrl/WP2_analysis/figs/jasmin/./ figs/jasmin/ --delete
