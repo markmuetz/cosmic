@@ -27,8 +27,9 @@ setup(
         'cosmic.processing',
         ],
     scripts=[
-        'bin/cosmic_retrieve_from_mass',
-        'bin/cosmic_bsub_submit',
+        'bin/cosmic-rsync-jasmin-data',
+        'bin/cosmic-retrieve-from-mass',
+        'bin/cosmic-bsub-submit',
         ],
     python_requires='>=3.6',
     install_requires=[

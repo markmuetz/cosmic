@@ -1,0 +1,5 @@
+#!/bin/bash
+rsync --progress -Rxav mmuetz@JasminXfer:/gws/nopw/j04/cosmic/mmuetz/data/./aphrodite_data/025deg .
+rsync --progress -Rxav mmuetz@JasminXfer:/gws/nopw/j04/cosmic/mmuetz/data/./cmorph_data/*/cmorph_ppt_???.*.nc .
+rsync --progress -Rxav mmuetz@JasminXfer:/gws/nopw/j04/cosmic/mmuetz/data/./gauge_china2419/pre/SURF_CLI_CHN_PRE_MUT_HOMO/SURF_CLI_CHN_PRE_MUT_HOMO/station_data.hdf .
+rsync --progress -Rxav mmuetz@JasminXfer:/gws/nopw/j04/cosmic/mmuetz/data/./u-a*/ap9.pp/a*a.p9jja.*.asia_precip.ppt_thresh_*.nc .
