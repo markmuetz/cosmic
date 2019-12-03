@@ -1,3 +1,5 @@
+import math
+
 import iris
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -9,7 +11,8 @@ from cosmic.util import build_raster_from_cube
 from basmati.hydrosheds import load_hydrobasins_geodataframe
 
 
-def compare_mean_precip(hydrosheds_dir, figsdir, dataset1, dataset2, land_only=False, check_calcs=False):
+def compare_mean_precip(hydrosheds_dir, figsdir, dataset1, dataset2,
+                        land_only=False, check_calcs=False, plot_type='scatter'):
     cube1 = iris.load_cube(f'data/{dataset1}_china_jja_2009_amount.nc')
     cube2 = iris.load_cube(f'data/{dataset2}_china_jja_2009_amount.nc')
 
@@ -90,11 +93,29 @@ def compare_mean_precip(hydrosheds_dir, figsdir, dataset1, dataset2, land_only=F
     plt.clf()
     ax = fig.add_subplot(111, aspect='equal')
     ax.set_title(title)
-    ax.scatter(data1, data2)
-    ax.plot([0, max_precip], [0, max_precip], 'k--')
 
-    ax.set_xlim((0, max_precip))
-    ax.set_ylim((0, max_precip))
+    if plot_type == 'scatter':
+        ax.scatter(data1, data2)
+        ax.set_xlim((0, max_precip))
+        ax.set_ylim((0, max_precip))
+        ax.plot([0, max_precip], [0, max_precip], 'k--')
+
+    elif plot_type == 'heatmap':
+        hist_kwargs = {}
+        if dataset1[:2] == 'u-' or dataset2[:2] == 'u-':
+            hist_kwargs['bins'] = np.linspace(0, 40, 41)
+            max_xy = 40
+        else:
+            max_xy = math.ceil(max_precip)
+            hist_kwargs['bins'] = np.linspace(0, max_xy, int(max_xy + 1))
+        ax.plot([0, max_xy], [0, max_xy], 'k--')
+        ax.set_xlim((0, max_xy))
+        ax.set_ylim((0, max_xy))
+        # Why are these the other way round?
+        H, xedges, yedges = np.histogram2d(data2, data1, density=True, **hist_kwargs)
+        im = ax.imshow(H, origin='lower', extent=(0, max_xy, 0, max_xy), norm=LogNorm())
+        plt.colorbar(im, orientation='horizontal')
+
     ax.set_xlabel(f'{dataset1} (mm day$^{{-1}}$)')
     ax.set_ylabel(f'{dataset2} (mm day$^{{-1}}$)')
 
@@ -106,8 +127,11 @@ def compare_mean_precip(hydrosheds_dir, figsdir, dataset1, dataset2, land_only=F
                                 f'r$^2$ = {res.rvalue**2:.2f}\n'
                                 f'p = {res.pvalue:.2f}'))
     ax.legend(loc=2)
+    fname = f'{figsdir}/compare_jja_2009_{dataset1}_vs_{dataset2}'
     if land_only:
-        plt.savefig(f'{figsdir}/compare_jja_2009_{dataset1}_vs_{dataset2}.land_only.png')
-    else:
-        plt.savefig(f'{figsdir}/compare_jja_2009_{dataset1}_vs_{dataset2}.png')
+        fname += '.land_only'
+    if plot_type == 'heatmap':
+        fname += '.heatmap'
+
+    plt.savefig(fname + '.png')
     plt.close(fig)
