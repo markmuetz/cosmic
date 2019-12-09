@@ -1,0 +1,17 @@
+#!/bin/bash
+MYIP=$(curl -s http://whatismyip.akamai.com/)
+MYDNS=$(host $MYIP)
+# Picks off .ac.uk if in Reading or other .ac.uk.
+# N.B. MYDNS has trailing .
+ACUKDOMAIN=$(echo $MYDNS|awk '{print substr($0, length($0)-6, 6)}')
+
+if [ $ACUKDOMAIN == .ac.uk ]; then
+    echo "Using JasminXferRdg"
+    JASMINHOST=JasminXferRdg
+else
+    echo "Using JasminXfer"
+    JASMINHOST=JasminXfer
+fi
+
+rsync -Rxav $JASMINHOST:/gws/nopw/j04/cosmic/mmuetz/cosmic_ctrl/WP2_analysis/data/./ data/ --delete
+
