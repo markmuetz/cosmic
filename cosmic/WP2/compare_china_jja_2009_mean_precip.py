@@ -67,7 +67,7 @@ def compare_mean_precip(hydrosheds_dir, figsdir, dataset1, dataset2, dataset1dat
         raster = build_raster_from_cube(cube1, hb)
         full_mask |= raster == 0
 
-    title = f'{dataset1} vs {dataset2} JJA 2009'
+    title = f'{dataset1} ({dataset1daterange}) vs {dataset2} ({dataset1daterange})'
     if land_only:
         title += ' land only'
     # compressed removes masked values (identically for each array as mask the same).
