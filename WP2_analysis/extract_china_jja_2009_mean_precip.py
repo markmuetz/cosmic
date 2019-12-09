@@ -4,7 +4,8 @@ from paths import PATHS
 
 
 def extract_all_dataset_gen():
-    for dataset in DATASETS:
+    for dataset, dateranges in DATASETS.items():
         if dataset[:2] == 'u-':
             dataset += '_native'
-        yield extract_dataset, (PATHS['datadir'], dataset), {}
+        for daterange in dateranges:
+            yield extract_dataset, (PATHS['datadir'], dataset, daterange), {}

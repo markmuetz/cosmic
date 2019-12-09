@@ -10,17 +10,27 @@ def all_compares_gen(check_calcs=True):
     hires_datasets = ['cmorph_8km_N1280', 'u-ak543_native', 'u-al508_native', 'u-am754_native']
 
     for d1, d2 in itertools.combinations(lowres_datasets, 2):
-        yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2), {'check_calcs': check_calcs}
-        yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2), {'check_calcs': check_calcs,
-                                                                                         'plot_type': 'heatmap'}
+        d1daterange = '200906-200908'
+        d2daterange = '200906-200908'
+        yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2,
+                                    d1daterange, d2daterange), {'check_calcs': check_calcs}
+        yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2,
+                                    d1daterange, d2daterange), {'check_calcs': check_calcs, 'plot_type': 'heatmap'}
     for d1, d2 in itertools.combinations(hires_datasets, 2):
-        yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2), {'check_calcs': check_calcs,
-                                                                                         'land_only': False}
-        yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2), {'check_calcs': check_calcs,
-                                                                                         'land_only': True}
-        yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2), {'check_calcs': check_calcs,
-                                                                                         'land_only': True,
-                                                                                         'plot_type': 'heatmap'}
+        d1daterange = '200906-200908'
+        d2daterange = '200906-200908'
+        if d1[:2] == 'u-':
+            d1daterange = '200806-200808'
+        if d2[:2] == 'u-':
+            d2daterange = '200806-200808'
+        yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2,
+                                    d1daterange, d2daterange), {'check_calcs': check_calcs, 'land_only': False}
+        yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2,
+                                    d1daterange, d2daterange), {'check_calcs': check_calcs, 'land_only': True}
+        yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2,
+                                    d1daterange, d2daterange), {'check_calcs': check_calcs,
+                                                                'land_only': True,
+                                                                'plot_type': 'heatmap'}
 
 
 if __name__ == '__main__':
