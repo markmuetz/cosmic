@@ -17,20 +17,23 @@ def all_compares_gen(check_calcs=True):
         yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2,
                                     d1daterange, d2daterange), {'check_calcs': check_calcs, 'plot_type': 'heatmap'}
     for d1, d2 in itertools.combinations(hires_datasets, 2):
-        d1daterange = '200906-200908'
         d2daterange = '200906-200908'
         if d1[:2] == 'u-':
-            d1daterange = '200806-200808'
+            d1dateranges = ['200806-200808']
+        else:
+            d1dateranges = [f'{y}06-{y}08' for y in range(1998, 2019)]
+
         if d2[:2] == 'u-':
             d2daterange = '200806-200808'
-        yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2,
-                                    d1daterange, d2daterange), {'check_calcs': check_calcs, 'land_only': False}
-        yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2,
-                                    d1daterange, d2daterange), {'check_calcs': check_calcs, 'land_only': True}
-        yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2,
-                                    d1daterange, d2daterange), {'check_calcs': check_calcs,
-                                                                'land_only': True,
-                                                                'plot_type': 'heatmap'}
+        for d1daterange in d1dateranges:
+            yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2,
+                                        d1daterange, d2daterange), {'check_calcs': check_calcs, 'land_only': False}
+            yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2,
+                                        d1daterange, d2daterange), {'check_calcs': check_calcs, 'land_only': True}
+            yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2,
+                                        d1daterange, d2daterange), {'check_calcs': check_calcs,
+                                                                    'land_only': True,
+                                                                    'plot_type': 'heatmap'}
 
 
 if __name__ == '__main__':
