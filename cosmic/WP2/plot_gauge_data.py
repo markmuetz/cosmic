@@ -11,7 +11,7 @@ from basmati.hydrosheds import load_hydrobasins_geodataframe
 from cosmic.util import load_cmap_data, build_raster_from_lon_lat
 
 
-def load_data(basedir):
+def load_jja_gauge_data(basedir):
     gauge_data_dir = Path('gauge_china2419/pre/SURF_CLI_CHN_PRE_MUT_HOMO/SURF_CLI_CHN_PRE_MUT_HOMO')
 
     df_station_info = pd.read_hdf(basedir / gauge_data_dir / 'station_data.hdf', 'station_info')
@@ -68,7 +68,7 @@ def plot_precip_station_jja_cressman(ax, hydrosheds_dir, df_precip_station_jja, 
 
 
 def plot_li2018_fig2a_reproduction(datadir, hydrosheds_dir, figsdir, **kwargs):
-    df_station_info, df_precip, df_precip_jja, df_precip_station_jja = load_data(datadir)
+    df_station_info, df_precip, df_precip_jja, df_precip_station_jja = load_jja_gauge_data(datadir)
     # plt.figure('precip_gauge_china_2419_cressman', figsize=(10, 8))
     fig = plt.figure('precip_gauge_china_2419_cressman')
     fig.set_size_inches(10.5, 9.22)

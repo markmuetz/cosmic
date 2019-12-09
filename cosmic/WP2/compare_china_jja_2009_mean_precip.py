@@ -1,4 +1,5 @@
 import math
+from pathlib import Path
 
 import iris
 import matplotlib.pyplot as plt
@@ -11,10 +12,16 @@ from cosmic.util import build_raster_from_cube
 from basmati.hydrosheds import load_hydrobasins_geodataframe
 
 
-def compare_mean_precip(hydrosheds_dir, figsdir, dataset1, dataset2,
+def savefig(fname):
+    savedir = Path(fname).parent
+    savedir.mkdir(exist_ok=True, parents=True)
+    plt.savefig(fname)
+
+
+def compare_mean_precip(hydrosheds_dir, figsdir, dataset1, dataset2, dataset1daterange, dataset2daterange,
                         land_only=False, check_calcs=False, plot_type='scatter'):
-    cube1 = iris.load_cube(f'data/{dataset1}_china_jja_2009_amount.nc')
-    cube2 = iris.load_cube(f'data/{dataset2}_china_jja_2009_amount.nc')
+    cube1 = iris.load_cube(f'data/{dataset1}_china_amount.{dataset1daterange}.nc')
+    cube2 = iris.load_cube(f'data/{dataset2}_china_amount.{dataset2daterange}.nc')
 
     min_lat1, max_lat1 = cube1.coord('latitude').points[[0, -1]]
     min_lon1, max_lon1 = cube1.coord('longitude').points[[0, -1]]
@@ -85,9 +92,11 @@ def compare_mean_precip(hydrosheds_dir, figsdir, dataset1, dataset2,
         cbar_ax = fig.add_axes([0.15, 0.11, 0.7, 0.03])
         fig.colorbar(im, cax=cbar_ax, orientation='horizontal', label='precip (mm day$^{-1}$)')
         if land_only:
-            plt.savefig(f'{figsdir}/compare_check_calcs_jja_2009_{dataset1}_vs_{dataset2}.land_only.png')
+            savefig(f'{figsdir}/compare/{dataset1}_vs_{dataset2}/{dataset1daterange}_{dataset2daterange}/'
+                    f'compare_check_calcs.land_only.png')
         else:
-            plt.savefig(f'{figsdir}/compare_check_calcs_jja_2009_{dataset1}_vs_{dataset2}.png')
+            savefig(f'{figsdir}/compare/{dataset1}_vs_{dataset2}/{dataset1daterange}_{dataset2daterange}/'
+                    f'compare_check_calcs.png')
 
     fig = plt.figure(title, figsize=(10, 10))
     plt.clf()
@@ -127,11 +136,11 @@ def compare_mean_precip(hydrosheds_dir, figsdir, dataset1, dataset2,
                                 f'r$^2$ = {res.rvalue**2:.2f}\n'
                                 f'p = {res.pvalue:.2f}'))
     ax.legend(loc=2)
-    fname = f'{figsdir}/compare_jja_2009_{dataset1}_vs_{dataset2}'
+    fname = f'{figsdir}/compare/{dataset1}_vs_{dataset2}/{dataset1daterange}_{dataset2daterange}/compare'
     if land_only:
         fname += '.land_only'
     if plot_type == 'heatmap':
         fname += '.heatmap'
 
-    plt.savefig(fname + '.png')
+    savefig(fname + '.png')
     plt.close(fig)
