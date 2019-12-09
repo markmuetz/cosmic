@@ -11,11 +11,16 @@ def all_compares_gen(check_calcs=True):
 
     for d1, d2 in itertools.combinations(lowres_datasets, 2):
         yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2), {'check_calcs': check_calcs}
+        yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2), {'check_calcs': check_calcs,
+                                                                                         'plot_type': 'heatmap'}
     for d1, d2 in itertools.combinations(hires_datasets, 2):
         yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2), {'check_calcs': check_calcs,
                                                                                          'land_only': False}
         yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2), {'check_calcs': check_calcs,
                                                                                          'land_only': True}
+        yield compare_mean_precip, (PATHS['hydrosheds_dir'], PATHS['figsdir'], d1, d2), {'check_calcs': check_calcs,
+                                                                                         'land_only': True,
+                                                                                         'plot_type': 'heatmap'}
 
 
 if __name__ == '__main__':
