@@ -15,11 +15,11 @@ def main(cmorph_dataset, resolution, start_year_month, end_year_month, season, p
     datadir = Path(f'/gws/nopw/j04/cosmic/mmuetz/data/cmorph_data/{cmorph_dataset}')
     if resolution:
         file_tpl = 'cmorph_ppt_{year}{month:02}.asia.{resolution}.nc'
-        nc_season = spa.gen_nc_precip_filenames(datadir, season, start_year_month, end_year_month,  
+        nc_season = spa.gen_nc_precip_filenames(datadir, season, start_year_month, end_year_month,
                                                 file_tpl=file_tpl, resolution=resolution)
     else:
         file_tpl = 'cmorph_ppt_{year}{month:02}.asia.nc'
-        nc_season = spa.gen_nc_precip_filenames(datadir, season, start_year_month, end_year_month,  
+        nc_season = spa.gen_nc_precip_filenames(datadir, season, start_year_month, end_year_month,
                                                 file_tpl=file_tpl)
 
     season_cube = iris.load([str(p) for p in nc_season]).concatenate_cube()
@@ -48,5 +48,9 @@ def main(cmorph_dataset, resolution, start_year_month, end_year_month, season, p
 if __name__ == '__main__':
     config = load_config(sys.argv[1])
     config_key = sys.argv[2]
-    main(config.CMORPH_DATASET, config.RESOLUTION, config.START_YEAR_MONTH, config.END_YEAR_MONTH, 
-         *config.SCRIPT_ARGS[config_key])
+
+    (start_year_month, end_year_month, season, precip_thresh) = config.SCRIPT_ARGS[config_key]
+
+    main(config.CMORPH_DATASET, config.RESOLUTION,
+         start_year_month, end_year_month,
+         season, precip_thresh)
