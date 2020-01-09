@@ -20,7 +20,9 @@ RESOLUTION = 'N1280'
 # END_YEAR_MONTH = (2018, 12)
 # START_YEAR_MONTH = (2009, 6)
 # END_YEAR_MONTH = (2009, 8)
-DATERANGES = [((year, 6), (year, 8)) for year in range(1998, 2019)]
+
+# 2012 didn't work: rerun.
+DATERANGES = [((year, 6), (year, 8)) for year in range(2012, 2013)]
 
 BSUB_KWARGS = {
     'job_name': 'cmorph_spa',
