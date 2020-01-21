@@ -11,6 +11,7 @@ from compare_china_jja_2009_mean_precip import all_compares_gen
 from plot_gauge_data import all_plot_gauge_data_gen
 from plot_seasonal_analysis import all_seasonal_analysis_gen
 from plot_aphrodite_seasonal_analysis import all_aphrodite_gen
+from cmorph_diurnal_cycle_multipeak import multipeak_all_figs_gen
 
 from paths import hostname
 
@@ -21,6 +22,7 @@ fn_generators = [
     all_plot_gauge_data_gen,
     all_seasonal_analysis_gen,
     all_aphrodite_gen,
+    multipeak_all_figs_gen,
 ]
 
 
