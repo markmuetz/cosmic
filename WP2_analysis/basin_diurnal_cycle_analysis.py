@@ -96,16 +96,16 @@ def gen_phase_mag_map(df_phase_mag, diurnal_cycle_cube, raster):
     return iris.cube.CubeList([phase_map_cube, mag_map_cube])
 
 
-def load_dataset(dataset):
+def load_dataset(dataset, mode='amount'):
     if dataset == 'cmorph':
         cmorph_path = (PATHS['datadir'] /
                        'cmorph_data/8km-30min/cmorph_ppt_jja.199801-201812.asia_precip.ppt_thresh_0p1.N1280.nc')
-        cmorph_amount = iris.load_cube(str(cmorph_path), 'amount_of_precip_jja')
+        cmorph_amount = iris.load_cube(str(cmorph_path), f'{mode}_of_precip_jja')
         return cmorph_amount
     elif dataset[:2] == 'u-':
         um_path = (PATHS['datadir'] /
                    f'{dataset}/ap9.pp/{dataset[2:]}a.p9jja.200502-200901.asia_precip.ppt_thresh_0p1.nc')
-        um_amount = iris.load_cube(str(um_path), 'amount_of_precip_jja')
+        um_amount = iris.load_cube(str(um_path), f'{mode}_of_precip_jja')
         return um_amount
 
 
@@ -116,7 +116,8 @@ class DiurnalCycleAnalysis:
 
     def run_all(self):
         datasets = ['cmorph', 'u-ak543', 'u-al508']
-        diurnal_cycle_cube = load_dataset(datasets[0])
+        modes = ['amount', 'freq', 'intensity']
+        diurnal_cycle_cube = load_dataset(datasets[0],)
         hb_raster_cubes = self.filestore('data/hb_N1280_raster_small_medium_large.nc',
                                          gen_hydrobasins_raster_cubes,
                                          gen_fn_args=[diurnal_cycle_cube])
@@ -124,9 +125,9 @@ class DiurnalCycleAnalysis:
 
         keys = []
         prev_lon, prev_lat = None, None
-        for dataset in datasets:
-            print(f'Dataset: {dataset}')
-            diurnal_cycle_cube = load_dataset(dataset)
+        for dataset, mode in itertools.product(datasets, modes):
+            print(f'Dataset, mode: {dataset}, {mode}')
+            diurnal_cycle_cube = load_dataset(dataset, mode)
             # Verify all longitudes/latitudes are the same.
             lon = diurnal_cycle_cube.coord('longitude').points
             lat = diurnal_cycle_cube.coord('latitude').points
@@ -137,21 +138,22 @@ class DiurnalCycleAnalysis:
             for raster_cube, method in itertools.product(ordered_raster_cubes,
                                                          ['peak', 'harmonic']):
                 df_vector_phase_mag_key, vector_phase_mag_cubes_key = \
-                    self.basin_vector_area_avg(dataset, diurnal_cycle_cube, raster_cube, method)
-                keys.append([dataset, raster_cube.name(), 'vector_area_avg', method, 'phase_mag',
+                    self.basin_vector_area_avg(dataset, diurnal_cycle_cube, raster_cube, method, mode)
+                keys.append([dataset, mode, raster_cube.name(), 'vector_area_avg', method, 'phase_mag',
                              df_vector_phase_mag_key])
-                keys.append([dataset, raster_cube.name(), 'vector_area_avg', method, 'phase_mag_cubes',
+                keys.append([dataset, mode, raster_cube.name(), 'vector_area_avg', method, 'phase_mag_cubes',
                              vector_phase_mag_cubes_key])
 
                 df_area_phase_mag_key, area_phase_mag_cubes_key = self.basin_area_avg(dataset, diurnal_cycle_cube,
-                                                                                      raster_cube, method)
-                keys.append([dataset, raster_cube.name(), 'basin_area_avg', method, 'phase_mag',
+                                                                                      raster_cube, method, mode)
+                keys.append([dataset, mode, raster_cube.name(), 'basin_area_avg', method, 'phase_mag',
                              df_area_phase_mag_key])
-                keys.append([dataset, raster_cube.name(), 'basin_area_avg', method, 'phase_mag_cubes',
+                keys.append([dataset, mode, raster_cube.name(), 'basin_area_avg', method, 'phase_mag_cubes',
                              area_phase_mag_cubes_key])
 
         self.df_keys = pd.DataFrame(keys,
-                                    columns=['dataset', 'basin_scale', 'analysis_order', 'method', 'type', 'key'])
+                                    columns=['dataset', 'mode', 'basin_scale',
+                                             'analysis_order', 'method', 'type', 'key'])
 
         extent = tuple(lon[[0, -1]]) + tuple(lat[[0, -1]])
         self.plot_output(extent, ordered_raster_cubes)
@@ -267,18 +269,18 @@ class DiurnalCycleAnalysis:
                 plt.savefig(f'{figsdir}/{row1.dataset}_{Path(row1.key).stem}_vs_'
                             f'{row2.dataset}_{Path(row2.key).stem}_mag.png')
 
-            plt.pause(0.1)
+            # plt.pause(0.1)
             r = input('c to close, q to quit: ')
             if r == 'q':
                 raise Exception('quit')
             elif r == 'c':
                 plt.close('all')
 
-    def basin_vector_area_avg(self, dataset, diurnal_cycle_cube, raster_cube, method):
+    def basin_vector_area_avg(self, dataset, diurnal_cycle_cube, raster_cube, method, mode):
         raster = raster_cube.data
 
         fn_base = f'data/{dataset}/diurnal_cycle_analysis/vector_area_avg-' \
-                  f'{diurnal_cycle_cube.name()}_{raster_cube.name()}_{method}'
+                  f'{diurnal_cycle_cube.name()}_{mode}_{raster_cube.name()}_{method}'
         df_phase_mag_key = f'{fn_base}.hdf'
         df_phase_mag = self.filestore(
             df_phase_mag_key,
@@ -294,11 +296,11 @@ class DiurnalCycleAnalysis:
         )
         return df_phase_mag_key, phase_mag_cubes_key
 
-    def basin_area_avg(self, dataset, diurnal_cycle_cube, raster_cube, method):
+    def basin_area_avg(self, dataset, diurnal_cycle_cube, raster_cube, method, mode):
         raster = raster_cube.data
 
         fn_base = f'data/{dataset}/diurnal_cycle_analysis/basin_area_avg-' \
-                  f'{diurnal_cycle_cube.name()}_{raster_cube.name()}_{method}'
+                  f'{diurnal_cycle_cube.name()}_{mode}_{raster_cube.name()}_{method}'
 
         df_phase_mag_key = f'{fn_base}.hdf'
         df_phase_mag = self.filestore(
