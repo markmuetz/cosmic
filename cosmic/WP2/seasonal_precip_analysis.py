@@ -165,6 +165,7 @@ def calc_precip_amount_freq_intensity(season, season_cube, precip_thresh,
                                          season_hourly_intensity])
     return analysis_cubes
 
+
 def save_analysis_cubes(datadir, season, precip_thresh, analysis_cubes,
                         output_file_tpl=DEFAULT_OUTPUT_FILE_TPL, 
                         **output_file_kwargs):
