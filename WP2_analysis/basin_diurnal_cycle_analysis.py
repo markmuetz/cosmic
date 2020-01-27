@@ -15,6 +15,14 @@ from cosmic.util import build_raster_cube_from_cube, load_cmap_data
 from paths import PATHS
 
 SCALES = ['small', 'medium', 'large']
+MODES = ['amount', 'freq', 'intensity']
+
+
+def savefig(filename):
+    filename = Path(filename)
+    filename.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(f'{filename}')
+    plt.close('all')
 
 
 def gen_hydrobasins_raster_cubes(diurnal_cycle_cube):
@@ -116,7 +124,6 @@ class DiurnalCycleAnalysis:
 
     def run_all(self):
         datasets = ['cmorph', 'u-ak543', 'u-al508']
-        modes = ['amount', 'freq', 'intensity']
         diurnal_cycle_cube = load_dataset(datasets[0],)
         hb_raster_cubes = self.filestore('data/hb_N1280_raster_small_medium_large.nc',
                                          gen_hydrobasins_raster_cubes,
@@ -125,7 +132,7 @@ class DiurnalCycleAnalysis:
 
         keys = []
         prev_lon, prev_lat = None, None
-        for dataset, mode in itertools.product(datasets, modes):
+        for dataset, mode in itertools.product(datasets, MODES):
             print(f'Dataset, mode: {dataset}, {mode}')
             diurnal_cycle_cube = load_dataset(dataset, mode)
             # Verify all longitudes/latitudes are the same.
@@ -161,120 +168,130 @@ class DiurnalCycleAnalysis:
     def plot_output(self, extent, ordered_raster_cubes):
         cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig3_cb.pkl')
 
-        figsdir = PATHS['figsdir'] / 'diurnal_cycle_analysis'
+        figsdir = PATHS['figsdir'] / 'basin_diurnal_cycle_analysis'
         figsdir.mkdir(parents=True, exist_ok=True)
 
         for raster_cube in ordered_raster_cubes:
-            phase_mag_map_rows = [
-                ir[1]
-                for ir in
-                self.df_keys[(self.df_keys['type'] == 'phase_mag_cubes') &
-                             (self.df_keys['analysis_order'] == 'basin_area_avg') &
-                             (self.df_keys['basin_scale'] == raster_cube.name()) &
-                             (self.df_keys['method'] == 'harmonic')
-                             ].iterrows()]
+            basin_scale = raster_cube.name().split('_')[-1]
+            for mode in MODES:
+                phase_mag_map_rows = [
+                    ir[1]
+                    for ir in
+                    self.df_keys[(self.df_keys['type'] == 'phase_mag_cubes') &
+                                 (self.df_keys['analysis_order'] == 'basin_area_avg') &
+                                 (self.df_keys['basin_scale'] == raster_cube.name()) &
+                                 (self.df_keys['mode'] == mode) &
+                                 (self.df_keys['method'] == 'harmonic')
+                                 ].iterrows()]
 
-            for row in phase_mag_map_rows:
-                phase_mag_cubes = self.filestore(row.key)
+                for row in phase_mag_map_rows:
+                    phase_mag_cubes = self.filestore(row.key)
 
-                phase_map = phase_mag_cubes.extract_strict('phase_map')
-                mag_map = phase_mag_cubes.extract_strict('magnitude_map')
+                    phase_map = phase_mag_cubes.extract_strict('phase_map')
+                    mag_map = phase_mag_cubes.extract_strict('magnitude_map')
 
-                plt.figure(f'{row.dataset}_{row.key}_phase', figsize=(10, 8))
-                plt.clf()
-                plt.title(f'{row.dataset}: {row.analysis_order}_{row.method} phase')
+                    plt.figure(f'{row.dataset}_{row.key}_phase', figsize=(10, 8))
+                    plt.clf()
+                    plt.title(f'{row.dataset}: {row.analysis_order}_{row.method} phase')
 
-                plt.imshow(np.ma.masked_array(phase_map.data, raster_cube.data == 0),
-                           cmap=cmap, norm=norm,
-                           origin='lower', extent=extent, vmin=0, vmax=24)
-                plt.colorbar(orientation='horizontal')
-                plt.tight_layout()
-                plt.savefig(f'{figsdir}/{row.dataset}_{Path(row.key).stem}_phase.png')
+                    plt.imshow(np.ma.masked_array(phase_map.data, raster_cube.data == 0),
+                               cmap=cmap, norm=norm,
+                               origin='lower', extent=extent, vmin=0, vmax=24)
+                    plt.colorbar(orientation='horizontal')
+                    plt.tight_layout()
+                    savefig(f'{figsdir}/map/{mode}/{row.dataset}_{row.analysis_order}_{row.method}'
+                            f'.{basin_scale}.phase.png')
 
-                plt.figure(f'{row.key}_magnitude', figsize=(10, 8))
-                plt.clf()
-                plt.title(f'{row.dataset}: {row.analysis_order}_{row.method} magnitude')
-                plt.imshow(np.ma.masked_array(mag_map.data, raster_cube.data == 0),
-                           origin='lower', extent=extent)
-                plt.colorbar(orientation='horizontal')
-                plt.tight_layout()
-                plt.savefig(f'{figsdir}/{row.dataset}_{Path(row.key).stem}_mag.png')
+                    plt.figure(f'{row.key}_magnitude', figsize=(10, 8))
+                    plt.clf()
+                    plt.title(f'{row.dataset}: {row.analysis_order}_{row.method} magnitude')
+                    plt.imshow(np.ma.masked_array(mag_map.data, raster_cube.data == 0),
+                               origin='lower', extent=extent)
+                    plt.colorbar(orientation='horizontal')
+                    plt.tight_layout()
+                    savefig(f'{figsdir}/map/{mode}/{row.dataset}_{row.analysis_order}_{row.method}'
+                            f'.{basin_scale}.mag.png')
 
-            phase_mag_rows = [
-                ir[1]
-                for ir in
-                self.df_keys[(self.df_keys['type'] == 'phase_mag') &
-                             (self.df_keys['analysis_order'] == 'basin_area_avg') &
-                             (self.df_keys['basin_scale'] == raster_cube.name()) &
-                             (self.df_keys['method'] == 'harmonic')
-                             ].iterrows()]
+                phase_mag_rows = [
+                    ir[1]
+                    for ir in
+                    self.df_keys[(self.df_keys['type'] == 'phase_mag') &
+                                 (self.df_keys['analysis_order'] == 'basin_area_avg') &
+                                 (self.df_keys['basin_scale'] == raster_cube.name()) &
+                                 (self.df_keys['method'] == 'harmonic') &
+                                 (self.df_keys['mode'] == mode)
+                                 ].iterrows()]
 
-            for row1, row2 in itertools.combinations(phase_mag_rows, 2):
-                print(row1.key)
-                print(row2.key)
-                print()
-                phase_mag1 = self.filestore(row1.key)
-                phase_mag2 = self.filestore(row2.key)
-                plt.figure(f'{row1.key}_{row2.key}_phase_scatter', figsize=(10, 8))
-                plt.clf()
+                for row1, row2 in itertools.combinations(phase_mag_rows, 2):
+                    print(row1.key)
+                    print(row2.key)
+                    print()
+                    phase_mag1 = self.filestore(row1.key)
+                    phase_mag2 = self.filestore(row2.key)
+                    plt.figure(f'{row1.key}_{row2.key}_phase_scatter', figsize=(10, 8))
+                    plt.clf()
 
-                use_sin = False
-                if use_sin:
-                    data1 = np.sin(phase_mag1.values[:, 0] * 2 * np.pi / 24)
-                    data2 = np.sin(phase_mag2.values[:, 0] * 2 * np.pi / 24)
-                else:
-                    data1, data2 = phase_mag1.values[:, 0], phase_mag2.values[:, 0]
+                    use_sin = False
+                    if use_sin:
+                        data1 = np.sin(phase_mag1.values[:, 0] * 2 * np.pi / 24)
+                        data2 = np.sin(phase_mag2.values[:, 0] * 2 * np.pi / 24)
+                    else:
+                        data1, data2 = phase_mag1.values[:, 0], phase_mag2.values[:, 0]
 
-                plt.title(f'phase: {row1.dataset}_{row1.analysis_order}_{row1.method} - '
-                          f'{row2.dataset}_{row2.analysis_order}_{row2.method}')
-                plt.scatter(data1, data2)
-                plt.xlabel(f'{row1.dataset}_{row1.analysis_order}_{row1.method}')
-                plt.ylabel(f'{row2.dataset}_{row2.analysis_order}_{row2.method}')
-                if use_sin:
-                    plt.xlim((-1, 1))
-                    plt.ylim((-1, 1))
-                    plt.plot([-1, 1], [-1, 1])
-                    x = np.array([-1, 1])
-                else:
-                    plt.xlim((0, 24))
-                    plt.ylim((0, 24))
-                    plt.plot([0, 24], [0, 24])
-                    x = np.array([0, 24])
+                    plt.title(f'phase: {row1.dataset}_{row1.analysis_order}_{row1.method} - '
+                              f'{row2.dataset}_{row2.analysis_order}_{row2.method}')
+                    plt.scatter(data1, data2)
+                    plt.xlabel(f'{row1.dataset}_{row1.analysis_order}_{row1.method}')
+                    plt.ylabel(f'{row2.dataset}_{row2.analysis_order}_{row2.method}')
+                    if use_sin:
+                        plt.xlim((-1, 1))
+                        plt.ylim((-1, 1))
+                        plt.plot([-1, 1], [-1, 1])
+                        x = np.array([-1, 1])
+                    else:
+                        plt.xlim((0, 24))
+                        plt.ylim((0, 24))
+                        plt.plot([0, 24], [0, 24])
+                        x = np.array([0, 24])
 
-                phase_regress = linregress(data1, data2)
-                y = phase_regress.slope * x + phase_regress.intercept
-                plt.plot(x, y, 'r--')
+                    phase_regress = linregress(data1, data2)
+                    y = phase_regress.slope * x + phase_regress.intercept
+                    plt.plot(x, y, 'r--')
 
-                plt.savefig(f'{figsdir}/{row1.dataset}_{Path(row1.key).stem}_vs_'
-                            f'{row2.dataset}_{Path(row2.key).stem}_phase.png')
+                    savefig(f'{figsdir}/comparison/{mode}/'
+                            f'{row1.dataset}_{row1.analysis_order}_{row1.method}_vs_'
+                            f'{row2.dataset}_{row1.analysis_order}_{row1.method}.'
+                            f'{basin_scale}.phase.png')
 
-                plt.figure(f'{row1.key}_{row2.key}_mag_scatter', figsize=(10, 8))
-                plt.clf()
-                plt.title(f'mag: {row1.dataset}_{row1.analysis_order}_{row1.method} - '
-                          f'{row2.dataset}_{row2.analysis_order}_{row2.method}')
-                plt.scatter(phase_mag1['magnitude'], phase_mag2['magnitude'])
-                plt.xlabel(f'{row1.dataset}_{row1.analysis_order}_{row1.method}')
-                plt.ylabel(f'{row2.dataset}_{row2.analysis_order}_{row2.method}')
+                    plt.figure(f'{row1.key}_{row2.key}_mag_scatter', figsize=(10, 8))
+                    plt.clf()
+                    plt.title(f'mag: {row1.dataset}_{row1.analysis_order}_{row1.method} - '
+                              f'{row2.dataset}_{row2.analysis_order}_{row2.method}')
+                    plt.scatter(phase_mag1['magnitude'], phase_mag2['magnitude'])
+                    plt.xlabel(f'{row1.dataset}_{row1.analysis_order}_{row1.method}')
+                    plt.ylabel(f'{row2.dataset}_{row2.analysis_order}_{row2.method}')
 
-                # max_val = max(phase_mag1['magnitude'].max(), phase_mag2['magnitude'].max())
-                max_val = 0.5
+                    # max_val = max(phase_mag1['magnitude'].max(), phase_mag2['magnitude'].max())
+                    max_val = 0.5
 
-                plt.xlim((0, max_val))
-                plt.ylim((0, max_val))
-                plt.plot([0, max_val], [0, max_val])
+                    plt.xlim((0, max_val))
+                    plt.ylim((0, max_val))
+                    plt.plot([0, max_val], [0, max_val])
 
-                mag_regress = linregress(phase_mag1['magnitude'], phase_mag2['magnitude'])
-                y = mag_regress.slope * x + mag_regress.intercept
-                plt.plot(x, y, 'r--')
-                plt.savefig(f'{figsdir}/{row1.dataset}_{Path(row1.key).stem}_vs_'
-                            f'{row2.dataset}_{Path(row2.key).stem}_mag.png')
+                    mag_regress = linregress(phase_mag1['magnitude'], phase_mag2['magnitude'])
+                    y = mag_regress.slope * x + mag_regress.intercept
+                    plt.plot(x, y, 'r--')
+                    savefig(f'{figsdir}/comparison/{mode}/'
+                            f'{row1.dataset}_{row1.analysis_order}_{row1.method}_vs_'
+                            f'{row2.dataset}_{row1.analysis_order}_{row1.method}.'
+                            f'{basin_scale}.mag.png')
 
             # plt.pause(0.1)
-            r = input('c to close, q to quit: ')
-            if r == 'q':
-                raise Exception('quit')
-            elif r == 'c':
-                plt.close('all')
+            # r = input('c to close, q to quit: ')
+            # if r == 'q':
+            #     raise Exception('quit')
+            # elif r == 'c':
+            #     plt.close('all')
 
     def basin_vector_area_avg(self, dataset, diurnal_cycle_cube, raster_cube, method, mode):
         raster = raster_cube.data
