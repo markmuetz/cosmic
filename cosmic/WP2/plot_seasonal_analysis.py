@@ -556,7 +556,7 @@ def main(basepath, hydrosheds_dir, figsdir, runid, daterange, seasons, resolutio
             # plotter.plot_season_afi_gmt(mode)
             # plotter.plot_season_afi_lst(mode)
             plotter.plot_season_afi_mean(mode)
-            # plotter.plot_afi_diurnal_cycle(mode, overlay_style=None, predom_pixel=None)
+            plotter.plot_afi_diurnal_cycle(mode, overlay_style=None, predom_pixel=None)
             # plotter.plot_basin_afi_diurnal_cycle(mode, basin_filter='level', scale=3)
 
         # plotter.gen_animations()

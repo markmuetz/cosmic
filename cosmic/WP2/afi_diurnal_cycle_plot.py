@@ -7,6 +7,7 @@ import matplotlib.gridspec as gridspec
 import cartopy.crs as ccrs
 
 from .afi_base import AFI_base, load_cmap_data, MODES, TITLE_MODE_MAP, TITLE_RUNID_MAP
+from cosmic.WP2.diurnal_cycle_analysis import calc_diurnal_cycle_phase_amp_peak, calc_diurnal_cycle_phase_amp_harmonic
 
 
 class AFI_diurnal_cycle(AFI_base):
@@ -45,24 +46,14 @@ class AFI_diurnal_cycle(AFI_base):
         lat_min, lat_max = cube.coord('latitude').points[[0, -1]]
 
         extent = (lon_min, lon_max, lat_min, lat_max)
-        t_offset = cube.coord('longitude').points / 180 * 12
 
-        if runid == 'cmorph_0p25':
-            # CMORPH 0.25deg data is 3-hourly.
-            season_peak_time_GMT = cube.data.argmax(axis=0) * 3
-            season_peak_time_LST = (season_peak_time_GMT + t_offset[None, :] + 1.5) % 24
-        elif runid == 'cmorph_8km':
-            # CMORPH 8km data is 30-min-ly
-            season_peak_time_GMT = cube.data.argmax(axis=0) / 2
-            season_peak_time_LST = (season_peak_time_GMT + t_offset[None, :] + 0.25) % 24
-        else:
-            # model data is 1-hourly.
-            season_peak_time_GMT = cube.data.argmax(axis=0)
-            season_peak_time_LST = (season_peak_time_GMT + t_offset[None, :] + 0.5) % 24
-
+        if self.method == 'peak':
+            season_phase_LST = calc_diurnal_cycle_phase_amp_peak(cube)[0]
+        elif self.method == 'harmonic':
+            season_phase_LST = calc_diurnal_cycle_phase_amp_harmonic(cube)[0]
         cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig3_cb.pkl')
 
-        im = ax.imshow(season_peak_time_LST, origin='lower', extent=extent, cmap=cmap, norm=norm,
+        im = ax.imshow(season_phase_LST, origin='lower', extent=extent, cmap=cmap, norm=norm,
                        vmin=0, vmax=24)
 
         return im

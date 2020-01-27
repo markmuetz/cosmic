@@ -65,6 +65,18 @@ def build_raster_from_cube(cube, hb):
     return build_raster_from_lon_lat(lon_min, lon_max, lat_min, lat_max, nlon, nlat, hb)
 
 
+def build_raster_cube_from_cube(cube, hb, name):
+    nlat = cube.shape[-2]
+    nlon = cube.shape[-1]
+    lon_min, lon_max = cube.coord('longitude').points[[0, -1]]
+    lat_min, lat_max = cube.coord('latitude').points[[0, -1]]
+    raster = build_raster_from_lon_lat(lon_min, lon_max, lat_min, lat_max, nlon, nlat, hb)
+    raster_cube = iris.cube.Cube(raster, long_name=f'{name}', units='-',
+                                 dim_coords_and_dims=[(cube.coord('latitude'), 0),
+                                                      (cube.coord('longitude'), 1)])
+    return raster_cube
+
+
 def load_cmap_data(cmap_data_filename):
     with open(cmap_data_filename, 'rb') as fp:
         cmap_data = pickle.load(fp)
