@@ -5,7 +5,7 @@ SCRIPT_PATH = 'hadgem3_regrid.py'
 
 BASEDIR = Path('/gws/nopw/j04/cosmic/mmuetz/data/')
 TARGET_FILENAME = Path('/gws/nopw/j04/cosmic/mmuetz/data/u-ak543/ap9.pp/'
-                       'ak543a.p9jja.200502-200901.asia_precip.ppt_thresh_0p1.nc')
+                       'precip_200501/ak543a.p9200501.asia_precip.nc')
 
 MODELS = {
     'HadGEM3-GC31-HM': {
