@@ -1,5 +1,4 @@
 import sys
-import datetime as dt
 
 from cosmic.util import load_config
 from cosmic.datasets.cmorph.cmorph_convert import extract_asia_8km_30min
