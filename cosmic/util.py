@@ -17,20 +17,21 @@ from basmati.utils import build_raster_from_geometries
 from cosmic.cosmic_errors import CosmicError
 
 
-def regrid(input_filepath, target_filepath):
+def regrid(input_cube, target_cube, scheme=iris.analysis.AreaWeighted(mdtol=0.5)):
+    for cube in [input_cube, target_cube]:
+        for latlon in ['latitude', 'longitude']:
+            if not cube.coord(latlon).has_bounds():
+                cube.coord(latlon).guess_bounds()
+            if not cube.coord(latlon).coord_system:
+                cube.coord(latlon).coord_system = iris.coord_systems.GeogCS(iris.fileformats.pp.EARTH_RADIUS)
+
+    return input_cube.regrid(target_cube, scheme)
+
+
+def filepath_regrid(input_filepath, target_filepath, scheme=iris.analysis.AreaWeighted(mdtol=0.5)):
     input_cube = iris.load_cube(str(input_filepath))
     target_cube = iris.load_cube(str(target_filepath))
-
-    input_cube.coord('latitude').guess_bounds()
-    input_cube.coord('longitude').guess_bounds()
-    target_cube.coord('latitude').guess_bounds()
-    target_cube.coord('longitude').guess_bounds()
-
-    target_cube.coord('latitude').coord_system = input_cube.coord('latitude').coord_system
-    target_cube.coord('longitude').coord_system = input_cube.coord('longitude').coord_system
-
-    scheme = iris.analysis.AreaWeighted(mdtol=0.5)
-    return input_cube.regrid(target_cube, scheme)
+    return regrid(input_cube, target_cube, scheme)
 
 
 def daily_circular_mean(arr, axis=None):
