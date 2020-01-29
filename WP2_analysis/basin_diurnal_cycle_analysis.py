@@ -109,13 +109,19 @@ def load_dataset(dataset, mode='amount'):
     if dataset == 'cmorph':
         cmorph_path = (PATHS['datadir'] /
                        'cmorph_data/8km-30min/cmorph_ppt_jja.199801-201812.asia_precip.ppt_thresh_0p1.N1280.nc')
-        cmorph_amount = iris.load_cube(str(cmorph_path), f'{mode}_of_precip_jja')
-        return cmorph_amount
+        cmorph_cube = iris.load_cube(str(cmorph_path), f'{mode}_of_precip_jja')
+        return cmorph_cube
     elif dataset[:2] == 'u-':
         um_path = (PATHS['datadir'] /
                    f'{dataset}/ap9.pp/{dataset[2:]}a.p9jja.200502-200901.asia_precip.ppt_thresh_0p1.nc')
-        um_amount = iris.load_cube(str(um_path), f'{mode}_of_precip_jja')
-        return um_amount
+        um_cube = iris.load_cube(str(um_path), f'{mode}_of_precip_jja')
+        return um_cube
+    elif dataset[:7] == 'HadGEM3':
+        hadgem_path = (PATHS['datadir'] /
+                       f'PRIMAVERA_HighResMIP_MOHC/local/{dataset}/{dataset}.highresSST-present.'
+                       f'r1i1p1f1.2005-2009.JJA.asia_precip.N1280.ppt_thresh_0p1.nc')
+        hadgem_cube = iris.load_cube(str(hadgem_path), f'{mode}_of_precip_JJA')
+        return hadgem_cube
 
 
 class DiurnalCycleAnalysis:
@@ -126,7 +132,7 @@ class DiurnalCycleAnalysis:
         self.figsdir.mkdir(parents=True, exist_ok=True)
 
     def run_all(self):
-        datasets = ['cmorph', 'u-ak543', 'u-al508']
+        datasets = ['cmorph', 'u-ak543', 'u-al508', 'HadGEM3-GC31-HM', 'HadGEM3-GC31-MM', 'HadGEM3-GC31-LM']
         diurnal_cycle_cube = load_dataset(datasets[0],)
         hb_raster_cubes = self.filestore('data/hb_N1280_raster_small_medium_large.nc',
                                          gen_hydrobasins_raster_cubes,
