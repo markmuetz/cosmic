@@ -7,7 +7,6 @@ fn = fns[-1]
 d1, d2 = [[int(v) for v in (d[:4], d[4:6], d[6:8], d[8:10], d[10:])] for d in fn.stem[-25:].split('-')]
 d1
 d2
-import pandas ad pd
 import pandas as pd
 data = []
 for fn in fns:

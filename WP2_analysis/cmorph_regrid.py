@@ -3,7 +3,7 @@ from pathlib import Path
 
 import iris
 
-from cosmic.util import load_config, regrid
+from cosmic.util import load_config, filepath_regrid
 
 
 def main(year, month):
@@ -16,7 +16,7 @@ def main(year, month):
     print(f'Regrid {cmorph_filepath} -> {output_filepath}')
     print(f'  using {target_filepath} resolution')
 
-    coarse_cube = regrid(cmorph_filepath, target_filepath)
+    coarse_cube = filepath_regrid(cmorph_filepath, target_filepath)
     iris.save(coarse_cube, str(output_filepath), zlib=True)
 
 

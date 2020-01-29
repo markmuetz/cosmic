@@ -45,7 +45,7 @@ constraint_asia = (iris.Constraint(coord_values={'latitude':lambda cell: 0.9 < c
                        & iris.Constraint(coord_values={'longitude':lambda cell: 56.9 < cell < 151.1}))
 lm_ppt.extract(constraint_asia)
 1280 / 96
-from cosmic.util import regrid
+from cosmic.util import filepath_regrid
 um_datapath = datapath / 'u-ak543/ap9.pp/precip_200501'
 um_datapath.exists()
 um_datapath
@@ -53,7 +53,7 @@ um_datapath = PATHS['datadir'] / 'u-ak543/ap9.pp/precip_200501'
 um_datapath.exists()
 um_ppt_fns = sorted(um_datapath.glob('ak543a.p9????????.precip.nc'))
 um_ppt_fns
-lmN1280 = regrid(um_ppt_fns[-1], lm_ppt_fns[-1])
+lmN1280 = filepath_regrid(um_ppt_fns[-1], lm_ppt_fns[-1])
 um_ppt = iris.load_cube(str(um_ppt_fns[-1]), 'stratiform_rainfall_flux')
 lm_ppt
 um_ppt
