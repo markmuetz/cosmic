@@ -28,6 +28,12 @@ PRECIP_THRESHES = [
     0.2,
 ]
 
+HADGEMS = [
+    'HadGEM3-GC31-HM',
+    'HadGEM3-GC31-MM',
+    'HadGEM3-GC31-LM',
+]
+
 
 def all_seasonal_analysis_gen():
     for runid, daterange in itertools.product(RUNIDS, UM_DATERANGE):
@@ -35,6 +41,13 @@ def all_seasonal_analysis_gen():
         resolution = None
         args = (PATHS['datadir'], PATHS['hydrosheds_dir'], PATHS['figsdir'],
                 runid, daterange, seasons, resolution, PRECIP_THRESHES)
+        yield main, args, {}
+
+    for runid in HADGEMS:
+        seasons = ['JJA']
+        resolution = 'N1280'
+        args = (PATHS['datadir'], PATHS['hydrosheds_dir'], PATHS['figsdir'],
+                runid, '2005-2009', seasons, resolution, PRECIP_THRESHES)
         yield main, args, {}
 
     for cmorph, daterange in itertools.product(CMORPHS, CMORPH_DATERANGE):

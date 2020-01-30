@@ -3,6 +3,8 @@ from pathlib import Path
 import hashlib
 import warnings
 
+import matplotlib.pyplot as plt
+
 from basmati.bcolors import Bcolors
 
 from extract_china_jja_2009_mean_precip import extract_all_dataset_gen
@@ -12,6 +14,7 @@ from plot_gauge_data import all_plot_gauge_data_gen
 from plot_seasonal_analysis import all_seasonal_analysis_gen
 from plot_aphrodite_seasonal_analysis import all_aphrodite_gen
 from cmorph_diurnal_cycle_multipeak import multipeak_all_figs_gen
+from basin_diurnal_cycle_analysis import basin_analysis_all
 
 from paths import hostname
 
@@ -23,6 +26,7 @@ fn_generators = [
     all_seasonal_analysis_gen,
     all_aphrodite_gen,
     multipeak_all_figs_gen,
+    basin_analysis_all,
 ]
 
 
@@ -36,6 +40,7 @@ if __name__ == '__main__':
     parser.add_argument('--analysis', default='ALL', choices=['ALL'] + [gen.__name__ for gen in fn_generators])
     parser.add_argument('--force', action='store_true')
     parser.add_argument('--clear-cache', action='store_true')
+    parser.add_argument('--raise-exceptions', '-X', action='store_true')
     cli_args = parser.parse_args()
 
     task_cache = Path('.run_analysis/task_cache')
@@ -70,6 +75,9 @@ if __name__ == '__main__':
             warnings.warn(f'Could not run {fn.__name__}, {args}, {kwargs}:')
             fail.append((fn, args, kwargs))
             Bcolors.print(e, ['bold', 'fail'])
+            if cli_args.raise_exceptions:
+                raise
+        plt.close('all')
 
     print()
     print(f'Cached: {len(cached)}')

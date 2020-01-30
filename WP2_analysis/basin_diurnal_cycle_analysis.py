@@ -16,6 +16,7 @@ from paths import PATHS
 
 SCALES = ['small', 'medium', 'large']
 MODES = ['amount', 'freq', 'intensity']
+DATASETS = ['cmorph', 'u-ak543', 'u-al508', 'HadGEM3-GC31-HM', 'HadGEM3-GC31-MM', 'HadGEM3-GC31-LM']
 
 
 def savefig(filename):
@@ -130,49 +131,56 @@ class DiurnalCycleAnalysis:
         self.df_keys = None
         self.figsdir = PATHS['figsdir'] / 'basin_diurnal_cycle_analysis'
         self.figsdir.mkdir(parents=True, exist_ok=True)
+        self.keys = []
+        self.prev_lon, self.prev_lat = None, None
+        self.ordered_raster_cubes = []
 
-    def run_all(self):
-        datasets = ['cmorph', 'u-ak543', 'u-al508', 'HadGEM3-GC31-HM', 'HadGEM3-GC31-MM', 'HadGEM3-GC31-LM']
-        diurnal_cycle_cube = load_dataset(datasets[0],)
+    def load_ordered_raster_cubes(self):
+        diurnal_cycle_cube = load_dataset(DATASETS[0], )
         hb_raster_cubes = self.filestore('data/hb_N1280_raster_small_medium_large.nc',
                                          gen_hydrobasins_raster_cubes,
                                          gen_fn_args=[diurnal_cycle_cube])
-        ordered_raster_cubes = [hb_raster_cubes.extract_strict(f'hydrobasins_raster_{s}') for s in SCALES]
+        self.ordered_raster_cubes = [hb_raster_cubes.extract_strict(f'hydrobasins_raster_{s}') for s in SCALES]
 
-        keys = []
-        prev_lon, prev_lat = None, None
-        for dataset, mode in itertools.product(datasets, MODES):
-            print(f'Dataset, mode: {dataset}, {mode}')
-            diurnal_cycle_cube = load_dataset(dataset, mode)
-            # Verify all longitudes/latitudes are the same.
-            lon = diurnal_cycle_cube.coord('longitude').points
-            lat = diurnal_cycle_cube.coord('latitude').points
-            if prev_lon is not None and prev_lat is not None:
-                assert (lon == prev_lon).all() and (lat == prev_lat).all()
-            prev_lon, prev_lat = lon, lat
+    def run(self, dataset, mode):
+        if not self.ordered_raster_cubes:
+            self.load_ordered_raster_cubes()
 
-            for raster_cube, method in itertools.product(ordered_raster_cubes,
-                                                         ['peak', 'harmonic']):
-                df_vector_phase_mag_key, vector_phase_mag_cubes_key = \
-                    self.basin_vector_area_avg(dataset, diurnal_cycle_cube, raster_cube, method, mode)
-                keys.append([dataset, mode, raster_cube.name(), 'vector_area_avg', method, 'phase_mag',
-                             df_vector_phase_mag_key])
-                keys.append([dataset, mode, raster_cube.name(), 'vector_area_avg', method, 'phase_mag_cubes',
-                             vector_phase_mag_cubes_key])
+        print(f'Dataset, mode: {dataset}, {mode}')
+        diurnal_cycle_cube = load_dataset(dataset, mode)
+        # Verify all longitudes/latitudes are the same.
+        lon = diurnal_cycle_cube.coord('longitude').points
+        lat = diurnal_cycle_cube.coord('latitude').points
+        if self.prev_lon is not None and self.prev_lat is not None:
+            assert (lon == self.prev_lon).all() and (lat == self.prev_lat).all()
+        self.prev_lon, self.prev_lat = lon, lat
 
-                df_area_phase_mag_key, area_phase_mag_cubes_key = self.basin_area_avg(dataset, diurnal_cycle_cube,
-                                                                                      raster_cube, method, mode)
-                keys.append([dataset, mode, raster_cube.name(), 'basin_area_avg', method, 'phase_mag',
-                             df_area_phase_mag_key])
-                keys.append([dataset, mode, raster_cube.name(), 'basin_area_avg', method, 'phase_mag_cubes',
-                             area_phase_mag_cubes_key])
+        for raster_cube, method in itertools.product(self.ordered_raster_cubes,
+                                                     ['peak', 'harmonic']):
+            df_vector_phase_mag_key, vector_phase_mag_cubes_key = \
+                self.basin_vector_area_avg(dataset, diurnal_cycle_cube, raster_cube, method, mode)
+            self.keys.append([dataset, mode, raster_cube.name(), 'vector_area_avg', method, 'phase_mag',
+                              df_vector_phase_mag_key])
+            self.keys.append([dataset, mode, raster_cube.name(), 'vector_area_avg', method, 'phase_mag_cubes',
+                              vector_phase_mag_cubes_key])
 
-        self.df_keys = pd.DataFrame(keys,
+            df_area_phase_mag_key, area_phase_mag_cubes_key = self.basin_area_avg(dataset, diurnal_cycle_cube,
+                                                                                  raster_cube, method, mode)
+            self.keys.append([dataset, mode, raster_cube.name(), 'basin_area_avg', method, 'phase_mag',
+                              df_area_phase_mag_key])
+            self.keys.append([dataset, mode, raster_cube.name(), 'basin_area_avg', method, 'phase_mag_cubes',
+                              area_phase_mag_cubes_key])
+
+        self.df_keys = pd.DataFrame(self.keys,
                                     columns=['dataset', 'mode', 'basin_scale',
                                              'analysis_order', 'method', 'type', 'key'])
 
-        extent = tuple(lon[[0, -1]]) + tuple(lat[[0, -1]])
-        for raster_cube, mode in itertools.product(ordered_raster_cubes, MODES):
+    def run_all(self):
+        for dataset, mode in itertools.product(DATASETS, MODES):
+            self.run(dataset, mode)
+
+        extent = tuple(self.prev_lon[[0, -1]]) + tuple(self.prev_lat[[0, -1]])
+        for raster_cube, mode in itertools.product(self.ordered_raster_cubes, MODES):
             self.plot_output(extent, raster_cube, mode)
 
     def basin_vector_area_avg(self, dataset, diurnal_cycle_cube, raster_cube, method, mode):
@@ -354,6 +362,12 @@ class DiurnalCycleAnalysis:
                 f'{row1.dataset}_{row1.analysis_order}_{row1.method}_vs_'
                 f'{row2.dataset}_{row2.analysis_order}_{row2.method}.'
                 f'{basin_scale}.mag.png')
+
+
+def basin_analysis_all():
+    filestore = FileStore()
+    analysis = DiurnalCycleAnalysis(filestore)
+    yield (analysis.run_all, [], {})
 
 
 if __name__ == '__main__':
