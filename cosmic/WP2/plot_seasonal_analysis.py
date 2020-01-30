@@ -1,20 +1,18 @@
-# coding: utf-8
-import sys
 from pathlib import Path
 from argparse import ArgumentParser
 
 import numpy as np
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
-import matplotlib.colors as colors
 from matplotlib.colors import LogNorm, LinearSegmentedColormap
 from matplotlib.patches import Rectangle
 import iris
 import cartopy.crs as ccrs
 from scipy.ndimage.filters import gaussian_filter
 
-from cosmic.util import (sysrun, predominant_pixel_2d, load_cmap_data,
+from cosmic.util import (sysrun, load_cmap_data,
                          daily_circular_mean, build_raster_from_cube)
+from cosmic.WP2.diurnal_cycle_analysis import calc_diurnal_cycle_phase_amp_harmonic, calc_diurnal_cycle_phase_amp_peak
 
 from basmati.hydrosheds import load_hydrobasins_geodataframe
 
@@ -27,7 +25,7 @@ class SeasonAnalysisPlotter:
     def __init__(self, datadir, hydrosheds_dir, figsdir, runid, daterange, seasons, precip_thresh, resolution):
         self.datadir = datadir
         self.hydrosheds_dir = hydrosheds_dir
-        self.figsdir = Path(f'{figsdir}/{runid}/{daterange}')
+        self.figsdir = Path(f'{figsdir}/seasonal_analysis/{runid}/{daterange}')
         self.runid = runid
         self.daterange = daterange
         if seasons == 'all':
@@ -52,9 +50,14 @@ class SeasonAnalysisPlotter:
         for i, season in enumerate(self.seasons):
             if self.runid[:6] == 'cmorph':
                 if self.resolution:
-                    filename = f'cmorph_ppt_{season}.{self.daterange}.asia_precip.ppt_thresh_{self.thresh_text}.{self.resolution}.nc'
+                    filename = f'cmorph_ppt_{season}.{self.daterange}.' \
+                               f'asia_precip.ppt_thresh_{self.thresh_text}.{self.resolution}.nc'
                 else:
-                    filename = f'cmorph_ppt_{season}.{self.daterange}.asia_precip.ppt_thresh_{self.thresh_text}.nc'
+                    filename = f'cmorph_ppt_{season}.{self.daterange}.' \
+                               f'asia_precip.ppt_thresh_{self.thresh_text}.nc'
+            elif self.runid[:7] == 'HadGEM3':
+                filename = f'{self.runid}.highresSST-present.r1i1p1f1.{self.daterange}.{season}.' \
+                           f'asia_precip.{self.resolution}.ppt_thresh_{self.thresh_text}.nc'
             else:
                 filename = f'{self.runid}a.p9{season}.{self.daterange}.asia_precip.ppt_thresh_{self.thresh_text}.nc'
 
@@ -131,8 +134,7 @@ class SeasonAnalysisPlotter:
                 cb1 = plt.colorbar(im1, cax=cax1, 
                                    label='$\\sigma$ precip. (mm hr$^{-1}$)',
                                    orientation='horizontal', extend='min')
-        self.savefig(f'season_mean/asia_{mode}_mean.png')
-
+        self.savefig(f'season_mean/asia_mean.png')
 
     def plot_season_afi_gmt(self, mode):
         for i, season in enumerate(self.seasons):
@@ -166,7 +168,7 @@ class SeasonAnalysisPlotter:
                                  **kwargs)
                 plt.colorbar(im0, label=f'{mode} precip. ({units})',
                              orientation='horizontal', **cbar_kwargs)
-                fig.set_size_inches(12, 8)
+                # fig.set_size_inches(12, 8)
                 self.savefig(f'ppt_thresh_{self.thresh_text}/hourly/GMT/asia_{mode}_{season}_hr{j:02d}_GMT.png')
                 plt.close('all')
 
@@ -301,11 +303,16 @@ class SeasonAnalysisPlotter:
                 plt.colorbar(im0,
                              label=f'{mode} precip. ({units})',
                              orientation='horizontal')
-                fig.set_size_inches(12, 8)
+                # fig.set_size_inches(12, 8)
                 self.savefig(f'ppt_thresh_{self.thresh_text}/hourly/LST/asia_{mode}_{season}_hr{j:02d}_LST.png')
                 plt.close('all')
 
-    def plot_afi_diurnal_cycle(self, mode, cmap_name='li2018fig3', overlay_style=None, predom_pixel=None):
+    def plot_afi_diurnal_cycle(self, mode, method='peak', cmap_name='li2018fig3',
+                               overlay_style=None,
+                               predom_pixel=None,  # No longer working.
+                               ):
+        if predom_pixel:
+            raise NotImplemented('predom_pixel no longer works.')
         for season in self.seasons:
             cube = self.cubes[f'{mode}_{season}']
             if predom_pixel:
@@ -316,38 +323,17 @@ class SeasonAnalysisPlotter:
             lat_min, lat_max = cube.coord('latitude').points[[0, -1]]
 
             extent = (lon_min, lon_max, lat_min, lat_max)
-            t_offset = cube.coord('longitude').points / 180 * 12
-            def calc_predom_pixel_season_peak(peak):
-                predom = predominant_pixel_2d(peak, 
-                                             (predom_pixel, predom_pixel), 
-                                             'exact')
-                return predom.repeat(predom_pixel, axis=0).\
-                                     repeat(predom_pixel, axis=1)
-
-            if self.runid == 'cmorph_0p25':
-                # CMORPH 0.25deg data is 3-hourly.
-                season_peak_time_GMT = cube.data.argmax(axis=0) * 3
-                if predom_pixel:
-                    season_peak_time_GMT[:, :] = calc_predom_pixel_season_peak(season_peak_time_GMT)
-                season_peak_time_LST = (season_peak_time_GMT + t_offset[None, :] + 1.5) % 24
-            elif self.runid == 'cmorph_8km':
-                # CMORPH 8km data is 30-min-ly
-                season_peak_time_GMT = cube.data.argmax(axis=0) / 2
-                if predom_pixel:
-                    season_peak_time_GMT[:, :] = calc_predom_pixel_season_peak(season_peak_time_GMT)
-                season_peak_time_LST = (season_peak_time_GMT + t_offset[None, :] + 0.25) % 24
-            else:
-                # model data is 1-hourly.
-                season_peak_time_GMT = cube.data.argmax(axis=0)
-                if predom_pixel:
-                    season_peak_time_GMT[:, :] = calc_predom_pixel_season_peak(season_peak_time_GMT)
-                season_peak_time_LST = (season_peak_time_GMT + t_offset[None, :] + 0.5) % 24
+            if method == 'peak':
+                season_phase_LST, season_amp = calc_diurnal_cycle_phase_amp_peak(cube)
+            elif method == 'harmonic':
+                season_phase_LST, season_amp = calc_diurnal_cycle_phase_amp_harmonic(cube)
 
             ax = plt.axes(projection=ccrs.PlateCarree())
             fig = plt.gcf()
             ax.coastlines()
 
-            title = f'{self.runid} diurnal cycle time {mode} {season} LST ppt_thresh={self.precip_thresh} mm hr$^{{-1}}$'
+            title = f'{self.runid} diurnal cycle time {mode} {season} ' \
+                    f'LST ppt_thresh={self.precip_thresh} mm hr$^{{-1}}$'
             print(title)
             plt.title(title)
 
@@ -368,21 +354,21 @@ class SeasonAnalysisPlotter:
                 imshow_kwargs = {'cmap': cmap, 'norm': norm}
                 cbar_kwargs['norm'] = norm
             elif cmap_name == 'sky_colour':
-                cmap = LinearSegmentedColormap.from_list('cmap',['k','pink','cyan','blue','red','k'], 
+                cmap = LinearSegmentedColormap.from_list('cmap', ['k', 'pink', 'cyan', 'blue', 'red', 'k'],
                                                          N=24)
                 imshow_kwargs = {'cmap': cmap}
                 cbar_kwargs = {}
 
             if overlay_style != 'alpha_overlay':
-                im0 = ax.imshow(season_peak_time_LST, origin='lower', extent=extent,
+                im0 = ax.imshow(season_phase_LST, origin='lower', extent=extent,
                                 vmin=0, vmax=24, **imshow_kwargs)
             elif overlay_style == 'alpha_overlay':
-                peak_strong = np.ma.masked_array(season_peak_time_LST, 
+                peak_strong = np.ma.masked_array(season_phase_LST,
                                                  season_strength < strong_thresh)
-                peak_med = np.ma.masked_array(season_peak_time_LST, 
+                peak_med = np.ma.masked_array(season_phase_LST,
                                               ((season_strength > strong_thresh) | 
                                                (season_strength < med_thresh)))
-                peak_weak = np.ma.masked_array(season_peak_time_LST, 
+                peak_weak = np.ma.masked_array(season_phase_LST,
                                                season_strength > med_thresh)
 
                 im0 = ax.imshow(peak_strong, origin='lower', extent=extent,
@@ -396,18 +382,21 @@ class SeasonAnalysisPlotter:
                          **cbar_kwargs)
 
             if overlay_style == 'contour_overlay':
-                plt.contour(season_strength_filtered, [filtered_med_thresh, filtered_strong_thresh], colors=['w', 'w'], linestyles=['--', '-'], extent=extent)
+                plt.contour(season_strength_filtered, [filtered_med_thresh, filtered_strong_thresh],
+                            colors=['w', 'w'], linestyles=['--', '-'], extent=extent)
 
             rect = Rectangle((97.5, 18), 125 - 97.5, 41 - 18, linewidth=1, edgecolor='k', facecolor='none')
             ax.add_patch(rect)
             fig.set_size_inches(12, 8)
-            self.savefig(f'ppt_thresh_{self.thresh_text}/diurnal_cycle/asia_diurnal_cycle_{mode}_{season}_peak.{cmap_name}.{overlay_style}.predom_{predom_pixel}.png')
+            self.savefig(f'ppt_thresh_{self.thresh_text}/diurnal_cycle/'
+                         f'asia_diurnal_cycle_{mode}_{season}_{method}.{cmap_name}.{overlay_style}.png')
             ax.set_xlim((97.5, 125))
             ax.set_ylim((18, 41))
             ax.set_xticks([100, 110, 120])
             ax.set_yticks([20, 30, 40])
             fig.set_size_inches(6, 8)
-            self.savefig(f'ppt_thresh_{self.thresh_text}/diurnal_cycle/china_diurnal_cycle_{mode}_{season}_peak.{cmap_name}.{overlay_style}.predom_{predom_pixel}.png')
+            self.savefig(f'ppt_thresh_{self.thresh_text}/diurnal_cycle/'
+                         f'china_diurnal_cycle_{mode}_{season}_{method}.{cmap_name}.{overlay_style}.png')
 
             plt.close('all')
 
@@ -415,7 +404,8 @@ class SeasonAnalysisPlotter:
             fig = plt.gcf()
             fig.set_size_inches(12, 8)
             ax.coastlines()
-            title = f'{self.runid} diurnal cycle strength {mode} {season} LST ppt_thresh={self.precip_thresh} mm hr$^{{-1}}$'
+            title = f'{self.runid} diurnal cycle strength {mode} {season} ' \
+                    f'LST ppt_thresh={self.precip_thresh} mm hr$^{{-1}}$'
             plt.title(title)
             if mode == 'freq':
                 kwargs = {'vmin': 1, 'vmax': 11, 'norm': LogNorm()}
@@ -430,16 +420,20 @@ class SeasonAnalysisPlotter:
 
             plt.colorbar(im0, label=f'{mode} strength (-)', orientation='horizontal')
             fig.set_size_inches(12, 8)
-            self.savefig(f'ppt_thresh_{self.thresh_text}/diurnal_cycle/asia_diurnal_cycle_{mode}_{season}_strength.png')
+            self.savefig(f'ppt_thresh_{self.thresh_text}/diurnal_cycle/'
+                         f'asia_diurnal_cycle_{mode}_{season}_{method}_strength.png')
             ax.set_xlim((97.5, 125))
             ax.set_ylim((18, 41))
             ax.set_xticks([100, 110, 120])
             ax.set_yticks([20, 30, 40])
             fig.set_size_inches(6, 8)
-            self.savefig(f'ppt_thresh_{self.thresh_text}/diurnal_cycle/china_diurnal_cycle_{mode}_{season}_strength.png')
+            self.savefig(f'ppt_thresh_{self.thresh_text}/diurnal_cycle/'
+                         f'china_diurnal_cycle_{mode}_{season}_{method}_strength.png')
             plt.close('all')
 
-    def plot_basin_afi_diurnal_cycle(self, mode, cmap_name='li2018fig3', basin_filter='level', scale=6):
+    def plot_basin_afi_diurnal_cycle(self, mode, method='peak', cmap_name='li2018fig3', basin_filter='level', scale=6):
+        raise Exception('Superseded by basin_diurnal_cycle_analysis.py')
+
         hb = self.hb
         for season in self.seasons:
             cube = self.cubes[f'{mode}_{season}']
@@ -465,28 +459,18 @@ class SeasonAnalysisPlotter:
             lat_min, lat_max = cube.coord('latitude').points[[0, -1]]
 
             extent = (lon_min, lon_max, lat_min, lat_max)
-            # plt.imshow(raster, origin='lower', extent=extent)
 
-            # plt.show()
-            t_offset = cube.coord('longitude').points / 180 * 12
-            if self.runid == 'cmorph_0p25':
-                # CMORPH 0.25deg data is 3-hourly.
-                season_peak_time_GMT = cube.data.argmax(axis=0) * 3
-                season_peak_time_LST = (season_peak_time_GMT + t_offset[None, :] + 1.5) % 24
-            elif self.runid == 'cmorph_8km':
-                # CMORPH 8km data is 30-min-ly
-                season_peak_time_GMT = cube.data.argmax(axis=0) / 2
-                season_peak_time_LST = (season_peak_time_GMT + t_offset[None, :] + 0.25) % 24
-            else:
-                # model data is 1-hourly.
-                season_peak_time_GMT = cube.data.argmax(axis=0)
-                season_peak_time_LST = (season_peak_time_GMT + t_offset[None, :] + 0.5) % 24
+            if method == 'peak':
+                season_phase_LST, season_amp = calc_diurnal_cycle_phase_amp_peak(cube)
+            elif method == 'harmonic':
+                season_phase_LST, season_amp = calc_diurnal_cycle_phase_amp_harmonic(cube)
 
             ax = plt.axes(projection=ccrs.PlateCarree())
             fig = plt.gcf()
             ax.coastlines()
 
-            title = f'{self.runid} diurnal cycle time {mode} {season} LST ppt_thresh={self.precip_thresh} mm hr$^{{-1}}$'
+            title = f'{self.runid} diurnal cycle time {mode} {season} ' \
+                    f'LST ppt_thresh={self.precip_thresh} mm hr$^{{-1}}$'
             print(title)
             plt.title(title)
 
@@ -504,7 +488,7 @@ class SeasonAnalysisPlotter:
 
             basin_mean_field = np.zeros(raster.shape, dtype=np.float)
             for i in basin_index:
-                basin_mean_field[raster == i] = daily_circular_mean(season_peak_time_LST[raster == i])
+                basin_mean_field[raster == i] = daily_circular_mean(season_phase_LST[raster == i])
 
             ma_basin_mean_field = np.ma.masked_array(basin_mean_field, mask=raster == 0)
 
@@ -517,13 +501,15 @@ class SeasonAnalysisPlotter:
             rect = Rectangle((97.5, 18), 125 - 97.5, 41 - 18, linewidth=1, edgecolor='k', facecolor='none')
             ax.add_patch(rect)
             fig.set_size_inches(12, 8)
-            self.savefig(f'ppt_thresh_{self.thresh_text}/basin_diurnal_cycle/asia_diurnal_cycle_{mode}_{season}_peak.{cmap_name}.{basin_filter}_{scale}.png')
+            self.savefig(f'ppt_thresh_{self.thresh_text}/basin_diurnal_cycle/'
+                         f'asia_diurnal_cycle_{mode}_{season}_{method}.{cmap_name}.{basin_filter}_{scale}.png')
             ax.set_xlim((97.5, 125))
             ax.set_ylim((18, 41))
             ax.set_xticks([100, 110, 120])
             ax.set_yticks([20, 30, 40])
             fig.set_size_inches(6, 8)
-            self.savefig(f'ppt_thresh_{self.thresh_text}/basin_diurnal_cycle/china_diurnal_cycle_{mode}_{season}_peak.{cmap_name}.{basin_filter}_{scale}.png')
+            self.savefig(f'ppt_thresh_{self.thresh_text}/basin_diurnal_cycle/'
+                         f'china_diurnal_cycle_{mode}_{season}_{method}.{cmap_name}.{basin_filter}_{scale}.png')
 
             plt.close('all')
 
@@ -544,6 +530,8 @@ def main(basepath, hydrosheds_dir, figsdir, runid, daterange, seasons, resolutio
         datadir = Path(f'{basepath}/cmorph_data/0.25deg-3HLY')
     elif runid == 'cmorph_8km':
         datadir = Path(f'{basepath}/cmorph_data/8km-30min')
+    elif runid[:7] == 'HadGEM3':
+        datadir = Path(f'{basepath}/PRIMAVERA_HighResMIP_MOHC/local/{runid}')
     else:
         datadir = Path(f'{basepath}/u-{runid}/ap9.pp')
 
@@ -556,7 +544,8 @@ def main(basepath, hydrosheds_dir, figsdir, runid, daterange, seasons, resolutio
             # plotter.plot_season_afi_gmt(mode)
             # plotter.plot_season_afi_lst(mode)
             plotter.plot_season_afi_mean(mode)
-            plotter.plot_afi_diurnal_cycle(mode, overlay_style=None, predom_pixel=None)
+            for method in ['peak', 'harmonic']:
+                plotter.plot_afi_diurnal_cycle(mode, method, overlay_style=None)
             # plotter.plot_basin_afi_diurnal_cycle(mode, basin_filter='level', scale=3)
 
         # plotter.gen_animations()
