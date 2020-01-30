@@ -17,6 +17,16 @@ from basmati.utils import build_raster_from_geometries
 from cosmic.cosmic_errors import CosmicError
 
 
+def rmse(a1, a2):
+    return np.sqrt(((a1 - a2)**2).mean())
+
+
+def circular_rmse(a1, a2):
+    diff = (a1 - a2) % 24
+    diff[diff > 12] = (24 - diff)[diff > 12]
+    return np.sqrt(((diff**2).mean()))
+
+
 def regrid(input_cube, target_cube, scheme=iris.analysis.AreaWeighted(mdtol=0.5)):
     for cube in [input_cube, target_cube]:
         for latlon in ['latitude', 'longitude']:
