@@ -1,3 +1,4 @@
+import sys
 from argparse import ArgumentParser
 from pathlib import Path
 import hashlib
@@ -48,6 +49,7 @@ if __name__ == '__main__':
     if cli_args.clear_cache:
         for filepath in task_cache.glob('*'):
             filepath.unlink()
+            sys.exit()
 
     tasks = []
     for gen in fn_generators:
