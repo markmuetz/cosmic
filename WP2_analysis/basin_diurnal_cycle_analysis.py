@@ -195,12 +195,19 @@ class DiurnalCycleAnalysis:
                                              'analysis_order', 'method', 'type', 'key'])
 
     def run_all(self):
-        for dataset, mode in itertools.product(DATASETS, MODES):
-            self.run(dataset, mode)
+        df_keys_filename = Path(f'data/.basin_diurnal_cycle_analysis_df_keys.{self.raster_scales}.hdf')
+        if not df_keys_filename.exists() or self.force:
+            for dataset, mode in itertools.product(DATASETS, MODES):
+                self.run(dataset, mode)
+            self.df_keys.to_hdf(df_keys_filename, f'{self.raster_scales}')
+        else:
+            self.df_keys = pd.read_hdf(df_keys_filename, f'{self.raster_scales}')
 
-        extent = tuple(self.prev_lon[[0, -1]]) + tuple(self.prev_lat[[0, -1]])
+        if not self.ordered_raster_cubes:
+            self.load_ordered_raster_cubes()
+
         for raster_cube, mode in itertools.product(self.ordered_raster_cubes, MODES):
-            self.plot_output(extent, raster_cube, mode)
+            self.plot_output(raster_cube, mode)
 
         self.plot_cmorph_vs_datasets()
 
@@ -224,11 +231,20 @@ class DiurnalCycleAnalysis:
                             df_cmorph[df_cmorph.basin_scale == f'hydrobasins_raster_{scale}'].key.values[0])
                         dataset_phase_mag = self.filestore(
                             df_dataset[df_dataset.basin_scale == f'hydrobasins_raster_{scale}'].key.values[0])
-                        rs.append(circular_rmse(cmorph_phase_mag[0].data, dataset_phase_mag[0].data))
+
+                        cmorph_phase = cmorph_phase_mag.extract_strict('phase_map')
+                        dataset_phase = dataset_phase_mag.extract_strict('phase_map')
+                        rs.append(circular_rmse(cmorph_phase.data, dataset_phase.data))
                     rmses[dataset] = rs
 
                 for dataset, rs in rmses.items():
                     plt.plot(rs, label=dataset)
+
+                plt.title(f'Diurnal cycle of {mode}: CMORPH vs datasets')
+                plt.xlabel('basin scale (km$^2$)')
+                plt.ylabel('circular RMSE (hr)')
+                plt.ylim((0, 5))
+                plt.xticks([0, 5, 10], ['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
                 plt.legend()
                 savefig(fig_filename)
 
@@ -272,7 +288,7 @@ class DiurnalCycleAnalysis:
         )
         return df_phase_mag_key, phase_mag_cubes_key
 
-    def plot_output(self, extent, raster_cube, mode):
+    def plot_output(self, raster_cube, mode):
         # Loop over datasets for basin_area_avg -> harmonic  for each mode and raster cube.
         for row in [
             ir[1]
@@ -283,7 +299,7 @@ class DiurnalCycleAnalysis:
                          (self.df_keys['mode'] == mode) &
                          (self.df_keys['method'] == 'harmonic')
                          ].iterrows()]:
-            self.plot_phase_mag_maps(extent, raster_cube, mode, row)
+            self.plot_phase_mag_maps(raster_cube, mode, row)
 
         # Loop over analysis types for CMORPH for each mode and raster cube.
         for row in [
@@ -294,7 +310,7 @@ class DiurnalCycleAnalysis:
                              (self.df_keys['basin_scale'] == raster_cube.name()) &
                              (self.df_keys['mode'] == mode)
                              ].iterrows()]:
-            self.plot_phase_mag_maps(extent, raster_cube, mode, row)
+            self.plot_phase_mag_maps(raster_cube, mode, row)
 
         # Loop over datasets for basin_area_avg -> harmonic  for each mode and raster cube.
         phase_mag_rows = [
@@ -323,8 +339,7 @@ class DiurnalCycleAnalysis:
         for row1, row2 in itertools.combinations(phase_mag_rows2, 2):
             self.plot_dataset_comparison(raster_cube, mode, row1, row2)
 
-
-    def plot_phase_mag_maps(self, extent, raster_cube, mode, row):
+    def plot_phase_mag_maps(self, raster_cube, mode, row):
         basin_scale = raster_cube.name().split('_')[-1]
         phase_filename = Path(f'{self.figsdir}/map/{mode}/{row.dataset}_{row.analysis_order}_{row.method}'
                               f'.{basin_scale}.phase.png')
@@ -339,6 +354,10 @@ class DiurnalCycleAnalysis:
             phase_map = phase_mag_cubes.extract_strict('phase_map')
             mag_map = phase_mag_cubes.extract_strict('magnitude_map')
 
+            lon = phase_map.coord('longitude').points
+            lat = phase_map.coord('latitude').points
+
+            extent = tuple(lon[[0, -1]]) + tuple(lat[[0, -1]])
             plt.figure(f'{row.dataset}_{row.key}_phase', figsize=(10, 8))
             plt.clf()
             plt.title(f'{row.dataset}: {row.analysis_order}_{row.method} phase')
