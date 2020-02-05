@@ -12,7 +12,7 @@ import cosmic.WP2.diurnal_cycle_analysis as dca
 from basmati.hydrosheds import load_hydrobasins_geodataframe
 from cosmic.filestore import FileStore
 from cosmic.fourier_series import FourierSeries
-from cosmic.util import build_raster_cube_from_cube, load_cmap_data, circular_rmse
+from cosmic.util import build_raster_cube_from_cube, load_cmap_data, circular_rmse, rmse
 from paths import PATHS
 
 SCALES = {
@@ -219,12 +219,16 @@ class DiurnalCycleAnalysis:
                         (self.df_keys['mode'] == mode))
 
             df_cmorph = self.df_keys[selector & (self.df_keys.dataset == 'cmorph')]
-            fig_filename = Path(f'{self.figsdir}/cmorph_vs/cmorph_vs_datasets.{mode}.circular_rmse.png')
-            if self.replot(fig_filename):
+            phase_filename = Path(f'{self.figsdir}/cmorph_vs/{self.raster_scales}/'
+                                  f'cmorph_vs_datasets.{mode}.phase.circular_rmse.png')
+            mag_filename = Path(f'{self.figsdir}/cmorph_vs/{self.raster_scales}/'
+                                f'cmorph_vs_datasets.{mode}.mag.rmse.png')
+            if self.replot(phase_filename, mag_filename):
                 rmses = {}
 
                 for dataset in DATASETS[1:]:
-                    rs = []
+                    phase_rmses = []
+                    mag_rmses = []
                     df_dataset = self.df_keys[selector & (self.df_keys.dataset == dataset)]
                     for scale in self.scales:
                         cmorph_phase_mag = self.filestore(
@@ -233,20 +237,41 @@ class DiurnalCycleAnalysis:
                             df_dataset[df_dataset.basin_scale == f'hydrobasins_raster_{scale}'].key.values[0])
 
                         cmorph_phase = cmorph_phase_mag.extract_strict('phase_map')
+                        cmorph_mag = cmorph_phase_mag.extract_strict('magnitude_map')
+
                         dataset_phase = dataset_phase_mag.extract_strict('phase_map')
-                        rs.append(circular_rmse(cmorph_phase.data, dataset_phase.data))
-                    rmses[dataset] = rs
+                        dataset_mag = dataset_phase_mag.extract_strict('magnitude_map')
 
-                for dataset, rs in rmses.items():
-                    plt.plot(rs, label=dataset)
+                        phase_rmses.append(circular_rmse(cmorph_phase.data, dataset_phase.data))
+                        mag_rmses.append(rmse(cmorph_mag.data, dataset_mag.data))
+                    rmses[dataset] = (phase_rmses, mag_rmses)
 
-                plt.title(f'Diurnal cycle of {mode}: CMORPH vs datasets')
+                plt.clf()
+                for dataset, (phase_rmses, mag_rmses) in rmses.items():
+                    plt.plot(phase_rmses, label=dataset)
+
+                plt.title(f'Diurnal cycle of {mode} phase compared to CMORPH')
                 plt.xlabel('basin scale (km$^2$)')
                 plt.ylabel('circular RMSE (hr)')
                 plt.ylim((0, 5))
-                plt.xticks([0, 5, 10], ['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
+                if self.raster_scales == 'small_medium_large':
+                    xticks = [0, 1, 2]
+                elif self.raster_scales == 'sliding':
+                    xticks = [0, 5, 10]
+                plt.xticks(xticks, ['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
                 plt.legend()
-                savefig(fig_filename)
+                savefig(phase_filename)
+
+                plt.clf()
+                for dataset, (phase_rmses, mag_rmses) in rmses.items():
+                    plt.plot(mag_rmses, label=dataset)
+
+                plt.title(f'Diurnal cycle of {mode} strength compared to CMORPH')
+                plt.xlabel('basin scale (km$^2$)')
+                plt.ylabel('RMSE (-)')
+                plt.xticks(xticks, ['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
+                plt.legend()
+                savefig(mag_filename)
 
     def basin_vector_area_avg(self, dataset, diurnal_cycle_cube, raster_cube, method, mode):
         raster = raster_cube.data
