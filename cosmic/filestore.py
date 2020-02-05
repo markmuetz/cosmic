@@ -19,11 +19,14 @@ class FileStore:
         self._obj_cache = {}
         self._record_log = []
 
-    def __call__(self, filename, gen_fn=None,
-                 objtype=None, load=None, write=None,
-                 load_args=[], load_kwargs={},
-                 save_args=[], save_kwargs={},
-                 gen_fn_args=[], gen_fn_kwargs={}):
+    def __contains__(self, filename):
+        return filename in self._obj_cache or filename.exists()
+
+    def get_or_gen(self, filename, gen_fn=None,
+                   objtype=None, load=None, write=None,
+                   load_args=[], load_kwargs={},
+                   save_args=[], save_kwargs={},
+                   gen_fn_args=[], gen_fn_kwargs={}):
 
         filename = Path(filename)
         if not objtype:
@@ -38,14 +41,7 @@ class FileStore:
             load_type = 'mem'
         else:
             if filename.exists():
-                if objtype == 'pickle':
-                    result = pickle.load(filename.open('rb'), *load_args, **load_kwargs)
-                elif objtype == 'iris_cube':
-                    result = iris.load(str(filename), *load_args, **load_kwargs)
-                elif objtype == 'pandas_df':
-                    result = pd.read_hdf(str(filename), key=str(filename.stem), *load_args, **load_kwargs)
-                elif objtype == 'custom':
-                    result = load(str(filename), *load_args, **load_kwargs)
+                result = self.load_filename(filename, objtype, load, load_args, load_kwargs)
                 load_type = 'file'
             else:
                 if not gen_fn:
@@ -54,21 +50,44 @@ class FileStore:
                 if self.create_dirs and not filename.parent.exists():
                     filename.parent.mkdir(parents=True, exist_ok=True)
 
-                if objtype == 'pickle':
-                    pickle.dump(result, filename.open('wb'), *save_args, **save_kwargs)
-                elif objtype == 'iris_cube':
-                    iris.save(result, str(filename), *save_args, **save_kwargs)
-                elif objtype == 'pandas_df':
-                    result.to_hdf(str(filename), key=str(filename.stem), *save_args, **save_kwargs)
-                elif objtype == 'custom':
-                    write(result, str(filename), *save_args, **save_kwargs)
+                self.save_filename(result, filename, objtype, write, save_args, save_kwargs)
                 load_type = 'gen'
-
-            if self.store_in_mem:
-                self._obj_cache[filename] = result
 
         end = timer()
         self._record_log.append((objtype, load_type, repr(result), end - start))
+        return result
+
+    def save_filename(self, result, filename, objtype=None, write=None, save_args=[], save_kwargs={}):
+        if not objtype:
+            objtype = FileStore.EXT_MAP[filename.suffix]
+        if objtype == 'pickle':
+            pickle.dump(result, filename.open('wb'), *save_args, **save_kwargs)
+        elif objtype == 'iris_cube':
+            iris.save(result, str(filename), *save_args, **save_kwargs)
+        elif objtype == 'pandas_df':
+            result.to_hdf(str(filename), key=str(filename.stem), *save_args, **save_kwargs)
+        elif objtype == 'custom':
+            write(result, str(filename), *save_args, **save_kwargs)
+        if self.store_in_mem:
+            self._obj_cache[filename] = result
+
+    def load_filename(self, filename, objtype=None, load=None, load_args=[], load_kwargs={}):
+        if not objtype:
+            objtype = FileStore.EXT_MAP[filename.suffix]
+        if filename in self._obj_cache:
+            result = self._obj_cache[filename]
+            return result
+
+        if objtype == 'pickle':
+            result = pickle.load(filename.open('rb'), *load_args, **load_kwargs)
+        elif objtype == 'iris_cube':
+            result = iris.load(str(filename), *load_args, **load_kwargs)
+        elif objtype == 'pandas_df':
+            result = pd.read_hdf(str(filename), key=str(filename.stem), *load_args, **load_kwargs)
+        elif objtype == 'custom':
+            result = load(str(filename), *load_args, **load_kwargs)
+        if self.store_in_mem:
+            self._obj_cache[filename] = result
         return result
 
     def clear(self):
