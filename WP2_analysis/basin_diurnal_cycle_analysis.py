@@ -230,7 +230,7 @@ class DiurnalCycleAnalysis:
                     phase_rmses = []
                     mag_rmses = []
                     df_dataset = self.df_keys[selector & (self.df_keys.dataset == dataset)]
-                    for scale in self.scales:
+                    for raster, scale in zip(self.ordered_raster_cubes, self.scales):
                         cmorph_phase_mag = self.filestore(
                             df_cmorph[df_cmorph.basin_scale == f'hydrobasins_raster_{scale}'].key.values[0])
                         dataset_phase_mag = self.filestore(
@@ -242,8 +242,10 @@ class DiurnalCycleAnalysis:
                         dataset_phase = dataset_phase_mag.extract_strict('phase_map')
                         dataset_mag = dataset_phase_mag.extract_strict('magnitude_map')
 
-                        phase_rmses.append(circular_rmse(cmorph_phase.data, dataset_phase.data))
-                        mag_rmses.append(rmse(cmorph_mag.data, dataset_mag.data))
+                        phase_rmses.append(circular_rmse(cmorph_phase.data[raster != 0],
+                                                         dataset_phase.data[raster != 0]))
+                        mag_rmses.append(rmse(cmorph_mag.data[raster != 0],
+                                              dataset_mag.data[raster != 0]))
                     rmses[dataset] = (phase_rmses, mag_rmses)
 
                 plt.clf()
