@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 import itertools
 from pathlib import Path
+import pickle
 
 import iris
 import matplotlib.pyplot as plt
@@ -10,7 +11,7 @@ from scipy.stats import linregress
 
 import cosmic.WP2.diurnal_cycle_analysis as dca
 from basmati.hydrosheds import load_hydrobasins_geodataframe
-from cosmic.filestore import FileStore
+from cosmic.task import Task, TaskControl
 from cosmic.fourier_series import FourierSeries
 from cosmic.util import build_raster_cube_from_cube, load_cmap_data, circular_rmse, rmse
 from paths import PATHS
@@ -38,7 +39,27 @@ def savefig(filename):
     plt.close('all')
 
 
-def gen_hydrobasins_raster_cubes(diurnal_cycle_cube, scales=SCALES):
+def load_dataset(dataset, mode='amount'):
+    if dataset == 'cmorph':
+        cmorph_path = (PATHS['datadir'] /
+                       'cmorph_data/8km-30min/cmorph_ppt_jja.199801-201812.asia_precip.ppt_thresh_0p1.N1280.nc')
+        cmorph_cube = iris.load_cube(str(cmorph_path), f'{mode}_of_precip_jja')
+        return cmorph_cube
+    elif dataset[:2] == 'u-':
+        um_path = (PATHS['datadir'] /
+                   f'{dataset}/ap9.pp/{dataset[2:]}a.p9jja.200502-200901.asia_precip.ppt_thresh_0p1.nc')
+        um_cube = iris.load_cube(str(um_path), f'{mode}_of_precip_jja')
+        return um_cube
+    elif dataset[:7] == 'HadGEM3':
+        hadgem_path = (PATHS['datadir'] /
+                       f'PRIMAVERA_HighResMIP_MOHC/local/{dataset}/{dataset}.highresSST-present.'
+                       f'r1i1p1f1.2005-2009.JJA.asia_precip.N1280.ppt_thresh_0p1.nc')
+        hadgem_cube = iris.load_cube(str(hadgem_path), f'{mode}_of_precip_JJA')
+        return hadgem_cube
+
+
+def gen_hydrobasins_raster_cubes(inputs, outputs, scales=SCALES):
+    diurnal_cycle_cube = load_dataset(DATASETS[0], )
     hydrosheds_dir = PATHS['hydrosheds_dir']
     hb = load_hydrobasins_geodataframe(hydrosheds_dir, 'as', range(1, 9))
     raster_cubes = []
@@ -47,15 +68,16 @@ def gen_hydrobasins_raster_cubes(diurnal_cycle_cube, scales=SCALES):
         raster_cube = build_raster_cube_from_cube(diurnal_cycle_cube, hb_filtered, f'hydrobasins_raster_{scale}')
         raster_cubes.append(raster_cube)
     raster_cubes = iris.cube.CubeList(raster_cubes)
-    return raster_cubes
+    iris.save(raster_cubes, str(outputs[0]))
 
 
-def gen_basin_vector_area_avg(diurnal_cycle_cube, raster, method):
+def gen_basin_vector_area_avg(inputs, outputs, diurnal_cycle_cube, raster, method):
     phase_mag = dca.calc_vector_area_avg(diurnal_cycle_cube, raster, method)
-    return pd.DataFrame(phase_mag, columns=['phase', 'magnitude'])
+    df = pd.DataFrame(phase_mag, columns=['phase', 'magnitude'])
+    df.to_hdf(outputs[0], outputs[0].stem)
 
 
-def gen_basin_area_avg_phase_mag(diurnal_cycle_cube, raster, method):
+def gen_basin_area_avg_phase_mag(inputs, outputs, diurnal_cycle_cube, raster, method):
     lon = diurnal_cycle_cube.coord('longitude').points
     lat = diurnal_cycle_cube.coord('latitude').points
     dc_basins = []
@@ -90,10 +112,12 @@ def gen_basin_area_avg_phase_mag(diurnal_cycle_cube, raster, method):
     dc_peak = np.array(dc_peak)
 
     phase_mag = np.stack([dc_phase_LST, dc_peak], axis=1)
-    return pd.DataFrame(phase_mag, columns=['phase', 'magnitude'])
+    df = pd.DataFrame(phase_mag, columns=['phase', 'magnitude'])
+    df.to_hdf(outputs[0], outputs[0].stem)
 
 
-def gen_phase_mag_map(df_phase_mag, diurnal_cycle_cube, raster):
+def gen_phase_mag_map(inputs, outputs, diurnal_cycle_cube, raster):
+    df_phase_mag = pd.read_hdf(inputs[0], inputs[0].stem)
     # Use phase_mag and raster to make 2D maps.
     phase_mag = df_phase_mag.values
     phase_map = np.zeros_like(raster, dtype=float)
@@ -107,26 +131,8 @@ def gen_phase_mag_map(df_phase_mag, diurnal_cycle_cube, raster):
     mag_map_cube = iris.cube.Cube(mag_map, long_name='magnitude_map', units='-',
                                   dim_coords_and_dims=[(diurnal_cycle_cube.coord('latitude'), 0),
                                                        (diurnal_cycle_cube.coord('longitude'), 1)])
-    return iris.cube.CubeList([phase_map_cube, mag_map_cube])
-
-
-def load_dataset(dataset, mode='amount'):
-    if dataset == 'cmorph':
-        cmorph_path = (PATHS['datadir'] /
-                       'cmorph_data/8km-30min/cmorph_ppt_jja.199801-201812.asia_precip.ppt_thresh_0p1.N1280.nc')
-        cmorph_cube = iris.load_cube(str(cmorph_path), f'{mode}_of_precip_jja')
-        return cmorph_cube
-    elif dataset[:2] == 'u-':
-        um_path = (PATHS['datadir'] /
-                   f'{dataset}/ap9.pp/{dataset[2:]}a.p9jja.200502-200901.asia_precip.ppt_thresh_0p1.nc')
-        um_cube = iris.load_cube(str(um_path), f'{mode}_of_precip_jja')
-        return um_cube
-    elif dataset[:7] == 'HadGEM3':
-        hadgem_path = (PATHS['datadir'] /
-                       f'PRIMAVERA_HighResMIP_MOHC/local/{dataset}/{dataset}.highresSST-present.'
-                       f'r1i1p1f1.2005-2009.JJA.asia_precip.N1280.ppt_thresh_0p1.nc')
-        hadgem_cube = iris.load_cube(str(hadgem_path), f'{mode}_of_precip_JJA')
-        return hadgem_cube
+    cubes = iris.cube.CubeList([phase_map_cube, mag_map_cube])
+    iris.save(cubes, str(outputs[0]))
 
 
 def plot_phase_cmorph_vs_datasets_ax(ax, rmses, xticks):
@@ -148,9 +154,134 @@ def plot_mag_cmorph_vs_datasets_ax(ax, rmses, xticks):
     ax.set_xticks(xticks, ['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
 
 
+def plot_cmorph_vs_all_datasets(inputs, outputs, rmses, xticks):
+    both_filename = outputs[0]
+    fig, axes = plt.subplots(2, 3, sharex=True, num=str(both_filename), figsize=(12, 8))
+    for i, mode in enumerate(rmses.keys()):
+        ax1 = axes[0, i]
+        ax2 = axes[1, i]
+        ax1.set_ylim((0, 5))
+        rmses_for_mode = rmses[mode]
+        for dataset, (phase_rmses, mag_rmses) in rmses_for_mode.items():
+            ax1.plot(phase_rmses, label=dataset)
+            ax2.plot(mag_rmses, label=dataset)
+        ax2.set_xticks(xticks)
+        ax2.set_xticklabels(['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
+    axes[0, 0].set_title('Amount')
+    axes[0, 1].set_title('Frequency')
+    axes[0, 2].set_title('Intensity')
+    axes[0, 0].set_ylabel('phase\ncircular RMSE (hr)')
+    axes[1, 0].set_ylabel('phase\nRMSE (-)')
+    axes[1, 1].set_xlabel('basin scale (km$^2$)')
+    axes[1, 0].legend()
+    plt.tight_layout()
+    savefig(both_filename)
+
+
+def plot_cmorph_vs_all_datasets2(inputs, outputs, mode, rmses_for_mode, xticks):
+    phase_filename, mag_filename = outputs
+    plt.figure(str(phase_filename))
+    plt.clf()
+    ax = plt.gca()
+    ax.set_title(f'Diurnal cycle of {mode} phase compared to CMORPH')
+    plot_phase_cmorph_vs_datasets_ax(ax, rmses_for_mode, xticks)
+    ax.legend()
+    savefig(phase_filename)
+
+    plt.figure(str(mag_filename))
+    plt.clf()
+    ax = plt.gca()
+    ax.set_title(f'Diurnal cycle of {mode} strength compared to CMORPH')
+    plot_mag_cmorph_vs_datasets_ax(ax, rmses_for_mode, xticks)
+    ax.legend()
+    savefig(mag_filename)
+
+
+def plot_phase_mag(inputs, outputs, basin_scale, mode, raster_cube, row):
+    phase_filename, mag_filename = outputs
+    print(f'Plot maps - {basin_scale}_{mode}: {row.dataset}_{row.task.outputs[0]}')
+    cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig3_cb.pkl')
+    phase_mag_cubes = row.task.load_output()
+    phase_map = phase_mag_cubes.extract_strict('phase_map')
+    mag_map = phase_mag_cubes.extract_strict('magnitude_map')
+    lon = phase_map.coord('longitude').points
+    lat = phase_map.coord('latitude').points
+    extent = tuple(lon[[0, -1]]) + tuple(lat[[0, -1]])
+    plt.figure(f'{row.dataset}_{row.task.outputs[0]}_phase', figsize=(10, 8))
+    plt.clf()
+    plt.title(f'{row.dataset}: {row.analysis_order}_{row.method} phase')
+    plt.imshow(np.ma.masked_array(phase_map.data, raster_cube.data == 0),
+               cmap=cmap, norm=norm,
+               origin='lower', extent=extent, vmin=0, vmax=24)
+    plt.colorbar(orientation='horizontal')
+    plt.tight_layout()
+    savefig(phase_filename)
+    plt.figure(f'{row.task.outputs[0]}_magnitude', figsize=(10, 8))
+    plt.clf()
+    plt.title(f'{row.dataset}: {row.analysis_order}_{row.method} magnitude')
+    plt.imshow(np.ma.masked_array(mag_map.data, raster_cube.data == 0),
+               origin='lower', extent=extent)
+    plt.colorbar(orientation='horizontal')
+    plt.tight_layout()
+    savefig(mag_filename)
+
+
+def plot_dataset_scatter(inputs, outputs, basin_scale, mode, row1, row2):
+    phase_scatter_filename, mag_scatter_filename = outputs
+    title = f'{basin_scale}_{mode}_{row1.dataset}_{row1.analysis_order}_{row1.method}-' \
+            f'{row2.dataset}_{row2.analysis_order}_{row2.method}'
+    print(f'Plot comparison - {title}')
+    phase_mag1 = row1.task.load_output()
+    phase_mag2 = row2.task.load_output()
+    plt.figure(f'{title}_phase_scatter', figsize=(10, 8))
+    plt.clf()
+    use_sin = False
+    if use_sin:
+        data1 = np.sin(phase_mag1.values[:, 0] * 2 * np.pi / 24)
+        data2 = np.sin(phase_mag2.values[:, 0] * 2 * np.pi / 24)
+    else:
+        data1, data2 = phase_mag1.values[:, 0], phase_mag2.values[:, 0]
+    plt.title(f'phase: {row1.dataset}_{row1.analysis_order}_{row1.method} - '
+              f'{row2.dataset}_{row2.analysis_order}_{row2.method}')
+    plt.scatter(data1, data2)
+    plt.xlabel(f'{row1.dataset}_{row1.analysis_order}_{row1.method}')
+    plt.ylabel(f'{row2.dataset}_{row2.analysis_order}_{row2.method}')
+    if use_sin:
+        plt.xlim((-1, 1))
+        plt.ylim((-1, 1))
+        plt.plot([-1, 1], [-1, 1])
+        x = np.array([-1, 1])
+    else:
+        plt.xlim((0, 24))
+        plt.ylim((0, 24))
+        plt.plot([0, 24], [0, 24])
+        x = np.array([0, 24])
+    phase_regress = linregress(data1, data2)
+    y = phase_regress.slope * x + phase_regress.intercept
+    plt.plot(x, y, 'r--')
+    savefig(phase_scatter_filename)
+    plt.figure(f'{title}_mag_scatter', figsize=(10, 8))
+    plt.clf()
+    plt.title(f'mag: {row1.dataset}_{row1.analysis_order}_{row1.method} - '
+              f'{row2.dataset}_{row2.analysis_order}_{row2.method}')
+    plt.scatter(phase_mag1['magnitude'], phase_mag2['magnitude'])
+    plt.xlabel(f'{row1.dataset}_{row1.analysis_order}_{row1.method}')
+    plt.ylabel(f'{row2.dataset}_{row2.analysis_order}_{row2.method}')
+    # max_val = max(phase_mag1['magnitude'].max(), phase_mag2['magnitude'].max())
+    max_val = 0.5
+    plt.xlim((0, max_val))
+    plt.ylim((0, max_val))
+    plt.plot([0, max_val], [0, max_val])
+    mag_regress = linregress(phase_mag1['magnitude'], phase_mag2['magnitude'])
+    y = mag_regress.slope * x + mag_regress.intercept
+    plt.plot(x, y, 'r--')
+    savefig(mag_scatter_filename)
+
+
 class DiurnalCycleAnalysis:
-    def __init__(self, filestore, raster_scales='small_medium_large', force=False):
-        self.filestore = filestore
+    def __init__(self, raster_scales='small_medium_large', force=False):
+        self.analysis_task_ctrl = TaskControl()
+        self.fig_task_ctrl = TaskControl()
         self.raster_scales = raster_scales
         if self.raster_scales == 'small_medium_large':
             self.scales = SCALES
@@ -164,22 +295,14 @@ class DiurnalCycleAnalysis:
         self.prev_lon, self.prev_lat = None, None
         self.ordered_raster_cubes = []
 
-    def replot(self, *filenames):
-        if self.force:
-            return True
-        for filename in filenames:
-            if not Path(filename).exists():
-                return True
-        return False
-
     def load_ordered_raster_cubes(self):
-        diurnal_cycle_cube = load_dataset(DATASETS[0], )
         hb_raster_cubes_fn = f'data/basin_diurnal_cycle_analysis/hb_N1280_raster_{self.raster_scales}.nc'
-        hb_raster_cubes = self.filestore.get_or_gen(hb_raster_cubes_fn, gen_hydrobasins_raster_cubes,
-                                                    gen_fn_args=[diurnal_cycle_cube, self.scales])
+        hb_raster_cubes_task = Task(gen_hydrobasins_raster_cubes, [], [hb_raster_cubes_fn],
+                                    fn_args=[self.scales])
+        hb_raster_cubes = hb_raster_cubes_task.run().load_output()
         self.ordered_raster_cubes = [hb_raster_cubes.extract_strict(f'hydrobasins_raster_{s}') for s in self.scales]
 
-    def run(self, dataset, mode):
+    def gen_analysis_tasks(self, dataset, mode):
         if not self.ordered_raster_cubes:
             self.load_ordered_raster_cubes()
 
@@ -195,42 +318,25 @@ class DiurnalCycleAnalysis:
         for raster_cube, method in itertools.product(self.ordered_raster_cubes,
                                                      ['peak', 'harmonic']):
             print(f'  raster_cube, method: {raster_cube.name()}, {method}')
-            df_vector_phase_mag_key, vector_phase_mag_cubes_key = \
-                self.basin_vector_area_avg(dataset, diurnal_cycle_cube, raster_cube, method, mode)
-            self.keys.append([dataset, mode, raster_cube.name(), 'vector_area_avg', method, 'phase_mag',
-                              df_vector_phase_mag_key])
-            self.keys.append([dataset, mode, raster_cube.name(), 'vector_area_avg', method, 'phase_mag_cubes',
-                              vector_phase_mag_cubes_key])
-
-            df_area_phase_mag_key, area_phase_mag_cubes_key = self.basin_area_avg(dataset, diurnal_cycle_cube,
-                                                                                  raster_cube, method, mode)
-            self.keys.append([dataset, mode, raster_cube.name(), 'basin_area_avg', method, 'phase_mag',
-                              df_area_phase_mag_key])
-            self.keys.append([dataset, mode, raster_cube.name(), 'basin_area_avg', method, 'phase_mag_cubes',
-                              area_phase_mag_cubes_key])
-
-        self.df_keys = pd.DataFrame(self.keys,
-                                    columns=['dataset', 'mode', 'basin_scale',
-                                             'analysis_order', 'method', 'type', 'key'])
+            self.basin_vector_area_avg(dataset, diurnal_cycle_cube, raster_cube, method, mode)
+            self.basin_area_avg(dataset, diurnal_cycle_cube, raster_cube, method, mode)
 
     def run_all(self):
-        df_keys_filename = Path(f'data/.basin_diurnal_cycle_analysis_df_keys.{self.raster_scales}.hdf')
-        if not df_keys_filename.exists() or self.force:
-            for dataset, mode in itertools.product(DATASETS, MODES):
-                self.run(dataset, mode)
-            self.df_keys.to_hdf(df_keys_filename, f'{self.raster_scales}')
-        else:
-            self.df_keys = pd.read_hdf(df_keys_filename, f'{self.raster_scales}')
+        for dataset, mode in itertools.product(DATASETS, MODES):
+            self.gen_analysis_tasks(dataset, mode)
 
-        if not self.ordered_raster_cubes:
-            self.load_ordered_raster_cubes()
+        self.analysis_task_ctrl.finilize()
+        self.df_keys = self.analysis_task_ctrl.index
 
         for raster_cube, mode in itertools.product(self.ordered_raster_cubes, MODES):
-            self.plot_output(raster_cube, mode)
+            self.gen_fig_tasks(raster_cube, mode)
 
-        self.plot_cmorph_vs_datasets()
+        self.gen_cmorph_vs_datasets_fig_tasks()
 
-    def gen_rmses(self):
+        self.analysis_task_ctrl.run(self.force)
+        self.fig_task_ctrl.finilize().run(self.force)
+
+    def gen_rmses(self, inputs, outputs):
         rmses = {}
 
         for mode in MODES:
@@ -248,10 +354,10 @@ class DiurnalCycleAnalysis:
                 mag_rmses = []
                 df_dataset = self.df_keys[selector & (self.df_keys.dataset == dataset)]
                 for raster, scale in zip(self.ordered_raster_cubes, self.scales):
-                    cmorph_phase_mag = self.filestore.get_or_gen(
-                        df_cmorph[df_cmorph.basin_scale == f'hydrobasins_raster_{scale}'].key.values[0])
-                    dataset_phase_mag = self.filestore.get_or_gen(
-                        df_dataset[df_dataset.basin_scale == f'hydrobasins_raster_{scale}'].key.values[0])
+                    cmorph_phase_mag = (df_cmorph[df_cmorph.basin_scale == f'hydrobasins_raster_{scale}']
+                                        .task.values[0].load_output())
+                    dataset_phase_mag = (df_dataset[df_dataset.basin_scale == f'hydrobasins_raster_{scale}']
+                                         .task.values[0].load_output())
 
                     cmorph_phase = cmorph_phase_mag.extract_strict('phase_map')
                     cmorph_mag = cmorph_phase_mag.extract_strict('magnitude_map')
@@ -265,11 +371,11 @@ class DiurnalCycleAnalysis:
                                           dataset_mag.data[raster != 0]))
                 rmses_for_mode[dataset] = (phase_rmses, mag_rmses)
             rmses[mode] = rmses_for_mode
-        return rmses
+        pickle.dump(rmses, outputs[0])
 
-    def plot_cmorph_vs_datasets(self):
+    def gen_cmorph_vs_datasets_fig_tasks(self):
         rmses_filename = Path(f'data/rmses_{self.raster_scales}.pkl')
-        rmses = self.filestore.get_or_gen(rmses_filename, self.gen_rmses)
+        rmses = Task(self.gen_rmses, [], [rmses_filename]).run().load_output()
 
         if self.raster_scales == 'small_medium_large':
             xticks = [0, 1, 2]
@@ -277,73 +383,40 @@ class DiurnalCycleAnalysis:
             xticks = [0, 5, 10]
         both_filename = Path(f'{self.figsdir}/cmorph_vs/{self.raster_scales}/'
                              f'cmorph_vs_datasets.all.phase_and_mag.png')
-        if self.replot(both_filename):
-            fig, axes = plt.subplots(2, 3, sharex=True, num=str(both_filename), figsize=(12, 8))
-
-            for i, mode in enumerate(rmses.keys()):
-                ax1 = axes[0, i]
-                ax2 = axes[1, i]
-                ax1.set_ylim((0, 5))
-                rmses_for_mode = rmses[mode]
-                for dataset, (phase_rmses, mag_rmses) in rmses_for_mode.items():
-                    ax1.plot(phase_rmses, label=dataset)
-                    ax2.plot(mag_rmses, label=dataset)
-                ax2.set_xticks(xticks)
-                ax2.set_xticklabels(['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
-
-            axes[0, 0].set_title('Amount')
-            axes[0, 1].set_title('Frequency')
-            axes[0, 2].set_title('Intensity')
-
-            axes[0, 0].set_ylabel('circular RMSE (hr)')
-            axes[1, 0].set_ylabel('RMSE (-)')
-            axes[1, 1].set_xlabel('basin scale (km$^2$)')
-            axes[1, 0].legend()
-
-            plt.tight_layout()
-            savefig(both_filename)
+        self.fig_task_ctrl.add(Task(plot_cmorph_vs_all_datasets, [], [both_filename],
+                                    fn_args=[rmses, xticks]))
 
         for mode, rmses_for_mode in rmses.items():
             phase_filename = Path(f'{self.figsdir}/cmorph_vs/{self.raster_scales}/'
                                   f'cmorph_vs_datasets.{mode}.phase.circular_rmse.png')
             mag_filename = Path(f'{self.figsdir}/cmorph_vs/{self.raster_scales}/'
                                 f'cmorph_vs_datasets.{mode}.mag.rmse.png')
-            if self.replot(phase_filename, mag_filename):
-
-                plt.figure(str(phase_filename))
-                plt.clf()
-                ax = plt.gca()
-                ax.set_title(f'Diurnal cycle of {mode} phase compared to CMORPH')
-                plot_phase_cmorph_vs_datasets_ax(ax, rmses_for_mode, xticks)
-                ax.legend()
-                savefig(phase_filename)
-
-                plt.figure(str(mag_filename))
-                plt.clf()
-                ax = plt.gca()
-                ax.set_title(f'Diurnal cycle of {mode} strength compared to CMORPH')
-                plot_mag_cmorph_vs_datasets_ax(ax, rmses_for_mode, xticks)
-                ax.legend()
-                savefig(mag_filename)
+            self.fig_task_ctrl.add(Task(plot_cmorph_vs_all_datasets2, [], [phase_filename, mag_filename],
+                                        fn_args=[mode, rmses_for_mode, xticks]))
 
     def basin_vector_area_avg(self, dataset, diurnal_cycle_cube, raster_cube, method, mode):
         raster = raster_cube.data
         fn_base = f'data/basin_diurnal_cycle_analysis/{dataset}/vector_area_avg_' \
                   f'{diurnal_cycle_cube.name()}_{mode}_{raster_cube.name()}_{method}'
         df_phase_mag_key = f'{fn_base}.hdf'
-        df_phase_mag = self.filestore.get_or_gen(
-            df_phase_mag_key,
-            gen_basin_vector_area_avg,
-            gen_fn_args=[diurnal_cycle_cube, raster, method],
+
+        task_kwargs = dict(
+            dataset=dataset,
+            mode=mode,
+            basin_scale=raster_cube.name(),
+            analysis_order='vector_area_avg',
+            method=method,
         )
+        phase_mag_task = Task(gen_basin_vector_area_avg, [], [df_phase_mag_key],
+                              fn_args=[diurnal_cycle_cube, raster, method],
+                              type='phase_mag', **task_kwargs)
 
         phase_mag_cubes_key = f'{fn_base}.nc'
-        self.filestore.get_or_gen(
-            phase_mag_cubes_key,
-            gen_phase_mag_map,
-            gen_fn_args=[df_phase_mag, diurnal_cycle_cube, raster],
-        )
-        return df_phase_mag_key, phase_mag_cubes_key
+        phase_mag_cubes_task = Task(gen_phase_mag_map, [df_phase_mag_key], [phase_mag_cubes_key],
+                                    fn_args=[diurnal_cycle_cube, raster],
+                                    type='phase_mag_cubes', **task_kwargs)
+        self.analysis_task_ctrl.add(phase_mag_task)
+        self.analysis_task_ctrl.add(phase_mag_cubes_task)
 
     def basin_area_avg(self, dataset, diurnal_cycle_cube, raster_cube, method, mode):
         raster = raster_cube.data
@@ -351,33 +424,39 @@ class DiurnalCycleAnalysis:
         fn_base = f'data/basin_diurnal_cycle_analysis/{dataset}/basin_area_avg_' \
                   f'{diurnal_cycle_cube.name()}_{mode}_{raster_cube.name()}_{method}'
 
-        df_phase_mag_key = f'{fn_base}.hdf'
-        df_phase_mag = self.filestore.get_or_gen(
-            df_phase_mag_key,
-            gen_basin_area_avg_phase_mag,
-            gen_fn_args=[diurnal_cycle_cube, raster, method],
+        task_kwargs = dict(
+            dataset=dataset,
+            mode=mode,
+            basin_scale=raster_cube.name(),
+            analysis_order='basin_area_avg',
+            method=method,
         )
+
+        df_phase_mag_key = f'{fn_base}.hdf'
+        phase_mag_task = Task(gen_basin_area_avg_phase_mag, [], [df_phase_mag_key],
+                              fn_args=[diurnal_cycle_cube, raster, method],
+                              type='phase_mag', **task_kwargs)
 
         phase_mag_cubes_key = f'{fn_base}.nc'
-        self.filestore.get_or_gen(
-            phase_mag_cubes_key,
-            gen_phase_mag_map,
-            gen_fn_args=[df_phase_mag, diurnal_cycle_cube, raster],
-        )
-        return df_phase_mag_key, phase_mag_cubes_key
+        phase_mag_cubes_task = Task(gen_phase_mag_map, [df_phase_mag_key], [phase_mag_cubes_key],
+                                    fn_args=[diurnal_cycle_cube, raster],
+                                    type='phase_mag_cubes', **task_kwargs)
+        self.analysis_task_ctrl.add(phase_mag_task)
+        self.analysis_task_ctrl.add(phase_mag_cubes_task)
 
-    def plot_output(self, raster_cube, mode):
+    def gen_fig_tasks(self, raster_cube, mode):
         # Loop over datasets for basin_area_avg -> harmonic  for each mode and raster cube.
         for row in [
             ir[1]
             for ir in
             self.df_keys[(self.df_keys['type'] == 'phase_mag_cubes') &
+                         (self.df_keys['dataset'] != 'cmorph') &
                          (self.df_keys['analysis_order'] == 'basin_area_avg') &
                          (self.df_keys['basin_scale'] == raster_cube.name()) &
                          (self.df_keys['mode'] == mode) &
                          (self.df_keys['method'] == 'harmonic')
                          ].iterrows()]:
-            self.plot_phase_mag_maps(raster_cube, mode, row)
+            self.gen_phase_mag_maps_tasks(raster_cube, mode, row)
 
         # Loop over analysis types for CMORPH for each mode and raster cube.
         for row in [
@@ -388,7 +467,7 @@ class DiurnalCycleAnalysis:
                              (self.df_keys['basin_scale'] == raster_cube.name()) &
                              (self.df_keys['mode'] == mode)
                              ].iterrows()]:
-            self.plot_phase_mag_maps(raster_cube, mode, row)
+            self.gen_phase_mag_maps_tasks(raster_cube, mode, row)
 
         # Loop over datasets for basin_area_avg -> harmonic  for each mode and raster cube.
         phase_mag_rows = [
@@ -402,7 +481,7 @@ class DiurnalCycleAnalysis:
                          ].iterrows()]
 
         for row1, row2 in itertools.combinations(phase_mag_rows, 2):
-            self.plot_dataset_comparison(raster_cube, mode, row1, row2)
+            self.gen_dataset_comparison_tasks(raster_cube, mode, row1, row2)
 
         # Loop over analysis types for CMORPH for each mode and raster cube.
         phase_mag_rows2 = [
@@ -415,48 +494,18 @@ class DiurnalCycleAnalysis:
                          ].iterrows()]
 
         for row1, row2 in itertools.combinations(phase_mag_rows2, 2):
-            self.plot_dataset_comparison(raster_cube, mode, row1, row2)
+            self.gen_dataset_comparison_tasks(raster_cube, mode, row1, row2)
 
-    def plot_phase_mag_maps(self, raster_cube, mode, row):
+    def gen_phase_mag_maps_tasks(self, raster_cube, mode, row):
         basin_scale = raster_cube.name().split('_')[-1]
         phase_filename = Path(f'{self.figsdir}/map/{mode}/{row.dataset}_{row.analysis_order}_{row.method}'
                               f'.{basin_scale}.phase.png')
         mag_filename = Path(f'{self.figsdir}/map/{mode}/{row.dataset}_{row.analysis_order}_{row.method}'
                             f'.{basin_scale}.mag.png')
-        if self.replot(phase_filename, mag_filename):
-            print(f'Plot maps - {basin_scale}_{mode}: {row.dataset}_{row.key}')
-            cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig3_cb.pkl')
+        self.fig_task_ctrl.add(Task(plot_phase_mag, [], [phase_filename, mag_filename],
+                                    fn_args=[basin_scale, mode, raster_cube, row]))
 
-            phase_mag_cubes = self.filestore.get_or_gen(row.key)
-
-            phase_map = phase_mag_cubes.extract_strict('phase_map')
-            mag_map = phase_mag_cubes.extract_strict('magnitude_map')
-
-            lon = phase_map.coord('longitude').points
-            lat = phase_map.coord('latitude').points
-
-            extent = tuple(lon[[0, -1]]) + tuple(lat[[0, -1]])
-            plt.figure(f'{row.dataset}_{row.key}_phase', figsize=(10, 8))
-            plt.clf()
-            plt.title(f'{row.dataset}: {row.analysis_order}_{row.method} phase')
-
-            plt.imshow(np.ma.masked_array(phase_map.data, raster_cube.data == 0),
-                       cmap=cmap, norm=norm,
-                       origin='lower', extent=extent, vmin=0, vmax=24)
-            plt.colorbar(orientation='horizontal')
-            plt.tight_layout()
-            savefig(phase_filename)
-
-            plt.figure(f'{row.key}_magnitude', figsize=(10, 8))
-            plt.clf()
-            plt.title(f'{row.dataset}: {row.analysis_order}_{row.method} magnitude')
-            plt.imshow(np.ma.masked_array(mag_map.data, raster_cube.data == 0),
-                       origin='lower', extent=extent)
-            plt.colorbar(orientation='horizontal')
-            plt.tight_layout()
-            savefig(mag_filename)
-
-    def plot_dataset_comparison(self, raster_cube, mode, row1, row2):
+    def gen_dataset_comparison_tasks(self, raster_cube, mode, row1, row2):
         basin_scale = raster_cube.name().split('_')[-1]
         phase_scatter_filename = Path(f'{self.figsdir}/comparison/{mode}/'
                                       f'{row1.dataset}_{row1.analysis_order}_{row1.method}_vs_'
@@ -467,62 +516,18 @@ class DiurnalCycleAnalysis:
                                     f'{row2.dataset}_{row2.analysis_order}_{row2.method}.'
                                     f'{basin_scale}.mag.png')
 
-        if self.replot(phase_scatter_filename, mag_scatter_filename):
-            print(f'Plot comparison - {basin_scale}_{mode}: {row1.dataset}_{row1.analysis_order}_{row1.method} - '
-                  f'{row2.dataset}_{row2.analysis_order}_{row2.method}')
-            phase_mag1 = self.filestore.get_or_gen(row1.key)
-            phase_mag2 = self.filestore.get_or_gen(row2.key)
+        self.fig_task_ctrl.add(Task(plot_dataset_scatter, [], [phase_scatter_filename, mag_scatter_filename],
+                                    fn_args=[basin_scale, mode, row1, row2]))
 
-            plt.figure(f'{row1.key}_{row2.key}_phase_scatter', figsize=(10, 8))
-            plt.clf()
-            use_sin = False
-            if use_sin:
-                data1 = np.sin(phase_mag1.values[:, 0] * 2 * np.pi / 24)
-                data2 = np.sin(phase_mag2.values[:, 0] * 2 * np.pi / 24)
-            else:
-                data1, data2 = phase_mag1.values[:, 0], phase_mag2.values[:, 0]
-            plt.title(f'phase: {row1.dataset}_{row1.analysis_order}_{row1.method} - '
-                      f'{row2.dataset}_{row2.analysis_order}_{row2.method}')
-            plt.scatter(data1, data2)
-            plt.xlabel(f'{row1.dataset}_{row1.analysis_order}_{row1.method}')
-            plt.ylabel(f'{row2.dataset}_{row2.analysis_order}_{row2.method}')
-            if use_sin:
-                plt.xlim((-1, 1))
-                plt.ylim((-1, 1))
-                plt.plot([-1, 1], [-1, 1])
-                x = np.array([-1, 1])
-            else:
-                plt.xlim((0, 24))
-                plt.ylim((0, 24))
-                plt.plot([0, 24], [0, 24])
-                x = np.array([0, 24])
-            phase_regress = linregress(data1, data2)
-            y = phase_regress.slope * x + phase_regress.intercept
-            plt.plot(x, y, 'r--')
-            savefig(phase_scatter_filename)
 
-            plt.figure(f'{row1.key}_{row2.key}_mag_scatter', figsize=(10, 8))
-            plt.clf()
-            plt.title(f'mag: {row1.dataset}_{row1.analysis_order}_{row1.method} - '
-                      f'{row2.dataset}_{row2.analysis_order}_{row2.method}')
-            plt.scatter(phase_mag1['magnitude'], phase_mag2['magnitude'])
-            plt.xlabel(f'{row1.dataset}_{row1.analysis_order}_{row1.method}')
-            plt.ylabel(f'{row2.dataset}_{row2.analysis_order}_{row2.method}')
-            # max_val = max(phase_mag1['magnitude'].max(), phase_mag2['magnitude'].max())
-            max_val = 0.5
-            plt.xlim((0, max_val))
-            plt.ylim((0, max_val))
-            plt.plot([0, max_val], [0, max_val])
-            mag_regress = linregress(phase_mag1['magnitude'], phase_mag2['magnitude'])
-            y = mag_regress.slope * x + mag_regress.intercept
-            plt.plot(x, y, 'r--')
-            savefig(mag_scatter_filename)
+def run_analysis(scales, force):
+    analysis = DiurnalCycleAnalysis(scales, force)
+    analysis.run_all()
 
 
 def basin_analysis_all():
-    filestore = FileStore()
-    analysis = DiurnalCycleAnalysis(filestore, True)
-    yield (analysis.run_all, [], {})
+    yield run_analysis, ['small_medium_large', False], {}
+    yield run_analysis, ['sliding', False], {}
 
 
 if __name__ == '__main__':
@@ -530,11 +535,4 @@ if __name__ == '__main__':
     parser.add_argument('--force', action='store_true')
     parser.add_argument('--scales', default='small_medium_large', choices=['small_medium_large', 'sliding'])
     args = parser.parse_args()
-    try:
-        filestore
-        # Using ipython: run -i $0.
-        print('USING IN-MEM CACHE')
-    except NameError:
-        filestore = FileStore()
-    analysis = DiurnalCycleAnalysis(filestore, args.scales, args.force)
-    analysis.run_all()
+    run_analysis(args.scales, args.force)

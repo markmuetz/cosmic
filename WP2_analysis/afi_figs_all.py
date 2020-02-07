@@ -23,8 +23,8 @@ def afi_all_figs_gen():
     precip_threshes = [0.05, 0.1, 0.2]
     methods = ['peak', 'harmonic']
     for duration, precip_thresh, method in itertools.product(durations, precip_threshes, methods):
-        yield (fig_afi_mean, (duration, precip_thresh, method), {})
-        yield (fig_afi_diurnal_cycle, (duration, precip_thresh, method), {})
+        yield fig_afi_mean, (duration, precip_thresh, method), {}
+        yield fig_afi_diurnal_cycle, (duration, precip_thresh, method), {}
 
 
 if __name__ == '__main__':

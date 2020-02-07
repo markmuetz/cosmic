@@ -2,11 +2,10 @@ import sys
 from argparse import ArgumentParser
 from pathlib import Path
 import hashlib
-import warnings
 
 import matplotlib.pyplot as plt
 
-from basmati.bcolors import Bcolors
+from cosmic.task import TaskControl, Task
 
 from extract_china_jja_2009_mean_precip import extract_all_dataset_gen
 from afi_figs_all import afi_all_figs_gen
@@ -36,6 +35,18 @@ def task_hash(hostname, fn, args, kwargs):
     return hashlib.sha1(repr((hostname, fn.__name__, args, kwargs)).encode()).hexdigest()
 
 
+def gen_task_fn(fn):
+    """Function factory: uses closure to capture fn and call it.
+    """
+    def task_fn(inputs, outputs, *args, **kwargs):
+        print(f'  Inner fn: {fn}(*{args}, **{kwargs})')
+        res = fn(*args, **kwargs)
+        outputs[0].touch()
+        plt.close('all')
+        return res
+    return task_fn
+
+
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--analysis', default='ALL', choices=['ALL'] + [gen.__name__ for gen in fn_generators])
@@ -44,44 +55,19 @@ if __name__ == '__main__':
     parser.add_argument('--raise-exceptions', '-X', action='store_true')
     cli_args = parser.parse_args()
 
-    task_cache = Path('.run_analysis/task_cache')
-    task_cache.mkdir(exist_ok=True, parents=True)
+    task_dir = Path('data/tasks')
+    task_dir.mkdir(exist_ok=True, parents=True)
     if cli_args.clear_cache:
-        for filepath in task_cache.glob('*'):
+        for filepath in task_dir.glob('*'):
             filepath.unlink()
             sys.exit()
 
+    task_ctrl = TaskControl()
     tasks = []
     for gen in fn_generators:
         if 'ALL' in cli_args.analysis or gen.__name__ in cli_args.analysis:
-            tasks.extend(list(gen()))
-
-    hashes = set()
-    cached = []
-    success = []
-    fail = []
-    for i, (fn, args, kwargs) in enumerate(tasks):
-        Bcolors.print(f'{i + 1}/{len(tasks)}: {fn.__name__}, {args}, {kwargs}', ['bold', 'okblue'])
-        task_hash_key = task_hash(hostname, fn, args, kwargs)
-        assert task_hash_key not in hashes
-        hashes.add(task_hash_key)
-        task_cache_file = task_cache / task_hash_key
-        if task_cache_file.exists() and not cli_args.force:
-            cached.append((fn, args, kwargs))
-            continue
-        try:
-            fn(*args, **kwargs)
-            success.append((fn, args, kwargs))
-            task_cache_file.touch()
-        except Exception as e:
-            warnings.warn(f'Could not run {fn.__name__}, {args}, {kwargs}:')
-            fail.append((fn, args, kwargs))
-            Bcolors.print(e, ['bold', 'fail'])
-            if cli_args.raise_exceptions:
-                raise
-        plt.close('all')
-
-    print()
-    print(f'Cached: {len(cached)}')
-    print(f'Succeeded: {len(success)}')
-    print(f'Failed: {len(fail)}')
+            for fn, args, kwargs in gen():
+                task_hash_key = task_hash(hostname, fn, args, kwargs)
+                task_ctrl.add(Task(gen_task_fn(fn), [], [task_dir / task_hash_key],
+                                   fn_args=args, fn_kwargs=kwargs))
+    task_ctrl.finilize().run(cli_args.force)
