@@ -57,8 +57,8 @@ def daily_circular_mean(arr, axis=None):
 
 
 def build_raster_from_lon_lat(lon_min, lon_max, lat_min, lat_max, nlon, nlat, hb):
-    scale_lon = (lon_max - lon_min) / (nlon - 1)
-    scale_lat = (lat_max - lat_min) / (nlat - 1)
+    scale_lon = (lon_max - lon_min) / nlon
+    scale_lat = (lat_max - lat_min) / nlat
 
     affine_tx = rasterio.transform.Affine(scale_lon, 0, lon_min,
                                           0, scale_lat, lat_min)
@@ -68,23 +68,39 @@ def build_raster_from_lon_lat(lon_min, lon_max, lat_min, lat_max, nlon, nlat, hb
     return raster
 
 
+def build_weights_from_lon_lat(lon_min, lon_max, lat_min, lat_max, nlon, nlat, hb,
+                               oversample_factor=10):
+    raster_highres = build_raster_from_lon_lat(lon_min, lon_max, lat_min, lat_max,
+                                               nlon * oversample_factor, nlat * oversample_factor, hb)
+    raster_highres_reshaped = raster_highres.reshape(nlat, oversample_factor, nlon, oversample_factor)
+    weights = np.zeros((raster_highres.max() - 1, nlat, nlon))
+    for i in range(weights.shape[0]):
+        weights[i] = (raster_highres_reshaped == (i + 1)).sum(axis=(1, 3)) / (oversample_factor**2)
+
+    return weights
+
+
 def build_raster_from_cube(cube, hb):
     nlat = cube.shape[-2]
     nlon = cube.shape[-1]
-    lon_min, lon_max = cube.coord('longitude').points[[0, -1]]
-    lat_min, lat_max = cube.coord('latitude').points[[0, -1]]
+    for latlon in ['latitude', 'longitude']:
+        if not cube.coord(latlon).has_bounds():
+            cube.coord(latlon).guess_bounds()
+    longitude = cube.coord('longitude')
+    latitude = cube.coord('latitude')
+    lon_min, lon_max = longitude.bounds[0, 0], longitude.bounds[-1, 1]
+    lat_min, lat_max = latitude.bounds[0, 0], latitude.bounds[-1, 1]
     return build_raster_from_lon_lat(lon_min, lon_max, lat_min, lat_max, nlon, nlat, hb)
 
 
 def build_raster_cube_from_cube(cube, hb, name):
-    nlat = cube.shape[-2]
-    nlon = cube.shape[-1]
-    lon_min, lon_max = cube.coord('longitude').points[[0, -1]]
-    lat_min, lat_max = cube.coord('latitude').points[[0, -1]]
-    raster = build_raster_from_lon_lat(lon_min, lon_max, lat_min, lat_max, nlon, nlat, hb)
+    raster = build_raster_from_cube(cube, hb)
+    longitude = cube.coord('longitude')
+    latitude = cube.coord('latitude')
+
     raster_cube = iris.cube.Cube(raster, long_name=f'{name}', units='-',
-                                 dim_coords_and_dims=[(cube.coord('latitude'), 0),
-                                                      (cube.coord('longitude'), 1)])
+                                 dim_coords_and_dims=[(latitude, 0),
+                                                      (longitude, 1)])
     return raster_cube
 
 

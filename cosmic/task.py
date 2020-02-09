@@ -192,6 +192,8 @@ class Task:
             raise Exception('Not all files required for task exist')
 
         if self.requires_rerun() or force:
+            for output in self.outputs:
+                output.parent.mkdir(parents=True, exist_ok=True)
             self.result = self.fn(self.inputs, self.outputs, *self.fn_args, **self.fn_kwargs)
             if self.save_output:
                 assert len(self.result) == len(self.outputs)
