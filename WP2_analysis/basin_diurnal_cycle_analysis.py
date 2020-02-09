@@ -204,9 +204,20 @@ def plot_phase_mag(inputs, outputs, basin_scale, mode, raster_cube, row):
     phase_mag_cubes = row.task.load_output()
     phase_map = phase_mag_cubes.extract_strict('phase_map')
     mag_map = phase_mag_cubes.extract_strict('magnitude_map')
-    lon = phase_map.coord('longitude').points
-    lat = phase_map.coord('latitude').points
-    extent = tuple(lon[[0, -1]]) + tuple(lat[[0, -1]])
+
+    # Proper way to work out extent for imshow.
+    # lat.points contains centres of each cell.
+    # bounds contains the boundary of the pixel - this is what imshow should take.
+    lon = phase_map.coord('longitude')
+    lat = phase_map.coord('latitude')
+    if not lat.has_bounds():
+        lat.guess_bounds()
+    if not lon.has_bounds():
+        lon.guess_bounds()
+    lon_min, lon_max = lon.bounds[0, 0], lon.bounds[-1, 1]
+    lat_min, lat_max = lat.bounds[0, 0], lat.bounds[-1, 1]
+    extent = (lon_min, lon_max, lat_min, lat_max)
+
     plt.figure(f'{row.dataset}_{row.task.outputs[0]}_phase', figsize=(10, 8))
     plt.clf()
     plt.title(f'{row.dataset}: {row.analysis_order}_{row.method} phase')
