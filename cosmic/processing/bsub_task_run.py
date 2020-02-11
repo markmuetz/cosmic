@@ -7,7 +7,7 @@ from cosmic.util import load_config
 
 def main(config_filename, task_index, config_path_hash):
     config_path = Path(config_filename).absolute()
-    curr_config_path_hash = sha1(config_path.read('rb')).hexdigest()
+    curr_config_path_hash = sha1(config_path.read_bytes()).hexdigest()
     if config_path_hash != curr_config_path_hash:
         raise Exception(f'config file {config_path} has changed -- cannot run task.')
 
