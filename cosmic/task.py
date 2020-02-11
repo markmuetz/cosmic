@@ -1,4 +1,4 @@
-from _collections import defaultdict
+from collections import defaultdict, Mapping
 from pathlib import Path
 import pickle
 
@@ -60,19 +60,24 @@ class TaskControl:
 
     def finilize(self):
         assert not self.finilized
-        task_run_schedule = []
         tasks = [t for t in self.tasks]
         can_run_tasks = set()
 
         # Work out whether it is possible to create a run schedule and find initial tasks.
+        tasks_to_remove = []
         for task in tasks:
             for input_fn in task.inputs:
                 if input_fn not in self.task_output_map:
+                    # input_fn is not going to be created by any tasks; it might still exist though:
                     if not input_fn.exists():
                         raise Exception(f'No input files exist or will be created for {task}')
+                    # input_fn does exist; task is runnable.
                     self.task_run_schedule.append(task)
                     can_run_tasks.add(task)
-                    tasks.remove(task)
+                    tasks_to_remove.append(task)
+
+        for task in tasks_to_remove:
+            tasks.remove(task)
 
         # It is possible; build remainder of schedule.
         while tasks:
@@ -83,10 +88,10 @@ class TaskControl:
                     if intask not in can_run_tasks:
                         can_run = False
                 if can_run:
-                    task_run_schedule.append(task)
+                    self.task_run_schedule.append(task)
                     can_run_tasks.add(task)
                     tasks.remove(task)
-        self.task_run_schedule = task_run_schedule
+        assert len(self.task_run_schedule) == len(self.tasks), 'Not all tasks added to schedule'
 
         self.index = self._gen_index()
         self.finilized = True
@@ -133,8 +138,18 @@ class Task:
         if not outputs:
             raise Exception('outputs must be set')
 
-        self.inputs = [Path(i) for i in inputs]
-        self.outputs = [Path(o) for o in outputs]
+        if isinstance(inputs, Mapping):
+            self.inputs_dict = {k: Path(v) for k, v in inputs.items()}
+            self.inputs = [Path(i) for i in inputs.values()]
+        else:
+            self.inputs_dict = None
+            self.inputs = [Path(i) for i in inputs]
+        if isinstance(outputs, Mapping):
+            self.outputs_dict = {k: Path(v) for k, v in outputs.items()}
+            self.outputs = [Path(o) for o in outputs.values()]
+        else:
+            self.outputs_dict = None
+            self.outputs = [Path(o) for o in outputs]
         self.save_output = save_output
         self.kwargs = kwargs
         self.result = None
@@ -194,7 +209,9 @@ class Task:
         if self.requires_rerun() or force:
             for output in self.outputs:
                 output.parent.mkdir(parents=True, exist_ok=True)
-            self.result = self.fn(self.inputs, self.outputs, *self.fn_args, **self.fn_kwargs)
+            inputs = self.inputs_dict if self.inputs_dict else self.inputs
+            outputs = self.outputs_dict if self.outputs_dict else self.outputs
+            self.result = self.fn(inputs, outputs, *self.fn_args, **self.fn_kwargs)
             if self.save_output:
                 assert len(self.result) == len(self.outputs)
                 for r, o in zip(self.result, self.outputs):
