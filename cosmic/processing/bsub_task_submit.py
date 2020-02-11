@@ -65,8 +65,9 @@ class TaskSubmitter:
         dep_jobids = []
         dep_tasks = self.task_ctrl.get_deps(task)[1]
         for dep_task in dep_tasks:
-            assert dep_task in self.task_jobid_map
-            dep_jobids.append(self.task_jobid_map[dep_task])
+            # N.B. not all dependencies have to have been run; they could not require rerunning.
+            if dep_task in self.task_jobid_map:
+                dep_jobids.append(self.task_jobid_map[dep_task])
         if dep_jobids:
             dependencies = '#BSUB -w "' + ' && '.join([f'done({jobid})' for jobid in dep_jobids]) + '"'
         else:
