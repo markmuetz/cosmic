@@ -109,8 +109,10 @@ def main(config_filename):
     submitter = TaskSubmitter(bsub_dir, config_path, config.task_ctrl, config.BSUB_KWARGS)
 
     for task_index, task in enumerate(config.task_ctrl.task_run_schedule):
-        if not task.requires_rerun():
-            logger.info(f'task already run: {task}')
-            continue
+        # You can't in general check this on submit - has to be checked when task is run.
+        # Only way to handle case when one file (dependency for other tasks) is delete.
+        # if not task.requires_rerun():
+        #     logger.info(f'task already run: {task}')
+        #     continue
         logger.info(f'task: {task}')
         submitter.submit_task(task, task_index)
