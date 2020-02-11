@@ -6,15 +6,17 @@ try:
 except ImportError:
     from distutils.core import setup, Extension
 
+
 def read(fname):
     try:
         return open(os.path.join(os.path.dirname(__file__), fname)).read()
     except:
         return ''
 
+
 setup(
     name='cosmic',
-    version='0.1',
+    version='0.2',
     description='COSMIC package containing tools and analysis',
     long_description=read('README.md'),
     author='Mark Muetzelfeldt',
@@ -30,6 +32,7 @@ setup(
         'bin/cosmic-rsync-jasmin-data',
         'bin/cosmic-retrieve-from-mass',
         'bin/cosmic-bsub-submit',
+        'bin/cosmic-bsub-task-submit',
         ],
     python_requires='>=3.6',
     install_requires=[

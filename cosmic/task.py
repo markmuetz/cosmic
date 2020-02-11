@@ -23,7 +23,7 @@ class TaskControl:
         self.tasks = []
         self.task_output_map = {}
         self.input_task_map = defaultdict(list)
-        self.finilized = False
+        self.finalized = False
         self.index = None
         self.task_run_schedule = []
 
@@ -46,7 +46,7 @@ class TaskControl:
         return pd.DataFrame(data, columns=columns + ['task'])
 
     def add(self, task):
-        if self.finilized:
+        if self.finalized:
             raise Exception(f'TaskControl already finilized')
 
         self.tasks.append(task)
@@ -58,8 +58,8 @@ class TaskControl:
                 self.input_task_map[input_fn].append(task)
         return task
 
-    def finilize(self):
-        assert not self.finilized
+    def finalize(self):
+        assert not self.finalized
         tasks = [t for t in self.tasks]
         can_run_tasks = set()
 
@@ -94,11 +94,11 @@ class TaskControl:
         assert len(self.task_run_schedule) == len(self.tasks), 'Not all tasks added to schedule'
 
         self.index = self._gen_index()
-        self.finilized = True
+        self.finalized = True
         return self
 
     def get_deps(self, task, depth=1):
-        assert self.finilized
+        assert self.finalized
         level = 1
         deps = defaultdict(set)
         level_tasks = {task}
@@ -117,7 +117,7 @@ class TaskControl:
         return deps
 
     def run(self, fn=None, force=False):
-        assert self.finilized
+        assert self.finalized
         if fn:
             tasks = [t for t in self.task_run_schedule if t.fn == fn]
         else:
