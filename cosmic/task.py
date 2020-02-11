@@ -64,17 +64,20 @@ class TaskControl:
         can_run_tasks = set()
 
         # Work out whether it is possible to create a run schedule and find initial tasks.
-        tasks_to_remove = []
+        tasks_to_remove = set()
         for task in tasks:
+            can_run = False
             for input_fn in task.inputs:
                 if input_fn not in self.task_output_map:
                     # input_fn is not going to be created by any tasks; it might still exist though:
                     if not input_fn.exists():
                         raise Exception(f'No input files exist or will be created for {task}')
                     # input_fn does exist; task is runnable.
-                    self.task_run_schedule.append(task)
-                    can_run_tasks.add(task)
-                    tasks_to_remove.append(task)
+                    can_run = True
+                    tasks_to_remove.add(task)
+            if can_run:
+                self.task_run_schedule.append(task)
+                can_run_tasks.add(task)
 
         for task in tasks_to_remove:
             tasks.remove(task)
