@@ -336,7 +336,7 @@ class DiurnalCycleAnalysis:
         for dataset, mode in itertools.product(DATASETS, MODES):
             self.gen_analysis_tasks(dataset, mode)
 
-        self.analysis_task_ctrl.finilize()
+        self.analysis_task_ctrl.finalize()
         self.df_keys = self.analysis_task_ctrl.index
 
         for raster_cube, mode in itertools.product(self.ordered_raster_cubes, MODES):
@@ -345,7 +345,7 @@ class DiurnalCycleAnalysis:
         self.gen_cmorph_vs_datasets_fig_tasks()
 
         self.analysis_task_ctrl.run(self.force)
-        self.fig_task_ctrl.finilize().run(self.force)
+        self.fig_task_ctrl.finalize().run(self.force)
 
     def gen_rmses(self, inputs, outputs):
         rmses = {}

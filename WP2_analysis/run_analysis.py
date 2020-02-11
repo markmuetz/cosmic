@@ -70,4 +70,4 @@ if __name__ == '__main__':
                 task_hash_key = task_hash(hostname, fn, args, kwargs)
                 task_ctrl.add(Task(gen_task_fn(fn), [], [task_dir / task_hash_key],
                                    fn_args=args, fn_kwargs=kwargs))
-    task_ctrl.finilize().run(cli_args.force)
+    task_ctrl.finalize().run(cli_args.force)

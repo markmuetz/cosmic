@@ -127,8 +127,8 @@ if __name__ == '__main__':
                 fig_task_ctrl.add(Task(plot_raster_cube, [raster_path], [fig_path],
                                        fn_kwargs={'hb_name': hb_name, 'hbs': hbs, 'method': method},
                                        model=model, hb_name=hb_name, method=method))
-    task_ctrl.finilize().run()
-    fig_task_ctrl.finilize().run()
+    task_ctrl.finalize().run()
+    fig_task_ctrl.finalize().run()
 
     stats_output_ctrl = TaskControl()
     input_filenames = {}
