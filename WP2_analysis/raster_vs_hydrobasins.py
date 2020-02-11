@@ -29,8 +29,8 @@ FILENAMES = {
     for model, timestamp, daterange in zip(MODELS, TIMESTAMPS, DATERANGES)
 }
 
-CONSTRAINT_ASIA = (iris.Constraint(coord_values={'latitude':lambda cell: 0.9 < cell < 56.1})
-                   & iris.Constraint(coord_values={'longitude':lambda cell: 56.9 < cell < 151.1}))
+CONSTRAINT_ASIA = (iris.Constraint(coord_values={'latitude': lambda cell: 0.9 < cell < 56.1})
+                   & iris.Constraint(coord_values={'longitude': lambda cell: 56.9 < cell < 151.1}))
 
 
 def gen_raster_cube(inputs, outputs, hb_name, hbs, method):
