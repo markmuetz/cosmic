@@ -1,5 +1,6 @@
 import os
 import sys
+from hashlib import sha1
 import logging
 import subprocess as sp
 from pathlib import Path
@@ -17,7 +18,7 @@ BSUB_SCRIPT_TPL = """#!/bin/bash
 #BSUB -M {mem}
 {dependencies}
 
-python {script_path} {config_path} {task_index}
+python {script_path} {config_path} {task_index} {config_path_hash}
 """
 
 
@@ -52,6 +53,7 @@ class TaskSubmitter:
         self.task_ctrl = task_ctrl
         self.bsub_kwargs = bsub_kwargs
         self.task_jobid_map = {}
+        self.config_path_hash = sha1(config_path.read('rb')).hexdigest()
 
     def _write_submit_script(self, task, task_index):
         config_name = self.config_path.stem
@@ -79,6 +81,7 @@ class TaskSubmitter:
                                              config_path=self.config_path,
                                              task_index=task_index,
                                              dependencies=dependencies,
+                                             config_path_hash=self.config_path_hash,
                                              **self.bsub_kwargs)
 
         with open(bsub_script_filepath, 'w') as fp:
