@@ -9,13 +9,27 @@ import pandas as pd
 from cosmic.util import load_cmap_data
 from cosmic.task import TaskControl, Task
 from cosmic.fourier_series import FourierSeries
+
+from weights_vs_hydrobasins import FILENAMES as HADGEM_FILENAMES, gen_weights_cube
 from paths import PATHS
 
-MODELS = [
+DATASETS = [
     'HadGEM3-GC31-LM',
     'HadGEM3-GC31-MM',
     'HadGEM3-GC31-HM',
+    'u-ak543',
+    'u-al508',
+    'cmorph',
 ]
+
+DATASET_RESOLUTION = {
+    'HadGEM3-GC31-LM': 'N96',
+    'HadGEM3-GC31-MM': 'N216',
+    'HadGEM3-GC31-HM': 'N512',
+    'u-ak543': 'N1280',
+    'u-al508': 'N1280',
+    'cmorph': 'N1280',
+}
 HB_NAMES = ['large', 'med', 'small']
 PRECIP_MODES = ['amount', 'freq', 'intensity']
 
@@ -31,7 +45,7 @@ def native_weighted_basin_analysis(inputs, outputs, cube_name, use_area_weight):
     lat = diurnal_cycle_cube.coord('latitude').points
     # lons = np.repeat(lon[None, :], len(lat), axis=0)
     lons = lon[None, :] * np.ones((weights.shape[1], weights.shape[2]))
-    area_weight = np.cos(lat)[:, None] * np.ones((weights.shape[1], weights.shape[2]))
+    area_weight = np.cos(lat / 180 * np.pi)[:, None] * np.ones((weights.shape[1], weights.shape[2]))
 
     step_length = 24 / diurnal_cycle_cube.shape[0]
 
@@ -159,10 +173,10 @@ def plot_phase_mag(inputs, outputs, dataset, hb_name, mode):
     peak_strong = np.ma.masked_array(masked_phase_map,
                                      masked_mag_map < strong_thresh)
     peak_med = np.ma.masked_array(masked_phase_map,
-                                  ((masked_mag_map > strong_thresh) |
+                                  ((masked_mag_map >= strong_thresh) |
                                    (masked_mag_map < med_thresh)))
     peak_weak = np.ma.masked_array(masked_phase_map,
-                                   masked_mag_map > med_thresh)
+                                   masked_mag_map >= med_thresh)
 
     plt.figure(figsize=(10, 8))
     plt.title(f'{dataset} {mode} phase (alpha)')
@@ -188,21 +202,49 @@ def plot_phase_mag(inputs, outputs, dataset, hb_name, mode):
     plt.close()
 
 
+def get_dataset_path(dataset):
+    if dataset == 'cmorph':
+        path = (PATHS['datadir'] /
+                'cmorph_data/8km-30min/cmorph_ppt_jja.199801-201812.asia_precip.ppt_thresh_0p1.N1280.nc')
+    elif dataset[:2] == 'u-':
+        path = (PATHS['datadir'] /
+                f'{dataset}/ap9.pp/{dataset[2:]}a.p9jja.200502-200901.asia_precip.ppt_thresh_0p1.nc')
+    elif dataset[:7] == 'HadGEM3':
+        path = (PATHS['datadir'] /
+                f'PRIMAVERA_HighResMIP_MOHC/local/{dataset}/{dataset}.highresSST-present.'
+                f'r1i1p1f1.2005-2009.JJA.asia_precip.ppt_thresh_0p1.nc')
+    return path
+
+
 def gen_task_ctrl():
     task_ctrl = TaskControl()
-    for dataset, hb_name, mode in itertools.product(MODELS, HB_NAMES, PRECIP_MODES):
-        cube_name = f'{mode}_of_precip_JJA'
-        hadgem_path = (PATHS['datadir'] /
-                       f'PRIMAVERA_HighResMIP_MOHC/local/{dataset}/{dataset}.highresSST-present.'
-                       f'r1i1p1f1.2005-2009.JJA.asia_precip.ppt_thresh_0p1.nc')
-        weights_filename = f'data/weights_vs_hydrobasins/weights_{dataset}_{hb_name}.nc'
+    for dataset, hb_name in itertools.product(DATASETS[:4], HB_NAMES):
+        if dataset == 'u-ak543':
+            dataset_cube_path = PATHS['datadir'] / 'u-ak543/ap9.pp/precip_200601/ak543a.p9200601.asia_precip.nc'
+        elif dataset[:7] == 'HadGEM3':
+            dataset_cube_path = HADGEM_FILENAMES[dataset]
+        input_filenames = {'model': dataset_cube_path, 'hb_name': f'data/raster_vs_hydrobasins/hb_{hb_name}.shp'}
+
+        resolution = DATASET_RESOLUTION[dataset]
+        weights_filename = f'data/basin_weighted_diurnal_cycle/weights_{resolution}_{hb_name}.nc'
+
+        task_ctrl.add(Task(gen_weights_cube, input_filenames, [weights_filename]))
+
+    for dataset, hb_name, mode in itertools.product(DATASETS, HB_NAMES, PRECIP_MODES):
+        if dataset[:7] == 'HadGEM3':
+            cube_name = f'{mode}_of_precip_JJA'
+        else:
+            cube_name = f'{mode}_of_precip_jja'
+        dataset_path = get_dataset_path(dataset)
+        resolution = DATASET_RESOLUTION[dataset]
+        weights_filename = f'data/basin_weighted_diurnal_cycle/weights_{resolution}_{hb_name}.nc'
 
         for use_area_weight in [True, False]:
             area_weight = 'area_weighted' if use_area_weight else 'not_area_weighted'
             output_filename = f'data/basin_weighted_diurnal_cycle/' \
                               f'{dataset}.{hb_name}.{mode}.{area_weight}.phase_mag.hdf'
             task_ctrl.add(Task(native_weighted_basin_analysis,
-                               {'diurnal_cycle': hadgem_path, 'weights': weights_filename},
+                               {'diurnal_cycle': dataset_path, 'weights': weights_filename},
                                [output_filename],
                                fn_args=[cube_name, use_area_weight]))
 
