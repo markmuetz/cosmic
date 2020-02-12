@@ -56,22 +56,24 @@ def plot_weights_cube(inputs, outputs):
         plt.close()
 
 
-if __name__ == '__main__':
+def gen_task_ctrl():
     task_ctrl = TaskControl()
     for model, hb_name in itertools.product(MODELS, HB_NAMES):
         input_filenames = {'model': FILENAMES[model], 'hb_name': f'data/raster_vs_hydrobasins/hb_{hb_name}.shp'}
         weights_filename = f'data/weights_vs_hydrobasins/weights_{model}_{hb_name}.nc'
         task_ctrl.add(Task(gen_weights_cube, input_filenames, [weights_filename]))
-    task_ctrl.finalize().run()
-
-    fig_task_ctrl = TaskControl()
-    for model, hb_name in itertools.product(MODELS, HB_NAMES):
-        weights_filename = f'data/weights_vs_hydrobasins/weights_{model}_{hb_name}.nc'
         input_filenames = {'model': weights_filename, 'hb_name': f'data/raster_vs_hydrobasins/hb_{hb_name}.shp'}
+
         hb = gpd.read_file(str(input_filenames['hb_name']))
         output_filenames = {i: PATHS['figsdir'] / 'weights_vs_hydrobasins' / f'{model}_{hb_name}' / f'basin_{i}.png'
                             for i in range(len(hb))}
-        fig_task_ctrl.add(Task(plot_weights_cube, input_filenames, output_filenames))
+        task_ctrl.add(Task(plot_weights_cube, input_filenames, output_filenames))
+    return task_ctrl
 
-    fig_task_ctrl.finalize().run()
+
+task_ctrl = gen_task_ctrl()
+
+
+if __name__ == '__main__':
+    task_ctrl.finalize().run()
 
