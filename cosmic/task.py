@@ -142,17 +142,17 @@ class Task:
             raise Exception('outputs must be set')
 
         if isinstance(inputs, Mapping):
-            self.inputs_dict = {k: Path(v) for k, v in inputs.items()}
-            self.inputs = [Path(i) for i in inputs.values()]
+            self.inputs_dict = {k: Path(v).absolute() for k, v in inputs.items()}
+            self.inputs = [Path(i).absolute() for i in inputs.values()]
         else:
             self.inputs_dict = None
-            self.inputs = [Path(i) for i in inputs]
+            self.inputs = [Path(i).absolute() for i in inputs]
         if isinstance(outputs, Mapping):
-            self.outputs_dict = {k: Path(v) for k, v in outputs.items()}
-            self.outputs = [Path(o) for o in outputs.values()]
+            self.outputs_dict = {k: Path(v).absolute() for k, v in outputs.items()}
+            self.outputs = [Path(o).absolute() for o in outputs.values()]
         else:
             self.outputs_dict = None
-            self.outputs = [Path(o) for o in outputs]
+            self.outputs = [Path(o).absolute() for o in outputs]
         self.save_output = save_output
         self.kwargs = kwargs
         self.result = None

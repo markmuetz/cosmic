@@ -28,6 +28,42 @@ def circular_rmse(a1, a2):
     return np.sqrt(((diff**2).mean()))
 
 
+def vrmse(a1: np.ndarray, a2: np.ndarray) -> float:
+    """Vector RMSE: See https://stats.stackexchange.com/questions/449317/calculation-of-vector-rmse
+
+    :param a1: First array, final dimension is dimension of each vector
+    :param a2: Seconda array, shape the same as first
+    :return: Vector RMSE of arrays
+    """
+    assert a1.shape == a2.shape, 'Shapes do not match'
+    if a1.ndim > 2:
+        # Reduce dims of incoming arrays so that the resulting arrays are (N, D),
+        # where N is the number of individual vectors, and D is the dimension of each vector.
+        # e.g. a1.shape == (300, 200, 2) -> (60000, 2).
+        a1 = a1.reshape(-1, a1.shape[-1])
+        a2 = a2.reshape(-1, a2.shape[-1])
+    return np.sqrt((((a1 - a2)**2).sum(axis=1)).sum() / a1.shape[0])
+
+
+def weighted_vrmse(weights: np.ndarray, a1: np.ndarray, a2: np.ndarray) -> float:
+    """Vector RMSE: See https://stats.stackexchange.com/questions/449317/calculation-of-vector-rmse
+
+    :param weights: weights to apply to each cell
+    :param a1: First array, final dimension is dimension of each vector
+    :param a2: Seconda array, shape the same as first
+    :return: Vector RMSE of arrays
+    """
+    assert weights.shape == a1.shape == a2.shape, 'Shapes do not match'
+    if a1.ndim > 2:
+        # Reduce dims of incoming arrays so that the resulting arrays are (N, D),
+        # where N is the number of individual vectors, and D is the dimension of each vector.
+        # e.g. a1.shape == (300, 200, 2) -> (60000, 2).
+        weights = weights.reshape(-1, weights.shape[-1])
+        a1 = a1.reshape(-1, a1.shape[-1])
+        a2 = a2.reshape(-1, a2.shape[-1])
+    return np.sqrt(((weights * (a1 - a2)**2).sum(axis=1)).sum() / weights.sum())
+
+
 def regrid(input_cube, target_cube, scheme=iris.analysis.AreaWeighted(mdtol=0.5)):
     for cube in [input_cube, target_cube]:
         for latlon in ['latitude', 'longitude']:
