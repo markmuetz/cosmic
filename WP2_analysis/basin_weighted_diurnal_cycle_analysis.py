@@ -8,7 +8,7 @@ from matplotlib.colors import LogNorm
 import numpy as np
 import pandas as pd
 
-from cosmic.util import load_cmap_data, vrmse
+from cosmic.util import load_cmap_data, vrmse, circular_rmse, rmse
 from cosmic.task import TaskControl, Task
 from cosmic.fourier_series import FourierSeries
 
@@ -228,12 +228,14 @@ def df_phase_mag_add_x1_y1(df):
     df['x2'] = df['magnitude'] * np.sin(df['phase'] * np.pi / 12)
 
 
-def gen_vrmses(inputs, outputs):
+def gen_rmses(inputs, outputs):
     all_rmses = {}
 
     for mode in PRECIP_MODES:
         vrmses_for_mode = {}
         for dataset in DATASETS[:-1]:
+            phase_rmses = []
+            mag_rmses = []
             vrmses = []
             for hb_name in HB_NAMES:
                 cmorph_phase_mag = pd.read_hdf(inputs[('cmorph', mode, hb_name)])
@@ -241,9 +243,13 @@ def gen_vrmses(inputs, outputs):
                 dataset_phase_mag = pd.read_hdf(inputs[(dataset, mode, hb_name)])
                 df_phase_mag_add_x1_y1(dataset_phase_mag)
 
+                phase_rmses.append(circular_rmse(cmorph_phase_mag.phase,
+                                                 dataset_phase_mag.phase))
+                mag_rmses.append(rmse(cmorph_phase_mag.magnitude,
+                                      dataset_phase_mag.magnitude))
                 vrmses.append(vrmse(cmorph_phase_mag[['x1', 'x2']].values,
                                     dataset_phase_mag[['x1', 'x2']].values))
-            vrmses_for_mode[dataset] = vrmses
+            vrmses_for_mode[dataset] = phase_rmses, mag_rmses, vrmses
         all_rmses[mode] = vrmses_for_mode
     with outputs[0].open('wb') as f:
         pickle.dump(all_rmses, f)
@@ -251,16 +257,16 @@ def gen_vrmses(inputs, outputs):
 
 def plot_cmorph_vs_all_datasets(inputs, outputs):
     with inputs[0].open('rb') as f:
-        all_vrmses = pickle.load(f)
+        all_rmses = pickle.load(f)
 
-    fig_filename = outputs[0]
-    fig, axes = plt.subplots(1, 3, sharex=True, num=str(fig_filename), figsize=(12, 8))
+    vrmse_filename, phase_mag_rmse_filename = outputs
+    fig, axes = plt.subplots(1, 3, sharex=True, num=str(vrmse_filename), figsize=(12, 8))
 
     for i, mode in enumerate(PRECIP_MODES):
         ax = axes[i]
         # ax.set_ylim(ymin=0)
-        vrmses_for_mode = all_vrmses[mode]
-        for dataset, vrmses in vrmses_for_mode.items():
+        vrmses_for_mode = all_rmses[mode]
+        for dataset, (_, _, vrmses) in vrmses_for_mode.items():
             ax.plot(vrmses, label=dataset)
         if len(vrmses) == 3:
             ax.set_xticks([0, 1, 2])
@@ -272,7 +278,30 @@ def plot_cmorph_vs_all_datasets(inputs, outputs):
     axes[1].set_xlabel('basin scale (km$^2$)')
     axes[0].legend()
     plt.tight_layout()
-    plt.savefig(fig_filename)
+    plt.savefig(vrmse_filename)
+
+    fig, axes = plt.subplots(2, 3, sharex=True, num=str(phase_mag_rmse_filename), figsize=(12, 8))
+    for i, mode in enumerate(PRECIP_MODES):
+        ax1 = axes[0, i]
+        ax2 = axes[1, i]
+        ax1.set_ylim((0, 5))
+        rmses_for_mode = all_rmses[mode]
+        for dataset, (phase_rmses, mag_rmses, _) in rmses_for_mode.items():
+            ax1.plot(phase_rmses, label=dataset)
+            ax2.plot(mag_rmses, label=dataset)
+        if len(vrmses) == 3:
+            ax2.set_xticks([0, 1, 2])
+        ax2.set_xticklabels(['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
+
+    axes[0, 0].set_title('Amount')
+    axes[0, 1].set_title('Frequency')
+    axes[0, 2].set_title('Intensity')
+    axes[0, 0].set_ylabel('phase\ncircular RMSE (hr)')
+    axes[1, 0].set_ylabel('strength\nRMSE (-)')
+    axes[1, 1].set_xlabel('basin scale (km$^2$)')
+    axes[1, 0].legend()
+    plt.tight_layout()
+    plt.savefig(phase_mag_rmse_filename)
 
 
 def gen_task_ctrl():
@@ -330,7 +359,7 @@ def gen_task_ctrl():
                            fn_args=[dataset, hb_name, mode]))
 
     vrmse_data_filename = 'data/basin_weighted_diurnal_cycle/vrmses.pkl'
-    task_ctrl.add(Task(gen_vrmses,
+    task_ctrl.add(Task(gen_rmses,
                        inputs={
                            (ds, mode, hb_name): weighted_phase_mag_tpl.format(dataset=ds, hb_name=hb_name, mode=mode)
                            for ds, mode, hb_name in itertools.product(DATASETS, PRECIP_MODES, HB_NAMES)
@@ -339,7 +368,9 @@ def gen_task_ctrl():
                        ))
     task_ctrl.add(Task(plot_cmorph_vs_all_datasets,
                        [vrmse_data_filename],
-                       [PATHS['figsdir'] / 'basin_weighted_diurnal_cycle' / 'cmorph_vs' / 'all_datasets.png'],
+                       [PATHS['figsdir'] / 'basin_weighted_diurnal_cycle' / 'cmorph_vs' /
+                        f'cmorph_vs_all_datasets.{m}.png'
+                        for m in ['vrmse', 'phase_mag_rmse']],
                        ))
 
     return task_ctrl
