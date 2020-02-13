@@ -32,8 +32,8 @@ CONSTRAINT_ASIA = (iris.Constraint(coord_values={'latitude': lambda cell: 0.9 < 
 
 
 def gen_weights_cube(inputs, outputs):
-    model, hb_name = inputs.keys()
-    cube = iris.load_cube(str(inputs[model]), constraint=CONSTRAINT_ASIA)
+    dataset, hb_name = inputs.keys()
+    cube = iris.load_cube(str(inputs[dataset]), constraint=CONSTRAINT_ASIA)
     hb = gpd.read_file(str(inputs[hb_name]))
     weights_cube = util.build_weights_cube_from_cube(cube, hb, f'weights_{hb_name}')
     iris.save(weights_cube, str(outputs[0]))

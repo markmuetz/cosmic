@@ -171,7 +171,7 @@ def plot_cmorph_vs_all_datasets(inputs, outputs, rmses, xticks):
     axes[0, 1].set_title('Frequency')
     axes[0, 2].set_title('Intensity')
     axes[0, 0].set_ylabel('phase\ncircular RMSE (hr)')
-    axes[1, 0].set_ylabel('phase\nRMSE (-)')
+    axes[1, 0].set_ylabel('strength\nRMSE (-)')
     axes[1, 1].set_xlabel('basin scale (km$^2$)')
     axes[1, 0].legend()
     plt.tight_layout()

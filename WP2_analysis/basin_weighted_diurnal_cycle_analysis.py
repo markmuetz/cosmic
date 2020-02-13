@@ -1,4 +1,5 @@
 import itertools
+import pickle
 
 import iris
 import matplotlib.pyplot as plt
@@ -6,7 +7,7 @@ from matplotlib.colors import LogNorm
 import numpy as np
 import pandas as pd
 
-from cosmic.util import load_cmap_data
+from cosmic.util import load_cmap_data, vrmse
 from cosmic.task import TaskControl, Task
 from cosmic.fourier_series import FourierSeries
 
@@ -34,16 +35,17 @@ HB_NAMES = ['large', 'med', 'small']
 PRECIP_MODES = ['amount', 'freq', 'intensity']
 
 
-def native_weighted_basin_analysis(inputs, outputs, cube_name, use_area_weight):
+def native_weighted_basin_analysis(inputs, outputs, cube_name):
     cubes_filename = inputs['diurnal_cycle']
     weights_filename = inputs['weights']
 
     diurnal_cycle_cube = iris.load_cube(str(cubes_filename), cube_name)
+    # Weights is a 3D cube: (basin_index, lat, lon)
     weights = iris.load_cube(str(weights_filename))
 
     lon = diurnal_cycle_cube.coord('longitude').points
     lat = diurnal_cycle_cube.coord('latitude').points
-    # lons = np.repeat(lon[None, :], len(lat), axis=0)
+    # Broadcast lon and lat to get 2D lons and 2D area weights - both are indexible with basin_domain.
     lons = lon[None, :] * np.ones((weights.shape[1], weights.shape[2]))
     area_weight = np.cos(lat / 180 * np.pi)[:, None] * np.ones((weights.shape[1], weights.shape[2]))
 
@@ -62,15 +64,9 @@ def native_weighted_basin_analysis(inputs, outputs, cube_name, use_area_weight):
         dc_basin = []
         for t_index in range(diurnal_cycle_cube.shape[0]):
             # Only do average over basin area. This is consistent with basin_diurnal_cycle_analysis.
-            # TODO: But is it the right way of doing it?
-            if use_area_weight:
-                weighted_mean_dc = ((area_weight[basin_domain] * basin_weight[basin_domain] *
-                                     diurnal_cycle_cube.data[t_index][basin_domain]).sum() /
-                                    (area_weight[basin_domain] * basin_weight[basin_domain]).sum())
-            else:
-                weighted_mean_dc = ((basin_weight[basin_domain] *
-                                     diurnal_cycle_cube.data[t_index][basin_domain]).sum() /
-                                    basin_weight[basin_domain].sum())
+            weighted_mean_dc = ((area_weight[basin_domain] * basin_weight[basin_domain] *
+                                 diurnal_cycle_cube.data[t_index][basin_domain]).sum() /
+                                (area_weight[basin_domain] * basin_weight[basin_domain]).sum())
             dc_basin.append(weighted_mean_dc)
         dc_basin = np.array(dc_basin)
         basin_lon = lons[basin_domain].mean()
@@ -178,7 +174,7 @@ def plot_phase_mag(inputs, outputs, dataset, hb_name, mode):
     peak_weak = np.ma.masked_array(masked_phase_map,
                                    masked_mag_map >= med_thresh)
 
-    plt.figure(figsize=(10, 8))
+    fig = plt.figure(figsize=(10, 8))
     plt.title(f'{dataset} {mode} phase (alpha)')
     ax = plt.gca()
     im0 = ax.imshow(peak_strong, origin='lower', extent=extent,
@@ -187,7 +183,16 @@ def plot_phase_mag(inputs, outputs, dataset, hb_name, mode):
               vmin=0, vmax=24, cmap=cmap, norm=norm)
     ax.imshow(peak_weak, origin='lower', extent=extent, alpha=0.33,
               vmin=0, vmax=24, cmap=cmap, norm=norm)
-    plt.colorbar(im0, orientation='horizontal')
+
+    # plt.colorbar(im0, orientation='horizontal')
+    cax = fig.add_axes([0.05, 0.05, 0.9, 0.05])
+    v = np.linspace(0, 1, 24)
+    d = cmap(v)[None, :, :4] * np.ones((3, 24, 4))
+    d[1, :, 3] = 0.66
+    d[0, :, 3] = 0.33
+    cax.imshow(d, origin='lower', extent=(0, 24, 0, 2), aspect='auto')
+    cax.set_yticks([])
+    cax.set_xticks(np.linspace(0, 24, 9))
     plt.tight_layout()
     plt.savefig(alpha_phase_filename)
     plt.close()
@@ -202,7 +207,7 @@ def plot_phase_mag(inputs, outputs, dataset, hb_name, mode):
     plt.close()
 
 
-def get_dataset_path(dataset):
+def get_dataset_diurnal_cycle_path(dataset):
     if dataset == 'cmorph':
         path = (PATHS['datadir'] /
                 'cmorph_data/8km-30min/cmorph_ppt_jja.199801-201812.asia_precip.ppt_thresh_0p1.N1280.nc')
@@ -216,58 +221,125 @@ def get_dataset_path(dataset):
     return path
 
 
+def df_phase_mag_add_x1_y1(df):
+    df['x1'] = df['magnitude'] * np.cos(df['phase'] * np.pi / 12)
+    df['x2'] = df['magnitude'] * np.sin(df['phase'] * np.pi / 12)
+
+
+def gen_vrmses(inputs, outputs):
+    all_rmses = {}
+
+    for mode in PRECIP_MODES:
+        vrmses_for_mode = {}
+        for dataset in DATASETS[:-1]:
+            vrmses = []
+            for hb_name in HB_NAMES:
+                cmorph_phase_mag = pd.read_hdf(inputs[('cmorph', mode, hb_name)])
+                df_phase_mag_add_x1_y1(cmorph_phase_mag)
+                dataset_phase_mag = pd.read_hdf(inputs[(dataset, mode, hb_name)])
+                df_phase_mag_add_x1_y1(dataset_phase_mag)
+
+                vrmses.append(vrmse(cmorph_phase_mag[['x1', 'x2']].values,
+                                    dataset_phase_mag[['x1', 'x2']].values))
+            vrmses_for_mode[dataset] = vrmses
+        all_rmses[mode] = vrmses_for_mode
+    with outputs[0].open('wb') as f:
+        pickle.dump(all_rmses, f)
+
+
+def plot_cmorph_vs_all_datasets(inputs, outputs):
+    with inputs[0].open('rb') as f:
+        all_vrmses = pickle.load(f)
+
+    fig_filename = outputs[0]
+    fig, axes = plt.subplots(1, 3, sharex=True, num=str(fig_filename), figsize=(12, 8))
+
+    for i, mode in enumerate(PRECIP_MODES):
+        ax = axes[i]
+        # ax.set_ylim(ymin=0)
+        vrmses_for_mode = all_vrmses[mode]
+        for dataset, vrmses in vrmses_for_mode.items():
+            ax.plot(vrmses, label=dataset)
+        if len(vrmses) == 3:
+            ax.set_xticks([0, 1, 2])
+        ax.set_xticklabels(['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
+    axes[0].set_title('Amount')
+    axes[1].set_title('Frequency')
+    axes[2].set_title('Intensity')
+    axes[0].set_ylabel('VRMSE (?)')
+    axes[1].set_xlabel('basin scale (km$^2$)')
+    axes[0].legend()
+    plt.tight_layout()
+    plt.savefig(fig_filename)
+
+
 def gen_task_ctrl():
     task_ctrl = TaskControl()
+    # N.B. Need to do this once for one dataset at each resolution.
+    # I.e. only need one N1280 res dataset -- u-ak543.
     for dataset, hb_name in itertools.product(DATASETS[:4], HB_NAMES):
         if dataset == 'u-ak543':
             dataset_cube_path = PATHS['datadir'] / 'u-ak543/ap9.pp/precip_200601/ak543a.p9200601.asia_precip.nc'
         elif dataset[:7] == 'HadGEM3':
             dataset_cube_path = HADGEM_FILENAMES[dataset]
-        input_filenames = {'model': dataset_cube_path, 'hb_name': f'data/raster_vs_hydrobasins/hb_{hb_name}.shp'}
+        input_filenames = {dataset: dataset_cube_path, hb_name: f'data/raster_vs_hydrobasins/hb_{hb_name}.shp'}
 
         resolution = DATASET_RESOLUTION[dataset]
         weights_filename = f'data/basin_weighted_diurnal_cycle/weights_{resolution}_{hb_name}.nc'
-
         task_ctrl.add(Task(gen_weights_cube, input_filenames, [weights_filename]))
 
+    weighted_phase_mag_tpl = 'data/basin_weighted_diurnal_cycle/{dataset}.{hb_name}.{mode}.area_weighted.phase_mag.hdf'
+
     for dataset, hb_name, mode in itertools.product(DATASETS, HB_NAMES, PRECIP_MODES):
+        fmt_kwargs = {'dataset': dataset, 'hb_name': hb_name, 'mode': mode}
         if dataset[:7] == 'HadGEM3':
             cube_name = f'{mode}_of_precip_JJA'
         else:
             cube_name = f'{mode}_of_precip_jja'
-        dataset_path = get_dataset_path(dataset)
+        dataset_dc_path = get_dataset_diurnal_cycle_path(dataset)
         resolution = DATASET_RESOLUTION[dataset]
         weights_filename = f'data/basin_weighted_diurnal_cycle/weights_{resolution}_{hb_name}.nc'
 
-        for use_area_weight in [True, False]:
-            area_weight = 'area_weighted' if use_area_weight else 'not_area_weighted'
-            output_filename = f'data/basin_weighted_diurnal_cycle/' \
-                              f'{dataset}.{hb_name}.{mode}.{area_weight}.phase_mag.hdf'
-            task_ctrl.add(Task(native_weighted_basin_analysis,
-                               {'diurnal_cycle': dataset_path, 'weights': weights_filename},
-                               [output_filename],
-                               fn_args=[cube_name, use_area_weight]))
+        weighted_phase_mag_filename = weighted_phase_mag_tpl.format(**fmt_kwargs)
+        task_ctrl.add(Task(native_weighted_basin_analysis,
+                           {'diurnal_cycle': dataset_dc_path, 'weights': weights_filename},
+                           [weighted_phase_mag_filename],
+                           fn_args=[cube_name]))
 
-            raster_hb_name = hb_name
-            if hb_name == 'med':
-                raster_hb_name = 'medium'
+        raster_hb_name = hb_name
+        if hb_name == 'med':
+            raster_hb_name = 'medium'
 
-            raster_filename = f'data/basin_diurnal_cycle_analysis/{dataset}/basin_area_avg_' \
-                              f'{cube_name}_{mode}_hydrobasins_raster_{raster_hb_name}_harmonic.hdf'
+        raster_filename = f'data/basin_diurnal_cycle_analysis/{dataset}/basin_area_avg_' \
+                          f'{cube_name}_{mode}_hydrobasins_raster_{raster_hb_name}_harmonic.hdf'
 
-            task_ctrl.add(Task(compare_weighted_raster,
-                               {'weighted': output_filename, 'raster': raster_filename},
-                               [PATHS['figsdir'] / 'basin_weighted_diurnal_cycle' / 'weighted_raster_comparison' /
-                                mode / f'{dataset}.{hb_name}.{mode}.{area_weight}.phase_mag.png'],
-                               fn_args=[dataset, hb_name, mode]))
+        task_ctrl.add(Task(compare_weighted_raster,
+                           {'weighted': weighted_phase_mag_filename, 'raster': raster_filename},
+                           [PATHS['figsdir'] / 'basin_weighted_diurnal_cycle' / 'weighted_raster_comparison' /
+                            mode / f'{dataset}.{hb_name}.{mode}.area_weighted.phase_mag.png'],
+                           fn_args=[dataset, hb_name, mode]))
 
-            hb_raster_cubes_fn = f'data/basin_diurnal_cycle_analysis/hb_N1280_raster_small_medium_large.nc'
-            task_ctrl.add(Task(plot_phase_mag,
-                               {'weighted': output_filename, 'raster_cubes': hb_raster_cubes_fn},
-                               [PATHS['figsdir'] / 'basin_weighted_diurnal_cycle' / 'map' /
-                                mode / f'map_{dataset}.{hb_name}.{mode}.{area_weight}.{v}.png'
-                                for v in ['phase', 'alpha_phase', 'mag']],
-                               fn_args=[dataset, hb_name, mode]))
+        hb_raster_cubes_fn = f'data/basin_diurnal_cycle_analysis/hb_N1280_raster_small_medium_large.nc'
+        task_ctrl.add(Task(plot_phase_mag,
+                           {'weighted': weighted_phase_mag_filename, 'raster_cubes': hb_raster_cubes_fn},
+                           [PATHS['figsdir'] / 'basin_weighted_diurnal_cycle' / 'map' /
+                            mode / f'map_{dataset}.{hb_name}.{mode}.area_weighted.{v}.png'
+                            for v in ['phase', 'alpha_phase', 'mag']],
+                           fn_args=[dataset, hb_name, mode]))
+
+    vrmse_data_filename = 'data/basin_weighted_diurnal_cycle/vrmses.pkl'
+    task_ctrl.add(Task(gen_vrmses,
+                       inputs={
+                           (ds, mode, hb_name): weighted_phase_mag_tpl.format(dataset=ds, hb_name=hb_name, mode=mode)
+                           for ds, mode, hb_name in itertools.product(DATASETS, PRECIP_MODES, HB_NAMES)
+                       },
+                       outputs=[vrmse_data_filename]
+                       ))
+    task_ctrl.add(Task(plot_cmorph_vs_all_datasets,
+                       [vrmse_data_filename],
+                       [PATHS['figsdir'] / 'basin_weighted_diurnal_cycle' / 'cmorph_vs' / 'all_datasets.png'],
+                       ))
+
     return task_ctrl
 
 
