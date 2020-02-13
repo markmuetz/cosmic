@@ -3,6 +3,7 @@ import pickle
 
 import iris
 import matplotlib.pyplot as plt
+import matplotlib.colorbar as cbar
 from matplotlib.colors import LogNorm
 import numpy as np
 import pandas as pd
@@ -157,7 +158,7 @@ def plot_phase_mag(inputs, outputs, dataset, hb_name, mode):
                cmap=cmap, norm=norm,
                origin='lower', extent=extent, vmin=0, vmax=24)
     plt.colorbar(orientation='horizontal')
-    plt.tight_layout()
+    # plt.tight_layout()
     plt.savefig(phase_filename)
     plt.close()
 
@@ -184,8 +185,9 @@ def plot_phase_mag(inputs, outputs, dataset, hb_name, mode):
     ax.imshow(peak_weak, origin='lower', extent=extent, alpha=0.33,
               vmin=0, vmax=24, cmap=cmap, norm=norm)
 
-    # plt.colorbar(im0, orientation='horizontal')
-    cax = fig.add_axes([0.05, 0.05, 0.9, 0.05])
+    # # plt.colorbar(im0, orientation='horizontal')
+    # cax = fig.add_axes([0.05, 0.05, 0.9, 0.05])
+    cax, _ = cbar.make_axes_gridspec(ax, orientation='horizontal')
     v = np.linspace(0, 1, 24)
     d = cmap(v)[None, :, :4] * np.ones((3, 24, 4))
     d[1, :, 3] = 0.66
@@ -193,7 +195,7 @@ def plot_phase_mag(inputs, outputs, dataset, hb_name, mode):
     cax.imshow(d, origin='lower', extent=(0, 24, 0, 2), aspect='auto')
     cax.set_yticks([])
     cax.set_xticks(np.linspace(0, 24, 9))
-    plt.tight_layout()
+    # plt.tight_layout()
     plt.savefig(alpha_phase_filename)
     plt.close()
 
@@ -202,7 +204,7 @@ def plot_phase_mag(inputs, outputs, dataset, hb_name, mode):
     plt.imshow(masked_mag_map,
                origin='lower', extent=extent, vmin=1e-2, norm=LogNorm())
     plt.colorbar(orientation='horizontal')
-    plt.tight_layout()
+    # plt.tight_layout()
     plt.savefig(mag_filename)
     plt.close()
 
