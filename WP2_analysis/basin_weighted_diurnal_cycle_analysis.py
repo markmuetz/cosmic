@@ -2,6 +2,8 @@ import itertools
 import pickle
 
 import iris
+# noinspection PyUnresolvedReferences
+import headless_matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.colorbar as cbar
 from matplotlib.colors import LogNorm
