@@ -160,7 +160,7 @@ def plot_cmorph_vs_all_datasets(inputs, outputs, rmses, xticks):
     for i, mode in enumerate(rmses.keys()):
         ax1 = axes[0, i]
         ax2 = axes[1, i]
-        ax1.set_ylim((0, 5))
+        # ax1.set_ylim(ymin=0)
         rmses_for_mode = rmses[mode]
         for dataset, (phase_rmses, mag_rmses) in rmses_for_mode.items():
             ax1.plot(phase_rmses, label=dataset)
@@ -364,7 +364,9 @@ class DiurnalCycleAnalysis:
                 phase_rmses = []
                 mag_rmses = []
                 df_dataset = self.df_keys[selector & (self.df_keys.dataset == dataset)]
-                for raster, scale in zip(self.ordered_raster_cubes, self.scales):
+                for raster_cube, scale in zip(self.ordered_raster_cubes, self.scales):
+                    raster = raster_cube.data
+
                     cmorph_phase_mag = (df_cmorph[df_cmorph.basin_scale == f'hydrobasins_raster_{scale}']
                                         .task.values[0].load_output())
                     dataset_phase_mag = (df_dataset[df_dataset.basin_scale == f'hydrobasins_raster_{scale}']
@@ -382,7 +384,8 @@ class DiurnalCycleAnalysis:
                                           dataset_mag.data[raster != 0]))
                 rmses_for_mode[dataset] = (phase_rmses, mag_rmses)
             rmses[mode] = rmses_for_mode
-        pickle.dump(rmses, outputs[0])
+        with outputs[0].open('wb') as f:
+            pickle.dump(rmses, f)
 
     def gen_cmorph_vs_datasets_fig_tasks(self):
         rmses_filename = Path(f'data/rmses_{self.raster_scales}.pkl')
