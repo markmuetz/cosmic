@@ -3,6 +3,7 @@ from pathlib import Path
 import pickle
 
 import iris
+import networkx as nx
 import pandas as pd
 
 
@@ -26,6 +27,8 @@ class TaskControl:
         self.finalized = False
         self.index = None
         self.task_run_schedule = []
+        self.input_files = set()
+        self.output_files = set()
 
     def _filter_tasks(self, fn):
         if fn:
@@ -64,37 +67,47 @@ class TaskControl:
         can_run_tasks = set()
 
         # Work out whether it is possible to create a run schedule and find initial tasks.
-        tasks_to_remove = set()
         for task in tasks:
-            can_run = False
+            can_run = True
             for input_fn in task.inputs:
                 if input_fn not in self.task_output_map:
                     # input_fn is not going to be created by any tasks; it might still exist though:
                     if not input_fn.exists():
                         raise Exception(f'No input files exist or will be created for {task}')
-                    # input_fn does exist; task is runnable.
-                    can_run = True
-                    tasks_to_remove.add(task)
+                    self.input_files.add(input_fn)
+                else:
+                    if not input_fn.exists():
+                        can_run = False
+
             if can_run:
                 self.task_run_schedule.append(task)
                 can_run_tasks.add(task)
 
-        for task in tasks_to_remove:
+        for task in can_run_tasks:
             tasks.remove(task)
 
         # It is possible; build remainder of schedule.
         while tasks:
+            tasks_to_remove = set()
             for task in tasks:
                 can_run = True
                 for input_fn in task.inputs:
+                    if input_fn not in self.task_output_map:
+                        assert input_fn.exists()
+                        continue
                     intask = self.task_output_map[input_fn]
                     if intask not in can_run_tasks:
                         can_run = False
+                        break
                 if can_run:
                     self.task_run_schedule.append(task)
                     can_run_tasks.add(task)
-                    tasks.remove(task)
+                    tasks_to_remove.add(task)
+            for task in tasks_to_remove:
+                tasks.remove(task)
         assert len(self.task_run_schedule) == len(self.tasks), 'Not all tasks added to schedule'
+
+        self.output_files = set(self.task_output_map.keys()) - self.input_files
 
         self.index = self._gen_index()
         self.finalized = True
@@ -109,6 +122,8 @@ class TaskControl:
         while depth:
             for level_task in level_tasks:
                 for input_fn in level_task.inputs:
+                    if input_fn not in self.task_output_map:
+                        continue
                     next_level_task = self.task_output_map[input_fn]
                     next_level_tasks.add(next_level_task)
                     deps[level].add(next_level_task)
@@ -118,6 +133,25 @@ class TaskControl:
             depth -= 1
             level += 1
         return deps
+
+    def tasks_as_networkx_graph(self):
+        assert self.finalized
+        G = nx.DiGraph()
+        for task in self.task_run_schedule:
+            G.add_node(task)
+
+            for dep in self.get_deps(task)[1]:
+                G.add_edge(dep, task)
+        return G
+
+    def files_as_networkx_graph(self):
+        assert self.finalized
+        G = nx.DiGraph()
+        for task in self.task_run_schedule:
+            for i in task.inputs:
+                for o in task.outputs:
+                    G.add_edge(i, o)
+        return G
 
     def run(self, fn=None, force=False):
         assert self.finalized
