@@ -1,3 +1,4 @@
+import sys
 import itertools
 import pickle
 
@@ -16,6 +17,7 @@ from cosmic.task import TaskControl, Task
 from cosmic.fourier_series import FourierSeries
 
 from weights_vs_hydrobasins import FILENAMES as HADGEM_FILENAMES, gen_weights_cube
+from basin_diurnal_cycle_analysis import gen_hydrobasins_raster_cubes
 from paths import PATHS
 
 DATASETS = [
@@ -343,8 +345,12 @@ def plot_cmorph_vs_all_datasets(inputs, outputs):
 def gen_task_ctrl():
     task_ctrl = TaskControl()
 
-    for basins_scales in ['small_med_large', 'sliding']:
-        if basins_scales == 'small_med_large':
+    for basin_scales in ['small_medium_large', 'sliding']:
+        hb_raster_cubes_fn = f'data/basin_diurnal_cycle_analysis/hb_N1280_raster_{basin_scales}.nc'
+        task_ctrl.add(Task(gen_hydrobasins_raster_cubes, [], [hb_raster_cubes_fn],
+                           fn_args=[SLIDING_SCALES if basin_scales == 'sliding' else SCALES]))
+
+        if basin_scales == 'small_medium_large':
             hb_names = HB_NAMES
         else:
             hb_names = [f'S{i}' for i in range(11)]
@@ -369,7 +375,6 @@ def gen_task_ctrl():
             task_ctrl.add(Task(gen_weights_cube, input_filenames, [weights_filename]))
 
         weighted_phase_mag_tpl = 'data/basin_weighted_diurnal_cycle/{dataset}.{hb_name}.{mode}.area_weighted.phase_mag.hdf'
-        hb_raster_cubes_fn = f'data/basin_diurnal_cycle_analysis/hb_N1280_raster_small_medium_large.nc'
 
         for dataset, hb_name, mode in itertools.product(DATASETS, hb_names, PRECIP_MODES):
             fmt_kwargs = {'dataset': dataset, 'hb_name': hb_name, 'mode': mode}
@@ -387,18 +392,20 @@ def gen_task_ctrl():
                                [weighted_phase_mag_filename],
                                fn_args=[cube_name]))
 
-            raster_hb_name = hb_name
-            if hb_name == 'med':
-                raster_hb_name = 'medium'
+            # Disabled comparison between this and basin_diurnal_cycle_analysis.
+            if False:
+                raster_hb_name = hb_name
+                if hb_name == 'med':
+                    raster_hb_name = 'medium'
 
-            raster_filename = f'data/basin_diurnal_cycle_analysis/{dataset}/basin_area_avg_' \
-                              f'{cube_name}_{mode}_hydrobasins_raster_{raster_hb_name}_harmonic.hdf'
+                raster_filename = f'data/basin_diurnal_cycle_analysis/{dataset}/basin_area_avg_' \
+                                  f'{cube_name}_{mode}_hydrobasins_raster_{raster_hb_name}_harmonic.hdf'
 
-            task_ctrl.add(Task(compare_weighted_raster,
-                               {'weighted': weighted_phase_mag_filename, 'raster': raster_filename},
-                               [PATHS['figsdir'] / 'basin_weighted_diurnal_cycle' / 'weighted_raster_comparison' /
-                                mode / f'{dataset}.{hb_name}.{mode}.area_weighted.phase_mag.png'],
-                               fn_args=[dataset, hb_name, mode]))
+                task_ctrl.add(Task(compare_weighted_raster,
+                                   {'weighted': weighted_phase_mag_filename, 'raster': raster_filename},
+                                   [PATHS['figsdir'] / 'basin_weighted_diurnal_cycle' / 'weighted_raster_comparison' /
+                                    mode / f'{dataset}.{hb_name}.{mode}.area_weighted.phase_mag.png'],
+                                   fn_args=[dataset, hb_name, mode]))
 
             task_ctrl.add(Task(plot_phase_mag,
                                {'weighted': weighted_phase_mag_filename, 'raster_cubes': hb_raster_cubes_fn},
@@ -410,7 +417,7 @@ def gen_task_ctrl():
         for area_weighted in [True, False]:
             weighted = 'area_weighted' if area_weighted else 'not_area_weighted'
 
-            vrmse_data_filename = f'data/basin_weighted_diurnal_cycle/all_rmses.{weighted}.{basins_scales}.pkl'
+            vrmse_data_filename = f'data/basin_weighted_diurnal_cycle/all_rmses.{weighted}.{basin_scales}.pkl'
             gen_rmses_inputs = {
                 (ds, mode, hb_name): weighted_phase_mag_tpl.format(dataset=ds, hb_name=hb_name, mode=mode)
                 for ds, mode, hb_name in itertools.product(DATASETS, PRECIP_MODES, hb_names)
@@ -425,7 +432,7 @@ def gen_task_ctrl():
             task_ctrl.add(Task(plot_cmorph_vs_all_datasets,
                                [vrmse_data_filename],
                                [PATHS['figsdir'] / 'basin_weighted_diurnal_cycle' / 'cmorph_vs' /
-                                f'cmorph_vs_all_datasets.all_rmse.{weighted}.{basins_scales}.png'],
+                                f'cmorph_vs_all_datasets.all_rmse.{weighted}.{basin_scales}.png'],
                                )
                           )
 
@@ -436,5 +443,6 @@ task_ctrl = gen_task_ctrl()
 
 
 if __name__ == '__main__':
-    # task_ctrl.finalize().run()
     task_ctrl.finalize()
+    if len(sys.argv) == 2 and sys.argv[1] == 'run':
+        task_ctrl.run()
