@@ -1,3 +1,4 @@
+import os
 import sys
 import itertools
 import pickle
@@ -19,6 +20,14 @@ from cosmic.fourier_series import FourierSeries
 from weights_vs_hydrobasins import FILENAMES as HADGEM_FILENAMES, gen_weights_cube
 from basin_diurnal_cycle_analysis import gen_hydrobasins_raster_cubes
 from paths import PATHS
+
+
+BSUB_KWARGS = {
+    'job_name': 'bwdca',
+    'queue': 'short-serial',
+    'max_runtime': '04:00',
+    # 'mem': '64000',
+}
 
 DATASETS = [
     'HadGEM3-GC31-LM',
@@ -52,7 +61,7 @@ SLIDING_SCALES = dict([(f'S{i}', (SLIDING_LOWER[i], SLIDING_UPPER[i])) for i in 
 
 
 def gen_hydrobasins_files(inputs, outputs, hb_name):
-    hb = load_hydrobasins_geodataframe('/home/markmuetz/HydroSHEDS/', 'as', range(1, 9))
+    hb = load_hydrobasins_geodataframe(os.getenv('HYDROSHEDS_DIR'), 'as', range(1, 9))
     if hb_name[0] == 'S':
         hb_size = hb.area_select(*SLIDING_SCALES[hb_name])
     else:
@@ -141,8 +150,6 @@ def plot_phase_mag(inputs, outputs, dataset, hb_name, mode):
     df_phase_mag = pd.read_hdf(weighted_basin_phase_mag_filename)
 
     raster_hb_name = hb_name
-    if hb_name == 'med':
-        raster_hb_name = 'medium'
     raster_cube = iris.load_cube(str(inputs['raster_cubes']), f'hydrobasins_raster_{raster_hb_name}')
     raster = raster_cube.data
     phase_filename, alpha_phase_filename, mag_filename = outputs

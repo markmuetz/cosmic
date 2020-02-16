@@ -29,6 +29,8 @@ def _short_hostname():
 
 
 hostname = _short_hostname()
+if hostname[:4] == 'host':
+    hostname = 'jasmin'
 
 if hostname not in ALL_PATHS:
     raise Exception(f'Unknown hostname: {hostname}')

@@ -71,9 +71,7 @@ def gen_task_ctrl():
     return task_ctrl
 
 
-task_ctrl = gen_task_ctrl()
-
-
 if __name__ == '__main__':
+    task_ctrl = gen_task_ctrl()
     task_ctrl.finalize().run()
 
