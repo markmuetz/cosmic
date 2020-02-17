@@ -29,6 +29,10 @@ class TaskControl:
         self.task_run_schedule = []
         self.input_files = set()
         self.output_files = set()
+        self.pending_tasks = []
+        self.next_tasks = defaultdict(list)
+        self.running_tasks = []
+        self.completed_tasks = []
 
     def _filter_tasks(self, fn):
         if fn:
@@ -68,6 +72,16 @@ class TaskControl:
 
         # Work out whether it is possible to create a run schedule and find initial tasks.
         for task in tasks:
+            if task.can_run():
+                if task.requires_rerun():
+                    self.pending_tasks.append(task)
+                else:
+                    self.completed_tasks.append(task)
+
+            for output_fn in task.outputs:
+                if output_fn in self.input_task_map:
+                    output_tasks = self.input_task_map[output_fn]
+                    self.next_tasks[task].extend(output_tasks)
             can_run = True
             for input_fn in task.inputs:
                 if input_fn not in self.task_output_map:
@@ -153,15 +167,41 @@ class TaskControl:
                     G.add_edge(i, o)
         return G
 
+    def get_next_pending(self):
+        while self.pending_tasks:
+            task = self.pending_tasks.pop(0)
+            self.running_tasks.append(task)
+            yield task
+        else:
+            pass
+            # raise StopIteration()
+            # if ???:
+            #     raise StopIteration()
+            # yield None
+
+    def task_complete(self, task):
+        self.running_tasks.remove(task)
+        self.completed_tasks.append(task)
+        for next_task in self.next_tasks[task]:
+            if next_task not in self.pending_tasks and next_task.can_run() and next_task.requires_rerun():
+                self.pending_tasks.append(next_task)
+
     def run(self, fn=None, force=False):
         assert self.finalized
-        if fn:
-            tasks = [t for t in self.task_run_schedule if t.fn == fn]
-        else:
-            tasks = [t for t in self.task_run_schedule]
-        for i, task in enumerate(tasks):
-            print(f'{i + 1}/{len(tasks)}: {task.fn.__code__.co_name} - {task.outputs}')
+        # if fn:
+        #     tasks = [t for t in self.task_run_schedule if t.fn == fn]
+        # else:
+        #     tasks = [t for t in self.task_run_schedule]
+
+        for task in self.get_next_pending():
+            if task is None:
+                raise Exception()
             task.run(force=force)
+            self.update(task)
+
+        # for i, task in enumerate(tasks):
+        #     # print(f'{i + 1}/{len(tasks)}: {task.fn.__code__.co_name} - {task.outputs}')
+        #     task.run(force=force)
 
 
 class Task:
