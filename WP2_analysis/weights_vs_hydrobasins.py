@@ -1,8 +1,8 @@
 import itertools
-import geopandas as gpd
 import iris
 import matplotlib.pyplot as plt
 
+import geopandas as gpd
 
 from cosmic.task import Task, TaskControl
 import cosmic.util as util
@@ -12,18 +12,22 @@ FILENAME_TPL = 'PRIMAVERA_HighResMIP_MOHC/{model}/' \
                'highresSST-present/r1i1p1f1/E1hr/pr/gn/{timestamp}/' \
                'pr_E1hr_{model}_highresSST-present_r1i1p1f1_gn_{daterange}.nc'
 
-MODELS = [
+HADGEM_MODELS = [
     'HadGEM3-GC31-LM',
     'HadGEM3-GC31-MM',
     'HadGEM3-GC31-HM',
 ]
+MODELS = HADGEM_MODELS + ['u-ak543']
+
 TIMESTAMPS = ['v20170906', 'v20170818', 'v20170831']
 DATERANGES = ['201401010030-201412302330', '201401010030-201412302330', '201404010030-201406302330']
 
 FILENAMES = {
     model: PATHS['datadir'] / FILENAME_TPL.format(model=model, timestamp=timestamp, daterange=daterange)
-    for model, timestamp, daterange in zip(MODELS, TIMESTAMPS, DATERANGES)
+    for model, timestamp, daterange in zip(HADGEM_MODELS, TIMESTAMPS, DATERANGES)
 }
+FILENAMES['u-ak543'] = PATHS['datadir'] / 'u-ak543/ap9.pp/precip_200601/ak543a.p9200601.asia_precip.nc'
+
 
 HB_NAMES = ['large', 'med', 'small']
 
@@ -36,7 +40,8 @@ def gen_weights_cube(inputs, outputs):
     cube = iris.load_cube(str(inputs[dataset]), constraint=CONSTRAINT_ASIA)
     hb = gpd.read_file(str(inputs[hb_name]))
     weights_cube = util.build_weights_cube_from_cube(cube, hb, f'weights_{hb_name}')
-    iris.save(weights_cube, str(outputs[0]))
+    # Cubes are very sparse. You can get a 800x improvement in file size using zlib!
+    iris.save(weights_cube, str(outputs[0]), zlib=True)
 
 
 def plot_weights_cube(inputs, outputs):

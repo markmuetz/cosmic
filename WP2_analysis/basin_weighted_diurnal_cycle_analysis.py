@@ -335,6 +335,9 @@ def plot_cmorph_vs_all_datasets(inputs, outputs):
             ax3.plot(vrmses, label=dataset)
         if len(vrmses) == 3:
             ax2.set_xticks([0, 1, 2])
+        elif len(vrmses) == 11:
+            ax2.set_xticks([0, 5, 10])
+            ax2.set_xticks(range(11), minor=True)
         ax2.set_xticklabels(['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
 
     axes[0, 0].set_title('Amount')
@@ -343,13 +346,13 @@ def plot_cmorph_vs_all_datasets(inputs, outputs):
     axes[0, 0].set_ylabel('phase\ncircular RMSE (hr)')
     axes[1, 0].set_ylabel('strength\nRMSE (-)')
     axes[2, 0].set_ylabel('combined\nVRMSE (-)')
-    axes[1, 1].set_xlabel('basin scale (km$^2$)')
+    axes[2, 1].set_xlabel('basin scale (km$^2$)')
     axes[1, 0].legend()
     plt.tight_layout()
     plt.savefig(all_rmse_filename)
 
 
-def gen_task_ctrl():
+def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
     task_ctrl = TaskControl()
 
     for basin_scales in ['small_medium_large', 'sliding']:
@@ -400,7 +403,7 @@ def gen_task_ctrl():
                                fn_args=[cube_name]))
 
             # Disabled comparison between this and basin_diurnal_cycle_analysis.
-            if False:
+            if include_basin_dc_analysis_comparison:
                 raster_hb_name = hb_name
                 if hb_name == 'med':
                     raster_hb_name = 'medium'
@@ -446,10 +449,8 @@ def gen_task_ctrl():
     return task_ctrl
 
 
-task_ctrl = gen_task_ctrl()
-
-
 if __name__ == '__main__':
+    task_ctrl = gen_task_ctrl(True)
     task_ctrl.finalize()
     if len(sys.argv) == 2 and sys.argv[1] == 'run':
         task_ctrl.run()
