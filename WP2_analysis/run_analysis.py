@@ -5,7 +5,8 @@ import hashlib
 
 import matplotlib.pyplot as plt
 
-from cosmic.task import TaskControl, Task
+from remake import Task, TaskControl
+# from cosmic.task import TaskControl, Task
 
 from extract_china_jja_2009_mean_precip import extract_all_dataset_gen
 from afi_figs_all import afi_all_figs_gen
@@ -69,5 +70,5 @@ if __name__ == '__main__':
             for fn, args, kwargs in gen():
                 task_hash_key = task_hash(hostname, fn, args, kwargs)
                 task_ctrl.add(Task(gen_task_fn(fn), [], [task_dir / task_hash_key],
-                                   fn_args=args, fn_kwargs=kwargs))
+                                   func_args=args, func_kwargs=kwargs))
     task_ctrl.finalize().run(cli_args.force)

@@ -1,4 +1,5 @@
-from cosmic.task import Task, TaskControl
+from remake import Task, TaskControl
+# from cosmic.task import Task, TaskControl
 
 BSUB_KWARGS = {
     'job_name': 'demo',

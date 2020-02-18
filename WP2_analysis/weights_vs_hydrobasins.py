@@ -1,10 +1,12 @@
+import sys
 import itertools
 import iris
 import matplotlib.pyplot as plt
 
 import geopandas as gpd
 
-from cosmic.task import Task, TaskControl
+from remake import Task, MultiProcTaskControl
+# from cosmic.task import Task, TaskControl
 import cosmic.util as util
 from paths import PATHS
 
@@ -62,7 +64,7 @@ def plot_weights_cube(inputs, outputs):
 
 
 def gen_task_ctrl():
-    task_ctrl = TaskControl()
+    task_ctrl = MultiProcTaskControl(4)
     for model, hb_name in itertools.product(MODELS, HB_NAMES):
         input_filenames = {'model': FILENAMES[model], 'hb_name': f'data/raster_vs_hydrobasins/hb_{hb_name}.shp'}
         weights_filename = f'data/weights_vs_hydrobasins/weights_{model}_{hb_name}.nc'
@@ -78,5 +80,7 @@ def gen_task_ctrl():
 
 if __name__ == '__main__':
     task_ctrl = gen_task_ctrl()
-    task_ctrl.finalize().run()
+    task_ctrl.finalize()
+    if len(sys.argv) == 2 and sys.argv[1] == 'run':
+        task_ctrl.run()
 

@@ -8,8 +8,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from basmati.hydrosheds import load_hydrobasins_geodataframe
+from remake import Task, TaskControl
 from cosmic import util
-from cosmic.task import Task, TaskControl
+# from cosmic.task import Task, TaskControl
 from paths import PATHS
 
 FILENAME_TPL = '/home/markmuetz/mirrors/jasmin/gw_cosmic/mmuetz/data/PRIMAVERA_HighResMIP_MOHC/{model}/' \
@@ -103,7 +104,7 @@ if __name__ == '__main__':
     hbs = {}
     for hb_name in ['small', 'med', 'large']:
         task = Task(gen_hydrobasins_files, [], [f'data/raster_vs_hydrobasins/hb_{hb_name}.shp'],
-                    fn_args=[hb_name]).run()
+                    func_args=[hb_name]).run()
         hbs[hb_name] = gpd.read_file(str(task.outputs[0]))
 
     task_ctrl = TaskControl()
@@ -121,11 +122,11 @@ if __name__ == '__main__':
                             f'raster_{model}_{hb_name}_{method}.png')
 
                 task_ctrl.add(Task(gen_raster_cube, [input_filename], [raster_path],
-                                   fn_kwargs={'hb_name': hb_name, 'hbs': hbs, 'method': method},
+                                   func_kwargs={'hb_name': hb_name, 'hbs': hbs, 'method': method},
                                    model=model, hb_name=hb_name, method=method))
 
                 fig_task_ctrl.add(Task(plot_raster_cube, [raster_path], [fig_path],
-                                       fn_kwargs={'hb_name': hb_name, 'hbs': hbs, 'method': method},
+                                       func_kwargs={'hb_name': hb_name, 'hbs': hbs, 'method': method},
                                        model=model, hb_name=hb_name, method=method))
     task_ctrl.finalize().run()
     fig_task_ctrl.finalize().run()
@@ -142,5 +143,5 @@ if __name__ == '__main__':
             input_filenames[(model, hb_name, 'local')] = local_raster_task.outputs[0]
 
     output_path = (PATHS['figsdir'] / 'raster_vs_hydrobasins' / f'raster_stats.txt')
-    task = Task(gen_raster_stats, input_filenames, [output_path], fn_args=[hbs])
+    task = Task(gen_raster_stats, input_filenames, [output_path], func_args=[hbs])
     task.run()

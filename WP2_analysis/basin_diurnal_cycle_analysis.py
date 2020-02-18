@@ -11,7 +11,8 @@ from scipy.stats import linregress
 
 import cosmic.WP2.diurnal_cycle_analysis as dca
 from basmati.hydrosheds import load_hydrobasins_geodataframe
-from cosmic.task import Task, TaskControl
+from remake import Task, TaskControl
+# from cosmic.task import Task, TaskControl
 from cosmic.fourier_series import FourierSeries
 from cosmic.util import build_raster_cube_from_cube, load_cmap_data, circular_rmse, rmse
 from paths import PATHS
@@ -309,7 +310,7 @@ class DiurnalCycleAnalysis:
     def load_ordered_raster_cubes(self):
         hb_raster_cubes_fn = f'data/basin_diurnal_cycle_analysis/hb_N1280_raster_{self.raster_scales}.nc'
         hb_raster_cubes_task = Task(gen_hydrobasins_raster_cubes, [], [hb_raster_cubes_fn],
-                                    fn_args=[self.scales])
+                                    func_args=[self.scales])
         hb_raster_cubes = hb_raster_cubes_task.run().load_output()
         self.ordered_raster_cubes = [hb_raster_cubes.extract_strict(f'hydrobasins_raster_{s}') for s in self.scales]
 
@@ -398,7 +399,7 @@ class DiurnalCycleAnalysis:
         both_filename = Path(f'{self.figsdir}/cmorph_vs/{self.raster_scales}/'
                              f'cmorph_vs_datasets.all.phase_and_mag.png')
         self.fig_task_ctrl.add(Task(plot_cmorph_vs_all_datasets, [], [both_filename],
-                                    fn_args=[rmses, xticks]))
+                                    func_args=[rmses, xticks]))
 
         for mode, rmses_for_mode in rmses.items():
             phase_filename = Path(f'{self.figsdir}/cmorph_vs/{self.raster_scales}/'
@@ -406,7 +407,7 @@ class DiurnalCycleAnalysis:
             mag_filename = Path(f'{self.figsdir}/cmorph_vs/{self.raster_scales}/'
                                 f'cmorph_vs_datasets.{mode}.mag.rmse.png')
             self.fig_task_ctrl.add(Task(plot_cmorph_vs_all_datasets2, [], [phase_filename, mag_filename],
-                                        fn_args=[mode, rmses_for_mode, xticks]))
+                                        func_args=[mode, rmses_for_mode, xticks]))
 
     def basin_vector_area_avg(self, dataset, diurnal_cycle_cube, raster_cube, method, mode):
         raster = raster_cube.data
@@ -422,12 +423,12 @@ class DiurnalCycleAnalysis:
             method=method,
         )
         phase_mag_task = Task(gen_basin_vector_area_avg, [], [df_phase_mag_key],
-                              fn_args=[diurnal_cycle_cube, raster, method],
+                              func_args=[diurnal_cycle_cube, raster, method],
                               type='phase_mag', **task_kwargs)
 
         phase_mag_cubes_key = f'{fn_base}.nc'
         phase_mag_cubes_task = Task(gen_phase_mag_map, [df_phase_mag_key], [phase_mag_cubes_key],
-                                    fn_args=[diurnal_cycle_cube, raster],
+                                    func_args=[diurnal_cycle_cube, raster],
                                     type='phase_mag_cubes', **task_kwargs)
         self.analysis_task_ctrl.add(phase_mag_task)
         self.analysis_task_ctrl.add(phase_mag_cubes_task)
@@ -448,12 +449,12 @@ class DiurnalCycleAnalysis:
 
         df_phase_mag_key = f'{fn_base}.hdf'
         phase_mag_task = Task(gen_basin_area_avg_phase_mag, [], [df_phase_mag_key],
-                              fn_args=[diurnal_cycle_cube, raster, method],
+                              func_args=[diurnal_cycle_cube, raster, method],
                               type='phase_mag', **task_kwargs)
 
         phase_mag_cubes_key = f'{fn_base}.nc'
         phase_mag_cubes_task = Task(gen_phase_mag_map, [df_phase_mag_key], [phase_mag_cubes_key],
-                                    fn_args=[diurnal_cycle_cube, raster],
+                                    func_args=[diurnal_cycle_cube, raster],
                                     type='phase_mag_cubes', **task_kwargs)
         self.analysis_task_ctrl.add(phase_mag_task)
         self.analysis_task_ctrl.add(phase_mag_cubes_task)
@@ -517,7 +518,7 @@ class DiurnalCycleAnalysis:
         mag_filename = Path(f'{self.figsdir}/map/{mode}/{row.dataset}_{row.analysis_order}_{row.method}'
                             f'.{basin_scale}.mag.png')
         self.fig_task_ctrl.add(Task(plot_phase_mag, [], [phase_filename, mag_filename],
-                                    fn_args=[basin_scale, mode, raster_cube, row]))
+                                    func_args=[basin_scale, mode, raster_cube, row]))
 
     def gen_dataset_comparison_tasks(self, raster_cube, mode, row1, row2):
         basin_scale = raster_cube.name().split('_')[-1]
@@ -531,7 +532,7 @@ class DiurnalCycleAnalysis:
                                     f'{basin_scale}.mag.png')
 
         self.fig_task_ctrl.add(Task(plot_dataset_scatter, [], [phase_scatter_filename, mag_scatter_filename],
-                                    fn_args=[basin_scale, mode, row1, row2]))
+                                    func_args=[basin_scale, mode, row1, row2]))
 
 
 def run_analysis(scales, force):

@@ -6,7 +6,8 @@ import iris
 import numpy as np
 import pandas as pd
 
-from cosmic.task import TaskControl, Task
+from remake import Task, MultiProcTaskControl
+# from cosmic.task import TaskControl, Task
 from paths import PATHS
 
 
@@ -43,7 +44,7 @@ def gen_weights_basin_stats(inputs, outputs, resolutions, hb_names):
 
 
 def gen_task_ctrl():
-    task_ctrl = TaskControl()
+    task_ctrl = MultiProcTaskControl(2)
     basin_scales = 'sliding'
 
     if basin_scales == 'small_medium_large':
@@ -58,7 +59,7 @@ def gen_task_ctrl():
     task_ctrl.add(Task(gen_vector_basin_stats,
                        inputs,
                        [PATHS['figsdir'] / 'basin_stats' / 'basin_vector_stats.csv'],
-                       fn_args=(hb_names,),
+                       func_args=(hb_names,),
                        ))
 
     resolutions = ['N1280', 'N512', 'N216', 'N96']
@@ -69,7 +70,7 @@ def gen_task_ctrl():
     task_ctrl.add(Task(gen_weights_basin_stats,
                        inputs,
                        [PATHS['figsdir'] / 'basin_stats' / 'basin_weights_stats.csv'],
-                       fn_args=(resolutions, hb_names),
+                       func_args=(resolutions, hb_names),
                        ))
 
     return task_ctrl

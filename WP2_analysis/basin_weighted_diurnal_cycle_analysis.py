@@ -13,8 +13,9 @@ import numpy as np
 import pandas as pd
 
 from basmati.hydrosheds import load_hydrobasins_geodataframe
+from remake import Task, MultiProcTaskControl
 from cosmic.util import load_cmap_data, vrmse, circular_rmse, rmse
-from cosmic.task import TaskControl, Task
+# from cosmic.task import TaskControl, Task
 from cosmic.fourier_series import FourierSeries
 
 from weights_vs_hydrobasins import FILENAMES as HADGEM_FILENAMES, gen_weights_cube
@@ -353,12 +354,12 @@ def plot_cmorph_vs_all_datasets(inputs, outputs):
 
 
 def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
-    task_ctrl = TaskControl()
+    task_ctrl = MultiProcTaskControl(4)
 
     for basin_scales in ['small_medium_large', 'sliding']:
         hb_raster_cubes_fn = f'data/basin_diurnal_cycle_analysis/hb_N1280_raster_{basin_scales}.nc'
         task_ctrl.add(Task(gen_hydrobasins_raster_cubes, [], [hb_raster_cubes_fn],
-                           fn_args=[SLIDING_SCALES if basin_scales == 'sliding' else SCALES]))
+                           func_args=[SLIDING_SCALES if basin_scales == 'sliding' else SCALES]))
 
         if basin_scales == 'small_medium_large':
             hb_names = HB_NAMES
@@ -368,7 +369,7 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
             task_ctrl.add(Task(gen_hydrobasins_files,
                                [],
                                [f'data/basin_weighted_diurnal_cycle/hb_{hb_name}.shp'],
-                               fn_args=[hb_name]
+                               func_args=[hb_name]
                                ))
 
         # N.B. Need to do this once for one dataset at each resolution.
@@ -400,7 +401,7 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
             task_ctrl.add(Task(native_weighted_basin_analysis,
                                {'diurnal_cycle': dataset_dc_path, 'weights': weights_filename},
                                [weighted_phase_mag_filename],
-                               fn_args=[cube_name]))
+                               func_args=[cube_name]))
 
             # Disabled comparison between this and basin_diurnal_cycle_analysis.
             if include_basin_dc_analysis_comparison:
@@ -415,14 +416,14 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
                                    {'weighted': weighted_phase_mag_filename, 'raster': raster_filename},
                                    [PATHS['figsdir'] / 'basin_weighted_diurnal_cycle' / 'weighted_raster_comparison' /
                                     mode / f'{dataset}.{hb_name}.{mode}.area_weighted.phase_mag.png'],
-                                   fn_args=[dataset, hb_name, mode]))
+                                   func_args=[dataset, hb_name, mode]))
 
             task_ctrl.add(Task(plot_phase_mag,
                                {'weighted': weighted_phase_mag_filename, 'raster_cubes': hb_raster_cubes_fn},
                                [PATHS['figsdir'] / 'basin_weighted_diurnal_cycle' / 'map' /
                                 mode / f'map_{dataset}.{hb_name}.{mode}.area_weighted.{v}.png'
                                 for v in ['phase', 'alpha_phase', 'mag']],
-                               fn_args=[dataset, hb_name, mode]))
+                               func_args=[dataset, hb_name, mode]))
 
         for area_weighted in [True, False]:
             weighted = 'area_weighted' if area_weighted else 'not_area_weighted'
@@ -437,7 +438,7 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
             task_ctrl.add(Task(gen_rmses,
                                inputs=gen_rmses_inputs,
                                outputs=[vrmse_data_filename],
-                               fn_kwargs={'area_weighted': area_weighted, 'hb_names': hb_names}
+                               func_kwargs={'area_weighted': area_weighted, 'hb_names': hb_names}
                                ))
             task_ctrl.add(Task(plot_cmorph_vs_all_datasets,
                                [vrmse_data_filename],
@@ -450,7 +451,7 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
 
 
 if __name__ == '__main__':
-    task_ctrl = gen_task_ctrl(True)
+    task_ctrl = gen_task_ctrl(False)
     task_ctrl.finalize()
     if len(sys.argv) == 2 and sys.argv[1] == 'run':
         task_ctrl.run()
