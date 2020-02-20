@@ -43,7 +43,9 @@ def gen_weights_cube(inputs, outputs):
     hb = gpd.read_file(str(inputs[hb_name]))
     weights_cube = util.build_weights_cube_from_cube(cube, hb, f'weights_{hb_name}')
     # Cubes are very sparse. You can get a 800x improvement in file size using zlib!
-    iris.save(weights_cube, str(outputs[0]), zlib=True)
+    # iris.save(weights_cube, str(outputs[0]), zlib=True)
+    # BUT I think it takes a lot longer to read them. Leave uncompressed.
+    iris.save(weights_cube, str(outputs[0]))
 
 
 def plot_weights_cube(inputs, outputs):
