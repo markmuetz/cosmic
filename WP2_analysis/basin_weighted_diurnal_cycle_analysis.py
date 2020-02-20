@@ -13,7 +13,8 @@ import numpy as np
 import pandas as pd
 
 from basmati.hydrosheds import load_hydrobasins_geodataframe
-from remake import Task, MultiProcTaskControl
+from remake import Task, MultiProcTaskControl, TaskControl
+from remake.task_control import display_task_status
 from cosmic.util import load_cmap_data, vrmse, circular_rmse, rmse
 # from cosmic.task import TaskControl, Task
 from cosmic.fourier_series import FourierSeries
@@ -100,7 +101,7 @@ def native_weighted_basin_analysis(inputs, outputs, cube_name):
         for t_index in range(diurnal_cycle_cube.shape[0]):
             # Only do average over basin area. This is consistent with basin_diurnal_cycle_analysis.
             weighted_mean_dc = ((area_weight[basin_domain] * basin_weight[basin_domain] *
-                                 diurnal_cycle_cube.data[t_index][basin_domain]).sum() /
+                                 diurnal_cycle_cube[t_index][basin_domain].data).sum() /
                                 (area_weight[basin_domain] * basin_weight[basin_domain]).sum())
             dc_basin.append(weighted_mean_dc)
         dc_basin = np.array(dc_basin)
@@ -147,6 +148,7 @@ def compare_weighted_raster(inputs, outputs, dataset, hb_name, mode):
 
 
 def plot_phase_mag(inputs, outputs, dataset, hb_name, mode):
+
     weighted_basin_phase_mag_filename = inputs['weighted']
     df_phase_mag = pd.read_hdf(weighted_basin_phase_mag_filename)
 
@@ -354,10 +356,11 @@ def plot_cmorph_vs_all_datasets(inputs, outputs):
 
 
 def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
-    task_ctrl = MultiProcTaskControl(4)
+    task_ctrl = MultiProcTaskControl(True, nproc=4)
+    # task_ctrl = TaskControl(True)
 
     for basin_scales in ['small_medium_large', 'sliding']:
-        hb_raster_cubes_fn = f'data/basin_diurnal_cycle_analysis/hb_N1280_raster_{basin_scales}.nc'
+        hb_raster_cubes_fn = f'data/basin_weighted_diurnal_cycle/hb_N1280_raster_{basin_scales}.nc'
         task_ctrl.add(Task(gen_hydrobasins_raster_cubes, [], [hb_raster_cubes_fn],
                            func_args=[SLIDING_SCALES if basin_scales == 'sliding' else SCALES]))
 
@@ -368,7 +371,7 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
         for hb_name in hb_names:
             task_ctrl.add(Task(gen_hydrobasins_files,
                                [],
-                               [f'data/basin_weighted_diurnal_cycle/hb_{hb_name}.shp'],
+                               [f'data/basin_weighted_diurnal_cycle/{hb_name}/hb_{hb_name}.shp'],
                                func_args=[hb_name]
                                ))
 
@@ -379,13 +382,13 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
                 dataset_cube_path = PATHS['datadir'] / 'u-ak543/ap9.pp/precip_200601/ak543a.p9200601.asia_precip.nc'
             elif dataset[:7] == 'HadGEM3':
                 dataset_cube_path = HADGEM_FILENAMES[dataset]
-            input_filenames = {dataset: dataset_cube_path, hb_name: f'data/basin_weighted_diurnal_cycle/hb_{hb_name}.shp'}
+            input_filenames = {dataset: dataset_cube_path, hb_name: f'data/basin_weighted_diurnal_cycle/{hb_name}/hb_{hb_name}.shp'}
 
             resolution = DATASET_RESOLUTION[dataset]
-            weights_filename = f'data/basin_weighted_diurnal_cycle/weights_{resolution}_{hb_name}.nc'
+            weights_filename = f'data/basin_weighted_diurnal_cycle/{hb_name}/weights_{resolution}_{hb_name}.nc'
             task_ctrl.add(Task(gen_weights_cube, input_filenames, [weights_filename]))
 
-        weighted_phase_mag_tpl = 'data/basin_weighted_diurnal_cycle/{dataset}.{hb_name}.{mode}.area_weighted.phase_mag.hdf'
+        weighted_phase_mag_tpl = 'data/basin_weighted_diurnal_cycle/{hb_name}/{dataset}.{hb_name}.{mode}.area_weighted.phase_mag.hdf'
 
         for dataset, hb_name, mode in itertools.product(DATASETS, hb_names, PRECIP_MODES):
             fmt_kwargs = {'dataset': dataset, 'hb_name': hb_name, 'mode': mode}
@@ -395,7 +398,7 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
                 cube_name = f'{mode}_of_precip_jja'
             dataset_dc_path = get_dataset_diurnal_cycle_path(dataset)
             resolution = DATASET_RESOLUTION[dataset]
-            weights_filename = f'data/basin_weighted_diurnal_cycle/weights_{resolution}_{hb_name}.nc'
+            weights_filename = f'data/basin_weighted_diurnal_cycle/{hb_name}/weights_{resolution}_{hb_name}.nc'
 
             weighted_phase_mag_filename = weighted_phase_mag_tpl.format(**fmt_kwargs)
             task_ctrl.add(Task(native_weighted_basin_analysis,
