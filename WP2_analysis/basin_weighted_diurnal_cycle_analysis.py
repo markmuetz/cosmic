@@ -2,6 +2,7 @@ import os
 import sys
 import itertools
 import pickle
+from timeit import default_timer as timer
 
 import iris
 # noinspection PyUnresolvedReferences
@@ -72,6 +73,7 @@ def gen_hydrobasins_files(inputs, outputs, hb_name):
 
 
 def native_weighted_basin_analysis(inputs, outputs, cube_name):
+    chunk_size = 10
     use_low_mem = False
     cubes_filename = inputs['diurnal_cycle']
     weights_filename = inputs['weights']
@@ -88,9 +90,20 @@ def native_weighted_basin_analysis(inputs, outputs, cube_name):
 
     step_length = 24 / diurnal_cycle_cube.shape[0]
 
+    # last_time = None
     dc_phase_LST = []
     dc_peak = []
     for i in range(weights.shape[0]):
+        # I think this line stops the code from working well with multithreading.
+        # It will cause a file read each time. If there are multiple procs they will contend for access
+        # to the FS. Unfortunately there is no way round this as weights is in general too large to fit in mem.
+        # You might be able to get a speedup by loading chunks of data?
+        if i % chunk_size == 0:
+            basin_weight = weights[i:i + chunk_size].data
+            # now = timer()
+            # if last_time:
+            #     print(f'{i}/{weights.shape[0]} in {now - last_time:0.2f}s')
+            # last_time = now
         basin_weight = weights[i].data
         basin_domain = basin_weight != 0
         if basin_domain.sum() == 0:
