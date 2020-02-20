@@ -68,7 +68,7 @@ def gen_hydrobasins_files(inputs, outputs, hb_name):
         hb_size = hb.area_select(*SLIDING_SCALES[hb_name])
     else:
         hb_size = hb.area_select(*SCALES[hb_name])
-    hb_size.to_file(outputs[0])
+    hb_size.to_file(outputs['shp'])
 
 
 def native_weighted_basin_analysis(inputs, outputs, cube_name):
@@ -101,7 +101,7 @@ def native_weighted_basin_analysis(inputs, outputs, cube_name):
         for t_index in range(diurnal_cycle_cube.shape[0]):
             # Only do average over basin area. This is consistent with basin_diurnal_cycle_analysis.
             weighted_mean_dc = ((area_weight[basin_domain] * basin_weight[basin_domain] *
-                                 diurnal_cycle_cube[t_index][basin_domain].data).sum() /
+                                 diurnal_cycle_cube[t_index].data[basin_domain]).sum() /
                                 (area_weight[basin_domain] * basin_weight[basin_domain]).sum())
             dc_basin.append(weighted_mean_dc)
         dc_basin = np.array(dc_basin)
@@ -368,11 +368,15 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
             hb_names = HB_NAMES
         else:
             hb_names = [f'S{i}' for i in range(11)]
+        shp_path_tpl = 'data/basin_weighted_diurnal_cycle/{hb_name}/hb_{hb_name}.{ext}'
         for hb_name in hb_names:
+            # Creates a few different files with different extensions - need to have them all in outputs
+            # so that they are moved to the right place after run by Task.atomic_write.
             task_ctrl.add(Task(gen_hydrobasins_files,
                                [],
-                               [f'data/basin_weighted_diurnal_cycle/{hb_name}/hb_{hb_name}.shp'],
-                               func_args=[hb_name]
+                               {ext: shp_path_tpl.format(hb_name=hb_name, ext=ext)
+                                for ext in ['shp', 'dbf', 'prj', 'cpg', 'shx']},
+                               func_args=[hb_name],
                                ))
 
         # N.B. Need to do this once for one dataset at each resolution.
@@ -382,7 +386,7 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
                 dataset_cube_path = PATHS['datadir'] / 'u-ak543/ap9.pp/precip_200601/ak543a.p9200601.asia_precip.nc'
             elif dataset[:7] == 'HadGEM3':
                 dataset_cube_path = HADGEM_FILENAMES[dataset]
-            input_filenames = {dataset: dataset_cube_path, hb_name: f'data/basin_weighted_diurnal_cycle/{hb_name}/hb_{hb_name}.shp'}
+            input_filenames = {dataset: dataset_cube_path, hb_name: shp_path_tpl.format(hb_name=hb_name, ext='shp')}
 
             resolution = DATASET_RESOLUTION[dataset]
             weights_filename = f'data/basin_weighted_diurnal_cycle/{hb_name}/weights_{resolution}_{hb_name}.nc'
