@@ -72,6 +72,7 @@ def gen_hydrobasins_files(inputs, outputs, hb_name):
 
 
 def native_weighted_basin_analysis(inputs, outputs, cube_name):
+    use_low_mem = False
     cubes_filename = inputs['diurnal_cycle']
     weights_filename = inputs['weights']
 
@@ -100,9 +101,15 @@ def native_weighted_basin_analysis(inputs, outputs, cube_name):
         dc_basin = []
         for t_index in range(diurnal_cycle_cube.shape[0]):
             # Only do average over basin area. This is consistent with basin_diurnal_cycle_analysis.
-            weighted_mean_dc = ((area_weight[basin_domain] * basin_weight[basin_domain] *
-                                 diurnal_cycle_cube[t_index].data[basin_domain]).sum() /
-                                (area_weight[basin_domain] * basin_weight[basin_domain]).sum())
+            if use_low_mem:
+                # Low mem but slower? YES: much slower.
+                weighted_mean_dc = ((area_weight[basin_domain] * basin_weight[basin_domain] *
+                                     diurnal_cycle_cube[t_index].data[basin_domain]).sum() /
+                                    (area_weight[basin_domain] * basin_weight[basin_domain]).sum())
+            else:
+                weighted_mean_dc = ((area_weight[basin_domain] * basin_weight[basin_domain] *
+                                     diurnal_cycle_cube.data[t_index][basin_domain]).sum() /
+                                    (area_weight[basin_domain] * basin_weight[basin_domain]).sum())
             dc_basin.append(weighted_mean_dc)
         dc_basin = np.array(dc_basin)
         basin_lon = lons[basin_domain].mean()
@@ -356,8 +363,8 @@ def plot_cmorph_vs_all_datasets(inputs, outputs):
 
 
 def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
-    task_ctrl = MultiProcTaskControl(True, nproc=4)
-    # task_ctrl = TaskControl(True)
+    # task_ctrl = MultiProcTaskControl(True, nproc=4)
+    task_ctrl = TaskControl(True)
 
     for basin_scales in ['small_medium_large', 'sliding']:
         hb_raster_cubes_fn = f'data/basin_weighted_diurnal_cycle/hb_N1280_raster_{basin_scales}.nc'
