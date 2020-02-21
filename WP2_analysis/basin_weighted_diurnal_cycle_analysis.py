@@ -295,8 +295,6 @@ def gen_rmses(inputs, outputs, area_weighted, hb_names):
                                         dataset_phase_mag[['x1', 'x2']].values))
                 else:
                     raster_hb_name = hb_name
-                    if hb_name == 'med':
-                        raster_hb_name = 'medium'
                     # raster_cube = iris.load_cube(str(inputs['raster_cubes']), f'hydrobasins_raster_{raster_hb_name}')
                     raster_cube = raster_cubes.extract_strict(f'hydrobasins_raster_{raster_hb_name}')
                     raster = raster_cube.data
