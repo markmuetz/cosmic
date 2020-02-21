@@ -64,14 +64,14 @@ class TaskSubmitter:
         if 'mem' not in self.bsub_kwargs:
             self.bsub_kwargs['mem'] = 16000
 
-        dep_jobids = []
-        dep_tasks = self.task_ctrl.get_deps(task)[1]
-        for dep_task in dep_tasks:
+        prev_jobids = []
+        prev_tasks = self.task_ctrl.prev_tasks(task)
+        for prev_task in prev_tasks:
             # N.B. not all dependencies have to have been run; they could not require rerunning.
-            if dep_task in self.task_jobid_map:
-                dep_jobids.append(self.task_jobid_map[dep_task])
-        if dep_jobids:
-            dependencies = '#BSUB -w "' + ' && '.join([f'done({jobid})' for jobid in dep_jobids]) + '"'
+            if prev_task in self.task_jobid_map:
+                prev_jobids.append(self.task_jobid_map[prev_task])
+        if prev_jobids:
+            dependencies = '#BSUB -w "' + ' && '.join([f'done({jobid})' for jobid in prev_jobids]) + '"'
         else:
             dependencies = ''
 
