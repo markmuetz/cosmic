@@ -107,7 +107,7 @@ def main(config_filename):
     config_path = Path(config_filename).absolute()
     logger.debug(config_path)
 
-    task_ctrl = config.get_task_ctrl()
+    task_ctrl = config.gen_task_ctrl()
 
     if not task_ctrl.finalized:
         task_ctrl.finalize()
