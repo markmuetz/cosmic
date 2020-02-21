@@ -121,7 +121,11 @@ def main():
     submitter = TaskSubmitter(bsub_dir, config_path, task_ctrl, config.BSUB_KWARGS)
 
     task_count = 0
-    for task in task_ctrl.pending_tasks + list(task_ctrl.remaining_tasks):
+    for start_index, task in enumerate(task_ctrl.sorted_tasks):
+        if task in task_ctrl.pending_tasks:
+            break
+
+    for task in task_ctrl.sorted_tasks[start_index:]:
         # You can't in general check this on submit - has to be checked when task is run.
         # Only way to handle case when one file (dependency for other tasks) is delete.
         # As soon as you have found one task that requires rerun, assume all subsequent tasks will too.
