@@ -21,4 +21,4 @@ def main(config_filename, task_path_hash_key, config_path_hash):
 
 if __name__ == '__main__':
     print(sys.argv)
-    main(sys.argv[1], int(sys.argv[2]), sys.argv[3])
+    main(sys.argv[1], sys.argv[2], sys.argv[3])
