@@ -65,7 +65,7 @@ class TaskSubmitter:
             self.bsub_kwargs['mem'] = 16000
 
         prev_jobids = []
-        prev_tasks = self.task_ctrl.prev_tasks(task)
+        prev_tasks = self.task_ctrl.prev_tasks[task]
         for prev_task in prev_tasks:
             # N.B. not all dependencies have to have been run; they could not require rerunning.
             if prev_task in self.task_jobid_map:
