@@ -129,6 +129,8 @@ def main():
         # You can't in general check this on submit - has to be checked when task is run.
         # Only way to handle case when one file (dependency for other tasks) is delete.
         # As soon as you have found one task that requires rerun, assume all subsequent tasks will too.
+        if task not in task_ctrl.pending_tasks or task not in task_ctrl.remaining_tasks:
+            continue
         logger.info(f'task: {task}')
         submitter.submit_task(task)
         task_count += 1
