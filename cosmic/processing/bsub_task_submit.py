@@ -107,13 +107,14 @@ def main(config_filename):
     config_path = Path(config_filename).absolute()
     logger.debug(config_path)
 
-    if not config.task_ctrl.finalized:
-        config.task_ctrl.finalize()
+    task_ctrl = config.get_task_ctrl()
 
-    submitter = TaskSubmitter(bsub_dir, config_path, config.task_ctrl, config.BSUB_KWARGS)
-    any_tasks_require_rerun = False
+    if not task_ctrl.finalized:
+        task_ctrl.finalize()
 
-    for task in config.task_ctrl.pending_tasks + config.task_ctrl.remaining_tasks:
+    submitter = TaskSubmitter(bsub_dir, config_path, task_ctrl, config.BSUB_KWARGS)
+
+    for task in task_ctrl.pending_tasks + task_ctrl.remaining_tasks:
         # You can't in general check this on submit - has to be checked when task is run.
         # Only way to handle case when one file (dependency for other tasks) is delete.
         # As soon as you have found one task that requires rerun, assume all subsequent tasks will too.
