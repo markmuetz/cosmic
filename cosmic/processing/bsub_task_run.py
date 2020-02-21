@@ -12,7 +12,7 @@ def main(config_filename, task_path_hash_key, config_path_hash):
         raise Exception(f'config file {config_path} has changed -- cannot run task.')
 
     config = load_config(config_filename)
-    task_ctrl = config.task_ctrl
+    task_ctrl = config.gen_task_ctrl()
     if not task_ctrl.finalized:
         task_ctrl.finalize()
     task = task_ctrl.task_from_path_hash_key[task_path_hash_key]

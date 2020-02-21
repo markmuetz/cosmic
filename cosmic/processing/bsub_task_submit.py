@@ -1,5 +1,6 @@
 import os
 import sys
+from argparse import ArgumentParser
 from hashlib import sha1
 import logging
 import subprocess as sp
@@ -95,8 +96,13 @@ class TaskSubmitter:
         self.task_jobid_map[task] = jobid
 
 
-def main(config_filename):
-    config = load_config(config_filename)
+def main():
+    parser = ArgumentParser()
+    parser.add_argument('--config-filename', '-C')
+    parser.add_argument('--ntasks', '-N', type=int, default=int(1e9))
+    args = parser.parse_args()
+
+    config = load_config(args.config_filename)
     logger.debug(config)
 
     bsub_dir = Path('bsub_scripts')
@@ -104,7 +110,7 @@ def main(config_filename):
     output_dir = Path('processing_output')
     output_dir.mkdir(exist_ok=True)
 
-    config_path = Path(config_filename).absolute()
+    config_path = Path(args.config_filename).absolute()
     logger.debug(config_path)
 
     task_ctrl = config.gen_task_ctrl()
@@ -114,9 +120,13 @@ def main(config_filename):
 
     submitter = TaskSubmitter(bsub_dir, config_path, task_ctrl, config.BSUB_KWARGS)
 
+    task_count = 0
     for task in task_ctrl.pending_tasks + list(task_ctrl.remaining_tasks):
         # You can't in general check this on submit - has to be checked when task is run.
         # Only way to handle case when one file (dependency for other tasks) is delete.
         # As soon as you have found one task that requires rerun, assume all subsequent tasks will too.
         logger.info(f'task: {task}')
         submitter.submit_task(task)
+        task_count += 1
+        if task_count >= args.ntasks:
+            break
