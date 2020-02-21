@@ -23,7 +23,7 @@ python {script_path} {config_path} {task_path_hash_key} {config_path_hash}
 """
 
 
-logging.basicConfig(stream=sys.stdout, level=os.getenv('COSMIC_LOGLEVEL', 'INFO'), 
+logging.basicConfig(stream=sys.stdout, level=os.getenv('COSMIC_LOGLEVEL', 'INFO'),
                     format='%(asctime)s %(levelname)8s: %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -114,6 +114,7 @@ def main():
     logger.debug(config_path)
 
     task_ctrl = config.gen_task_ctrl()
+    task_ctrl.enable_file_task_content_checks = False
 
     if not task_ctrl.finalized:
         task_ctrl.finalize()
@@ -121,15 +122,11 @@ def main():
     submitter = TaskSubmitter(bsub_dir, config_path, task_ctrl, config.BSUB_KWARGS)
 
     task_count = 0
-    for start_index, task in enumerate(task_ctrl.sorted_tasks):
-        if task in task_ctrl.pending_tasks:
-            break
-
-    for task in task_ctrl.sorted_tasks[start_index:]:
+    for task in task_ctrl.sorted_tasks:
         # You can't in general check this on submit - has to be checked when task is run.
         # Only way to handle case when one file (dependency for other tasks) is delete.
         # As soon as you have found one task that requires rerun, assume all subsequent tasks will too.
-        if task not in task_ctrl.pending_tasks or task not in task_ctrl.remaining_tasks:
+        if task not in task_ctrl.pending_tasks and task not in task_ctrl.remaining_tasks:
             continue
         logger.info(f'task: {task}')
         submitter.submit_task(task)
