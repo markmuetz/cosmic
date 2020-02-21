@@ -5,7 +5,7 @@ from pathlib import Path
 from cosmic.util import load_config
 
 
-def main(config_filename, task_index, config_path_hash):
+def main(config_filename, task_path_hash_key, config_path_hash):
     config_path = Path(config_filename).absolute()
     curr_config_path_hash = sha1(config_path.read_bytes()).hexdigest()
     if config_path_hash != curr_config_path_hash:
@@ -15,7 +15,7 @@ def main(config_filename, task_index, config_path_hash):
     task_ctrl = config.task_ctrl
     if not task_ctrl.finalized:
         task_ctrl.finalize()
-    task = task_ctrl.task_run_schedule[task_index]
+    task = task_ctrl.task_from_path_hash_key[task_path_hash_key]
     task.run()
 
 

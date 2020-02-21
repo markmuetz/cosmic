@@ -12,13 +12,13 @@ import cosmic.processing.bsub_task_run as bsub_task_run
 BSUB_SCRIPT_TPL = """#!/bin/bash
 #BSUB -J {job_name}
 #BSUB -q {queue}
-#BSUB -o processing_output/{script_name}_{config_name}_{task_index}_%J.out
-#BSUB -e processing_output/{script_name}_{config_name}_{task_index}_%J.err
+#BSUB -o processing_output/{script_name}_{config_name}_{task_path_hash_key}_%J.out
+#BSUB -e processing_output/{script_name}_{config_name}_{task_path_hash_key}_%J.err
 #BSUB -W {max_runtime}
 #BSUB -M {mem}
 {dependencies}
 
-python {script_path} {config_path} {task_index} {config_path_hash}
+python {script_path} {config_path} {task_path_hash_key} {config_path_hash}
 """
 
 
@@ -55,11 +55,11 @@ class TaskSubmitter:
         self.task_jobid_map = {}
         self.config_path_hash = sha1(config_path.read_bytes()).hexdigest()
 
-    def _write_submit_script(self, task, task_index):
+    def _write_submit_script(self, task):
         config_name = self.config_path.stem
         script_path = Path(bsub_task_run.__file__)
         script_name = script_path.stem
-        bsub_script_filepath = self.bsub_dir / f'{script_name}_{config_name}_{task_index}.bsub'
+        bsub_script_filepath = self.bsub_dir / f'{script_name}_{config_name}_{task.path_hash_key()}.bsub'
         logger.debug(f'  writing {bsub_script_filepath}')
         if 'mem' not in self.bsub_kwargs:
             self.bsub_kwargs['mem'] = 16000
@@ -79,7 +79,7 @@ class TaskSubmitter:
                                              script_path=script_path,
                                              config_name=config_name,
                                              config_path=self.config_path,
-                                             task_index=task_index,
+                                             task_path_hash_key=task.path_hash_key(),
                                              dependencies=dependencies,
                                              config_path_hash=self.config_path_hash,
                                              **self.bsub_kwargs)
@@ -88,8 +88,8 @@ class TaskSubmitter:
             fp.write(bsub_script)
         return bsub_script_filepath
 
-    def submit_task(self, task, task_index):
-        bsub_script_path = self._write_submit_script(task, task_index)
+    def submit_task(self, task):
+        bsub_script_path = self._write_submit_script(task)
         output = _submit_bsub_script(bsub_script_path)
         jobid = _parse_jobid(output)
         self.task_jobid_map[task] = jobid
@@ -113,15 +113,9 @@ def main(config_filename):
     submitter = TaskSubmitter(bsub_dir, config_path, config.task_ctrl, config.BSUB_KWARGS)
     any_tasks_require_rerun = False
 
-    for task_index, task in enumerate(config.task_ctrl.task_run_schedule):
+    for task in config.task_ctrl.pending_tasks + config.task_ctrl.remaining_tasks:
         # You can't in general check this on submit - has to be checked when task is run.
         # Only way to handle case when one file (dependency for other tasks) is delete.
         # As soon as you have found one task that requires rerun, assume all subsequent tasks will too.
-        if not any_tasks_require_rerun and not task.requires_rerun():
-            logger.info(f'task already run: {task}')
-            continue
-        else:
-            any_tasks_require_rerun = True
-
         logger.info(f'task: {task}')
-        submitter.submit_task(task, task_index)
+        submitter.submit_task(task)
