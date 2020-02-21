@@ -342,6 +342,7 @@ def gen_map_from_basin_values(cmorph_phase_mag, raster):
 
 
 def plot_cmorph_vs_all_datasets(inputs, outputs):
+
     with inputs[0].open('rb') as f:
         all_rmses = pickle.load(f)
 
