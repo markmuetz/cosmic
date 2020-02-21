@@ -16,7 +16,7 @@ def main(config_filename, task_path_hash_key, config_path_hash):
     if not task_ctrl.finalized:
         task_ctrl.finalize()
     task = task_ctrl.task_from_path_hash_key[task_path_hash_key]
-    task.run()
+    task_ctrl._run_task(task)
 
 
 if __name__ == '__main__':
