@@ -73,7 +73,6 @@ def gen_hydrobasins_files(inputs, outputs, hb_name):
 
 
 def native_weighted_basin_analysis(inputs, outputs, cube_name):
-    chunk_size = 10
     use_low_mem = False
     cubes_filename = inputs['diurnal_cycle']
     weights_filename = inputs['weights']
@@ -90,7 +89,6 @@ def native_weighted_basin_analysis(inputs, outputs, cube_name):
 
     step_length = 24 / diurnal_cycle_cube.shape[0]
 
-    # last_time = None
     dc_phase_LST = []
     dc_peak = []
     for i in range(weights.shape[0]):
@@ -98,12 +96,7 @@ def native_weighted_basin_analysis(inputs, outputs, cube_name):
         # It will cause a file read each time. If there are multiple procs they will contend for access
         # to the FS. Unfortunately there is no way round this as weights is in general too large to fit in mem.
         # You might be able to get a speedup by loading chunks of data?
-        if i % chunk_size == 0:
-            basin_weight = weights[i:i + chunk_size].data
-            # now = timer()
-            # if last_time:
-            #     print(f'{i}/{weights.shape[0]} in {now - last_time:0.2f}s')
-            # last_time = now
+        # Tried chunking the data using weights[i:i + chunk_size].data -- did not seem to speed things up.
         basin_weight = weights[i].data
         basin_domain = basin_weight != 0
         if basin_domain.sum() == 0:
@@ -380,7 +373,8 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
     # task_ctrl = MultiProcTaskControl(True, nproc=4)
     task_ctrl = TaskControl(True)
 
-    for basin_scales in ['small_medium_large', 'sliding']:
+    # for basin_scales in ['small_medium_large', 'sliding']:
+    for basin_scales in ['small_medium_large']:
         hb_raster_cubes_fn = f'data/basin_weighted_diurnal_cycle/hb_N1280_raster_{basin_scales}.nc'
         task_ctrl.add(Task(gen_hydrobasins_raster_cubes, [], [hb_raster_cubes_fn],
                            func_args=[SLIDING_SCALES if basin_scales == 'sliding' else SCALES]))
