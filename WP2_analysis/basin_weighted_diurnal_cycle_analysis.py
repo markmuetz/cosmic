@@ -373,8 +373,7 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
     # task_ctrl = MultiProcTaskControl(True, nproc=4)
     task_ctrl = TaskControl(True)
 
-    # for basin_scales in ['small_medium_large', 'sliding']:
-    for basin_scales in ['small_medium_large']:
+    for basin_scales in ['small_medium_large', 'sliding']:
         hb_raster_cubes_fn = f'data/basin_weighted_diurnal_cycle/hb_N1280_raster_{basin_scales}.nc'
         task_ctrl.add(Task(gen_hydrobasins_raster_cubes, [], [hb_raster_cubes_fn],
                            func_args=[SLIDING_SCALES if basin_scales == 'sliding' else SCALES]))
