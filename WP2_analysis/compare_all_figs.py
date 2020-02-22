@@ -2,6 +2,7 @@ import itertools
 from pathlib import Path
 
 import imageio
+import matplotlib.pyplot as plt
 import numpy as np
 
 def rmse(a1, a2):
@@ -16,9 +17,9 @@ if __name__ == '__main__':
         s1 = set(p.relative_to(comp_path1).as_posix() for p in comp_path1.glob('**/*.png'))
 
         if s0 - s1:
-            print(f'Only in {comp_path0}: {s0 - s1}')
+            print(f'Only in {comp_path0}: {len(s0 - s1)}')
         elif s1 - s0:
-            print(f'Only in {comp_path1}: {s1 - s0}')
+            print(f'Only in {comp_path1}: {len(s1 - s0)}')
         else:
             print(f'All images in both {comp_path0} and {comp_path1}')
 
@@ -35,8 +36,15 @@ if __name__ == '__main__':
                     print(f'{comp_path0.parts[-1]} vs {comp_path1.parts[-1]}: Identical: {rel_path}')
                 else:
                     print(f'{comp_path0.parts[-1]} vs {comp_path1.parts[-1]}: RMSE: {rmse(im0, im1)}: {rel_path}')
+                    plt.figure(str(comp_path0))
+                    plt.imshow(im0)
+                    plt.figure(str(comp_path1))
+                    plt.imshow(im0)
+                    plt.pause(0.1)
+                    input()
             except Exception as e:
                 print(f'ERROR COMPARING {full_path0} and {full_path1}')
                 print(e)
+                raise
 
 
