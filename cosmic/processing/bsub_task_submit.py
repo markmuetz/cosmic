@@ -2,6 +2,7 @@ import os
 import sys
 from argparse import ArgumentParser
 from hashlib import sha1
+import json
 import logging
 import subprocess as sp
 from pathlib import Path
@@ -121,15 +122,20 @@ def main():
 
     submitter = TaskSubmitter(bsub_dir, config_path, task_ctrl, config.BSUB_KWARGS)
 
+    tasks_to_submit = []
     task_count = 0
     for task in task_ctrl.sorted_tasks:
-        # You can't in general check this on submit - has to be checked when task is run.
-        # Only way to handle case when one file (dependency for other tasks) is delete.
-        # As soon as you have found one task that requires rerun, assume all subsequent tasks will too.
         if task not in task_ctrl.pending_tasks and task not in task_ctrl.remaining_tasks:
             continue
-        logger.info(f'task: {task}')
-        submitter.submit_task(task)
         task_count += 1
+        tasks_to_submit.append(task)
         if task_count >= args.ntasks:
             break
+
+    for i, task in enumerate(tasks_to_submit):
+        logger.info(f'task {i + 1}/{len(tasks_to_submit)}: {task}')
+        submitter.submit_task(task)
+
+    Path('processing_output/submitted_tasks.json').write_text(json.dumps([(t.hexdigest(), repr(t))
+                                                                         for t in tasks_to_submit]))
+
