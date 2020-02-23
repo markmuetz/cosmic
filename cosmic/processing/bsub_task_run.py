@@ -13,10 +13,6 @@ def main(config_filename, task_path_hash_key, config_path_hash):
 
     config = load_config(config_filename)
     task_ctrl = config.gen_task_ctrl()
-    # You cannot have multiple procs reading/writing the same files at the same time: it will cause IOErrors or
-    # JSONDecoderErrors.
-    # MUST happen before finalize
-    task_ctrl.enable_file_task_content_checks = False
     assert not task_ctrl.finalized, f'task control {task_ctrl} already finalized'
     task_ctrl.finalize()
     task = task_ctrl.task_from_path_hash_key[task_path_hash_key]
