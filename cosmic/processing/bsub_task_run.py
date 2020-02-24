@@ -21,9 +21,7 @@ def main(config_filename, task_path_hash_key, config_path_hash):
     assert not task_ctrl.finalized, f'task control {task_ctrl} already finalized'
     task_ctrl.finalize()
     task = task_ctrl.task_from_path_hash_key[task_path_hash_key]
-    # Keep _run_task, which calls task_compelete, happy.
-    task_ctrl.running_tasks.append(task)
-    task_ctrl._run_task(task)
+    task_ctrl.run_task(task)
 
 
 if __name__ == '__main__':
