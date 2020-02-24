@@ -4,12 +4,12 @@ from pathlib import Path
 
 from cosmic.util import load_config
 
-from remake.setup_logging import setup_stream_logging
+from remake.setup_logging import setup_stdout_logging
 
 
 def main(config_filename, task_path_hash_key, config_path_hash):
     # Logging to stdout is fine -- it will end up in the output captured by bsub.
-    setup_stream_logging('DEBUG')
+    setup_stdout_logging('DEBUG')
 
     config_path = Path(config_filename).absolute()
     curr_config_path_hash = sha1(config_path.read_bytes()).hexdigest()

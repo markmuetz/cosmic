@@ -10,6 +10,8 @@ from pathlib import Path
 from cosmic.util import load_config, sysrun
 import cosmic.processing.bsub_task_run as bsub_task_run
 
+from remake.setup_logging import add_file_logging
+
 
 BSUB_SCRIPT_TPL = """#!/bin/bash
 #BSUB -J {job_name}
@@ -98,6 +100,8 @@ class TaskSubmitter:
 
 
 def main():
+    add_file_logging(Path('processing_output/bsub_task_submit.log'))
+
     parser = ArgumentParser()
     parser.add_argument('--config-filename', '-C')
     parser.add_argument('--ntasks', '-N', type=int, default=int(1e9))
