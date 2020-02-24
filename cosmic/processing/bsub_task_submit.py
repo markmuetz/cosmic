@@ -100,20 +100,20 @@ class TaskSubmitter:
 
 
 def main():
-    add_file_logging(Path('processing_output/bsub_task_submit.log'))
-
     parser = ArgumentParser()
     parser.add_argument('--config-filename', '-C')
     parser.add_argument('--ntasks', '-N', type=int, default=int(1e9))
     args = parser.parse_args()
+
+    output_dir = Path('processing_output')
+    output_dir.mkdir(exist_ok=True)
+    add_file_logging(output_dir / 'bsub_task_submit.log')
 
     config = load_config(args.config_filename)
     logger.debug(config)
 
     bsub_dir = Path('bsub_scripts')
     bsub_dir.mkdir(exist_ok=True)
-    output_dir = Path('processing_output')
-    output_dir.mkdir(exist_ok=True)
 
     config_path = Path(args.config_filename).absolute()
     logger.debug(config_path)
