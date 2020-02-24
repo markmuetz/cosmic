@@ -469,7 +469,7 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
 
 
 if __name__ == '__main__':
-    task_ctrl = gen_task_ctrl(False)
+    task_ctrl = gen_task_ctrl(True)
     task_ctrl.finalize()
     if len(sys.argv) == 2 and sys.argv[1] == 'run':
         task_ctrl.run()
