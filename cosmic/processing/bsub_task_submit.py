@@ -86,7 +86,7 @@ class TaskSubmitter:
                                              task_path_hash_key=task.path_hash_key(),
                                              dependencies=dependencies,
                                              config_path_hash=self.config_path_hash,
-                                             job_name=task.path_hash_key(),
+                                             job_name=task.path_hash_key()[:10],  # Any longer and a leading * is added.
                                              **self.bsub_kwargs)
 
         with open(bsub_script_filepath, 'w') as fp:
