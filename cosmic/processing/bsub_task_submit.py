@@ -140,6 +140,6 @@ def main():
         logger.info(f'task {i + 1}/{len(tasks_to_submit)}: {task}')
         submitter.submit_task(task)
 
-    Path('processing_output/submitted_tasks.json').write_text(json.dumps([(t.hexdigest(), repr(t))
+    Path('processing_output/submitted_tasks.json').write_text(json.dumps([(t.path_hash_key(), repr(t))
                                                                          for t in tasks_to_submit]))
 
