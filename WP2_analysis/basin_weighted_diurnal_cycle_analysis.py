@@ -26,7 +26,6 @@ from paths import PATHS
 
 
 BSUB_KWARGS = {
-    'job_name': 'bwdca',
     'queue': 'short-serial',
     'max_runtime': '04:00',
     # 'mem': '64000',
