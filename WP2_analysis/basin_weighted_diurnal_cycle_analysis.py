@@ -2,11 +2,10 @@ import os
 import sys
 import itertools
 import pickle
-from timeit import default_timer as timer
 
 import iris
 # noinspection PyUnresolvedReferences
-import headless_matplotlib
+import headless_matplotlib  # uses 'agg' backend if HEADLESS env var set.
 import matplotlib.pyplot as plt
 import matplotlib.colorbar as cbar
 from matplotlib.colors import LogNorm
@@ -15,9 +14,7 @@ import pandas as pd
 
 from basmati.hydrosheds import load_hydrobasins_geodataframe
 from remake import Task, MultiProcTaskControl, TaskControl
-from remake.task_control import display_task_status
 from cosmic.util import load_cmap_data, vrmse, circular_rmse, rmse
-# from cosmic.task import TaskControl, Task
 from cosmic.fourier_series import FourierSeries
 
 from weights_vs_hydrobasins import FILENAMES as HADGEM_FILENAMES, gen_weights_cube
@@ -28,7 +25,6 @@ from paths import PATHS
 BSUB_KWARGS = {
     'queue': 'short-serial',
     'max_runtime': '04:00',
-    # 'mem': '64000',
 }
 
 DATASETS = [
@@ -63,7 +59,8 @@ SLIDING_SCALES = dict([(f'S{i}', (SLIDING_LOWER[i], SLIDING_UPPER[i])) for i in 
 
 
 def gen_hydrobasins_files(inputs, outputs, hb_name):
-    hb = load_hydrobasins_geodataframe(os.getenv('HYDROSHEDS_DIR'), 'as', range(1, 9))
+    hydrosheds_dir = PATHS['hydrosheds_dir']
+    hb = load_hydrobasins_geodataframe(hydrosheds_dir, 'as', range(1, 9))
     if hb_name[0] == 'S':
         hb_size = hb.area_select(*SLIDING_SCALES[hb_name])
     else:
@@ -470,6 +467,8 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
 
 if __name__ == '__main__':
     task_ctrl = gen_task_ctrl(True)
-    task_ctrl.finalize()
     if len(sys.argv) == 2 and sys.argv[1] == 'run':
+        task_ctrl.finalize()
         task_ctrl.run()
+    else:
+        task_ctrl.build_task_DAG()
