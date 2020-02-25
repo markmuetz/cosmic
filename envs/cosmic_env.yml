@@ -8,6 +8,7 @@ dependencies:
   - affine=2.3.0=py_0
   - antlr-python-runtime=4.7.2=py38_1001
   - appdirs=1.4.3=py_1
+  - argh=0.26.2=py38_1001
   - attrs=19.3.0=py_0
   - backcall=0.1.0=py_0
   - blosc=1.17.0=he1b5a44_1
@@ -128,6 +129,7 @@ dependencies:
   - pango=1.40.14=he7ab937_1005
   - parso=0.5.2=py_0
   - partd=1.1.0=py_0
+  - pathtools=0.1.2=py_1
   - pcre=8.43=he1b5a44_0
   - pexpect=4.7.0=py38_0
   - pickleshare=0.7.5=py38_1000
@@ -183,6 +185,7 @@ dependencies:
   - tzcode=2019a=h516909a_1002
   - udunits2=2.2.27.6=h4e0c4b3_1001
   - urllib3=1.25.7=py38_0
+  - watchdog=0.10.2=py38_0
   - wcwidth=0.1.8=py_0
   - wheel=0.33.6=py38_0
   - xarray=0.14.1=py_1
