@@ -1,7 +1,7 @@
 import itertools
 from pathlib import Path
 
-from cosmic.task import Task
+from remake.task import Task
 
 import iris
 from iris.experimental.equalise_cubes import equalise_attributes
