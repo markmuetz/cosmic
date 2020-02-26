@@ -120,7 +120,6 @@ def main():
     logger.debug(config_path)
 
     task_ctrl = config.gen_task_ctrl()
-    task_ctrl.enable_file_task_content_checks = False
 
     if not task_ctrl.finalized:
         task_ctrl.finalize()
@@ -128,14 +127,11 @@ def main():
     submitter = TaskSubmitter(bsub_dir, config_path, task_ctrl, config.BSUB_KWARGS)
 
     tasks_to_submit = []
-    task_count = 0
     for task in task_ctrl.sorted_tasks:
-        if task not in task_ctrl.pending_tasks and task not in task_ctrl.remaining_tasks:
-            continue
-        task_count += 1
-        tasks_to_submit.append(task)
-        if task_count >= args.ntasks:
-            break
+        if task in task_ctrl.pending_tasks or task in task_ctrl.remaining_tasks:
+            tasks_to_submit.append(task)
+            if len(tasks_to_submit) >= args.ntasks:
+                break
 
     for i, task in enumerate(tasks_to_submit):
         logger.info(f'task {i + 1}/{len(tasks_to_submit)}: {task}')
