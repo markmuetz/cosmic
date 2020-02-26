@@ -1,9 +1,9 @@
-import os
 import sys
 import itertools
 import pickle
 
 import iris
+import geopandas as gpd
 # noinspection PyUnresolvedReferences
 import headless_matplotlib  # uses 'agg' backend if HEADLESS env var set.
 import matplotlib.pyplot as plt
@@ -13,18 +13,34 @@ import numpy as np
 import pandas as pd
 
 from basmati.hydrosheds import load_hydrobasins_geodataframe
-from remake import Task, MultiProcTaskControl, TaskControl
-from cosmic.util import load_cmap_data, vrmse, circular_rmse, rmse
+from cosmic.util import (load_cmap_data, vrmse, circular_rmse, rmse,
+                         build_raster_cube_from_cube, build_weights_cube_from_cube)
 from cosmic.fourier_series import FourierSeries
+from remake import Task, TaskControl
 
-from weights_vs_hydrobasins import FILENAMES as HADGEM_FILENAMES, gen_weights_cube
-from basin_diurnal_cycle_analysis import gen_hydrobasins_raster_cubes
 from paths import PATHS
-
 
 BSUB_KWARGS = {
     'queue': 'short-serial',
     'max_runtime': '04:00',
+}
+
+HADGEM_FILENAME_TPL = 'PRIMAVERA_HighResMIP_MOHC/{model}/' \
+               'highresSST-present/r1i1p1f1/E1hr/pr/gn/{timestamp}/' \
+               'pr_E1hr_{model}_highresSST-present_r1i1p1f1_gn_{daterange}.nc'
+
+HADGEM_MODELS = [
+    'HadGEM3-GC31-LM',
+    'HadGEM3-GC31-MM',
+    'HadGEM3-GC31-HM',
+]
+
+HADGEM_TIMESTAMPS = ['v20170906', 'v20170818', 'v20170831']
+HADGEM_DATERANGES = ['201401010030-201412302330', '201401010030-201412302330', '201404010030-201406302330']
+
+HADGEM_FILENAMES = {
+    model: PATHS['datadir'] / HADGEM_FILENAME_TPL.format(model=model, timestamp=timestamp, daterange=daterange)
+    for model, timestamp, daterange in zip(HADGEM_MODELS, HADGEM_TIMESTAMPS, HADGEM_DATERANGES)
 }
 
 DATASETS = [
@@ -57,6 +73,9 @@ SLIDING_UPPER = np.exp(np.linspace(np.log(20_000), np.log(2_000_000), N_SLIDING_
 
 SLIDING_SCALES = dict([(f'S{i}', (SLIDING_LOWER[i], SLIDING_UPPER[i])) for i in range(N_SLIDING_SCALES)])
 
+CONSTRAINT_ASIA = (iris.Constraint(coord_values={'latitude': lambda cell: 0.9 < cell < 56.1})
+                   & iris.Constraint(coord_values={'longitude': lambda cell: 56.9 < cell < 151.1}))
+
 
 def gen_hydrobasins_files(inputs, outputs, hb_name):
     hydrosheds_dir = PATHS['hydrosheds_dir']
@@ -66,6 +85,29 @@ def gen_hydrobasins_files(inputs, outputs, hb_name):
     else:
         hb_size = hb.area_select(*SCALES[hb_name])
     hb_size.to_file(outputs['shp'])
+
+
+def gen_hydrobasins_raster_cubes(inputs, outputs, scales=SCALES):
+    diurnal_cycle_cube = iris.load_cube(str(inputs[0]), f'amount_of_precip_jja')
+    hb = load_hydrobasins_geodataframe(PATHS['hydrosheds_dir'], 'as', range(1, 9))
+    raster_cubes = []
+    for scale, (min_area, max_area) in scales.items():
+        hb_filtered = hb.area_select(min_area, max_area)
+        raster_cube = build_raster_cube_from_cube(diurnal_cycle_cube, hb_filtered, f'hydrobasins_raster_{scale}')
+        raster_cubes.append(raster_cube)
+    raster_cubes = iris.cube.CubeList(raster_cubes)
+    iris.save(raster_cubes, str(outputs[0]))
+
+
+def gen_weights_cube(inputs, outputs):
+    dataset, hb_name = inputs.keys()
+    cube = iris.load_cube(str(inputs[dataset]), constraint=CONSTRAINT_ASIA)
+    hb = gpd.read_file(str(inputs[hb_name]))
+    weights_cube = build_weights_cube_from_cube(cube, hb, f'weights_{hb_name}')
+    # Cubes are very sparse. You can get a 800x improvement in file size using zlib!
+    # BUT I think it takes a lot longer to read them. Leave uncompressed.
+    # iris.save(weights_cube, str(outputs[0]), zlib=True)
+    iris.save(weights_cube, str(outputs[0]))
 
 
 def native_weighted_basin_analysis(inputs, outputs, cube_name):
@@ -364,12 +406,13 @@ def plot_cmorph_vs_all_datasets(inputs, outputs):
 
 
 def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
-    # task_ctrl = MultiProcTaskControl(True, nproc=4)
     task_ctrl = TaskControl(True)
 
     for basin_scales in ['small_medium_large', 'sliding']:
         hb_raster_cubes_fn = f'data/basin_weighted_diurnal_cycle/hb_N1280_raster_{basin_scales}.nc'
-        task_ctrl.add(Task(gen_hydrobasins_raster_cubes, [], [hb_raster_cubes_fn],
+        cmorph_path = (PATHS['datadir'] /
+                       'cmorph_data/8km-30min/cmorph_ppt_jja.199801-201812.asia_precip.ppt_thresh_0p1.N1280.nc')
+        task_ctrl.add(Task(gen_hydrobasins_raster_cubes, [cmorph_path], [hb_raster_cubes_fn],
                            func_args=[SLIDING_SCALES if basin_scales == 'sliding' else SCALES]))
 
         if basin_scales == 'small_medium_large':
@@ -466,7 +509,7 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
 
 
 if __name__ == '__main__':
-    task_ctrl = gen_task_ctrl(True)
+    task_ctrl = gen_task_ctrl(False)
     if len(sys.argv) == 2 and sys.argv[1] == 'run':
         task_ctrl.finalize()
         task_ctrl.run()
