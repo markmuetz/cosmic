@@ -30,9 +30,8 @@ def gen_nc_precip_filenames(datadir, season, start_year_month, end_year_month,
         nc_asia_precip = (datadir / 
                           dir_tpl.format(year=year, month=month) / 
                           file_tpl.format(year=year, month=month, **file_kwargs))
-        if not nc_asia_precip.exists():
-            raise Exception(f'{nc_asia_precip} does not exist')
-            continue
+        # if not nc_asia_precip.exists():
+        #     raise Exception(f'{nc_asia_precip} does not exist')
         if month in range(3, 6) and season == 'mam':
             nc_season.append(nc_asia_precip)
         elif month in range(6, 9) and season == 'jja':
@@ -61,9 +60,10 @@ def calc_precip_amount_freq_intensity(season, season_cube, precip_thresh,
     num_days = season_cube.shape[0] // num_per_day
 
     logger.debug('calc season_mean')
-    season_mean = season_cube.collapsed('time', iris.analysis.MEAN)
+    season_mean = season_cube.collapsed('time', iris.analysis.MEAN) * factor
     logger.debug('calc season_std')
-    season_std = season_cube.collapsed('time', iris.analysis.STD_DEV)
+    season_std = season_cube.collapsed('time', iris.analysis.STD_DEV) * factor
+    # TODO: change units.
     season_mean.rename('precip_flux_mean')
     season_std.rename('precip_flux_std')
 
