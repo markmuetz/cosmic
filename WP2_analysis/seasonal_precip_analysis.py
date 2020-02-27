@@ -40,7 +40,7 @@ class CmorphSpaTask(Task):
         num_per_day = 48
         daterange = fmt_year_month(*start_year_month) + '-' + fmt_year_month(*end_year_month)
         thresh_text = fmt_thresh_text(precip_thresh)
-        output_path = (PATHS['datadir'] / 'cmorph_data' /
+        output_path = (PATHS['datadir'] / 'cmorph_data' / '8km-30min' /
                        f'cmorph_ppt_{season}.{daterange}.asia_precip.ppt_thresh_{thresh_text}.N1280.nc')
 
         super().__init__(gen_seasonal_precip_analysis, nc_season, [output_path],
