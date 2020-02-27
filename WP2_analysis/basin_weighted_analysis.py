@@ -365,11 +365,11 @@ def get_dataset_path(dataset):
                 'cmorph_data/8km-30min/cmorph_ppt_jja.199801-201812.asia_precip.ppt_thresh_0p1.N1280.nc')
     elif dataset[:2] == 'u-':
         path = (PATHS['datadir'] /
-                f'{dataset}/ap9.pp/{dataset[2:]}a.p9jja.200502-200901.asia_precip.ppt_thresh_0p1.nc')
+                f'{dataset}/ap9.pp/{dataset[2:]}a.p9jja.200506-200808.asia_precip.ppt_thresh_0p1.nc')
     elif dataset[:7] == 'HadGEM3':
         path = (PATHS['datadir'] /
                 f'PRIMAVERA_HighResMIP_MOHC/local/{dataset}/{dataset}.highresSST-present.'
-                f'r1i1p1f1.2005-2009.JJA.asia_precip.ppt_thresh_0p1.nc')
+                f'r1i1p1f1.2005-2008.JJA.asia_precip.ppt_thresh_0p1.nc')
     return path
 
 
@@ -476,7 +476,7 @@ def plot_cmorph_vs_all_datasets(inputs, outputs):
 
 
 def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
-    task_ctrl = TaskControl(True)
+    task_ctrl = TaskControl(enable_file_task_content_checks=True)
 
     for basin_scales in ['small_medium_large', 'sliding']:
         hb_raster_cubes_fn = f'data/basin_weighted_analysis/hb_N1280_raster_{basin_scales}.nc'
