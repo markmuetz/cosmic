@@ -6,8 +6,7 @@ import iris
 import numpy as np
 import pandas as pd
 
-from remake import Task, MultiProcTaskControl
-# from cosmic.task import TaskControl, Task
+from remake import Task, TaskControl
 from paths import PATHS
 
 
@@ -44,16 +43,10 @@ def gen_weights_basin_stats(inputs, outputs, resolutions, hb_names):
 
 
 def gen_task_ctrl():
-    task_ctrl = MultiProcTaskControl(2)
-    basin_scales = 'sliding'
+    task_ctrl = TaskControl()
+    hb_names = [f'S{i}' for i in range(11)]
 
-    if basin_scales == 'small_medium_large':
-        pass
-        # hb_names = HB_NAMES
-    else:
-        hb_names = [f'S{i}' for i in range(11)]
-
-    inputs = {f'basin_vector_{hb_name}': f'data/basin_weighted_diurnal_cycle/hb_{hb_name}.shp'
+    inputs = {f'basin_vector_{hb_name}': f'data/basin_weighted_analysis/hb_{hb_name}.shp'
               for hb_name in hb_names}
 
     task_ctrl.add(Task(gen_vector_basin_stats,
@@ -63,7 +56,7 @@ def gen_task_ctrl():
                        ))
 
     resolutions = ['N1280', 'N512', 'N216', 'N96']
-    inputs = {f'basin_weights_{res}_{hb_name}': f'data/basin_weighted_diurnal_cycle/weights_{res}_{hb_name}.nc'
+    inputs = {f'basin_weights_{res}_{hb_name}': f'data/basin_weighted_analysis/weights_{res}_{hb_name}.nc'
               for res in resolutions
               for hb_name in hb_names}
 
