@@ -86,6 +86,7 @@ class UmHadgemSpaTask(Task):
     }
 
     def __init__(self, start_year_month, end_year_month, precip_thresh, season, model):
+        season = season.upper()
         input_dir = UmHadgemSpaTask.MODELS[model]['input_dir']
         input_filenames = [input_dir / f'{model}.highresSST-present.r1i1p1f1.{year}.{season}.asia_precip.nc'
                            for year in range(start_year_month[0], end_year_month[0] + 1)]
