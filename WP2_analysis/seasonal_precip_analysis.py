@@ -6,6 +6,11 @@ from remake import Task, TaskControl
 
 from paths import PATHS
 
+BSUB_KWARGS = {
+    'queue': 'short-serial',
+    'max_runtime': '04:00',
+}
+
 
 DATASETS = [
     'HadGEM3-GC31-LM',
@@ -48,7 +53,7 @@ class CmorphSpaTask(Task):
         thresh_text = str(precip_thresh).replace('.', 'p')
         output_path = (PATHS['datadir'] / 'cmorph_data' /
                        f'cmorph_ppt_{season}.{daterange}.asia_precip.ppt_thresh_{thresh_text}.{resolution}.nc')
-        super().__init__(gen_seasonal_precip_analysis, nc_season, [output_path], func_args=(precip_thresh,))
+        super().__init__(gen_seasonal_precip_analysis, nc_season, [output_path], func_args=(season, precip_thresh))
 
 
 def gen_task_ctrl():
