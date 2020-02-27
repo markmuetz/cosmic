@@ -25,8 +25,8 @@ def gen_seasonal_precip_analysis(inputs, outputs, season, precip_thresh, num_per
     season_cubes = iris.load([str(p) for p in inputs])
     # Needed for HadGEM cubes, won't adversely affect others.
     equalise_attributes(season_cubes)
+    season_cube = season_cubes.concatenate_cube()
 
-    season_cube = iris.load([str(p) for p in inputs]).concatenate_cube()
     analysis_cubes = spa.calc_precip_amount_freq_intensity(season, season_cube, precip_thresh,
                                                            num_per_day=num_per_day,
                                                            convert_kgpm2ps1_to_mmphr=convert_kgpm2ps1_to_mmphr,
