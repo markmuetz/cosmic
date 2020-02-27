@@ -1,5 +1,6 @@
 import sys
 import iris
+from iris.experimental.equalise_cubes import equalise_attributes
 
 import cosmic.WP2.seasonal_precip_analysis as spa
 from remake import Task, TaskControl
@@ -21,6 +22,10 @@ def fmt_thresh_text(precip_thresh):
 
 
 def gen_seasonal_precip_analysis(inputs, outputs, season, precip_thresh, num_per_day, convert_kgpm2ps1_to_mmphr):
+    season_cubes = iris.load([str(p) for p in inputs])
+    # Needed for HadGEM cubes, won't adversely affect others.
+    equalise_attributes(season_cubes)
+
     season_cube = iris.load([str(p) for p in inputs]).concatenate_cube()
     analysis_cubes = spa.calc_precip_amount_freq_intensity(season, season_cube, precip_thresh,
                                                            num_per_day=num_per_day,
