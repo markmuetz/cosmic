@@ -45,7 +45,7 @@ def gen_nc_precip_filenames(datadir, season, start_year_month, end_year_month,
         if next_month == 13:
             next_year, next_month = year + 1, 1
         curr_year_month = (next_year, next_month)
-    logger.info(f'number of months in season: {len(nc_season)}')
+    logger.debug(f'number of months in season: {len(nc_season)}')
     return nc_season
 
 
@@ -63,9 +63,11 @@ def calc_precip_amount_freq_intensity(season, season_cube, precip_thresh,
     season_mean = season_cube.collapsed('time', iris.analysis.MEAN) * factor
     logger.debug('calc season_std')
     season_std = season_cube.collapsed('time', iris.analysis.STD_DEV) * factor
-    # TODO: change units.
+
     season_mean.rename('precip_flux_mean')
     season_std.rename('precip_flux_std')
+    season_mean.units = 'mm hr-1'
+    season_std.units = 'mm hr-1'
 
     start = timer()
 
