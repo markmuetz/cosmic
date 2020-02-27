@@ -1,4 +1,5 @@
 import sys
+from collections import defaultdict
 import itertools
 import pickle
 from logging import getLogger
@@ -230,9 +231,22 @@ def compare_weighted_raster(inputs, outputs, dataset, hb_name, mode):
     plt.close()
 
 
+def calc_mean_precip_max_min(inputs, outputs):
+    min_mean_precip = 1e99
+    max_mean_precip = 0
+    for input_path in inputs:
+        df_mean_precip = pd.read_hdf(input_path)
+        max_mean_precip = max(max_mean_precip, df_mean_precip.values.max())
+        min_mean_precip = min(min_mean_precip, df_mean_precip.values.min())
+    outputs[0].write_bytes(pickle.dumps({'max_mean_precip': max_mean_precip, 'min_mean_precip': min_mean_precip}))
+
+
 def plot_mean_precip(inputs, outputs, dataset, hb_name):
     weighted_basin_mean_precip_filename = inputs['weighted']
     df_mean_precip = pd.read_hdf(weighted_basin_mean_precip_filename)
+    mean_max_min_precip = pickle.loads(inputs['mean_precip_max_min'].read_bytes())
+    max_mean_precip = mean_max_min_precip['max_mean_precip']
+    # min_mean_precip = mean_max_min_precip['min_mean_precip']
 
     raster_hb_name = hb_name
     raster_cube = iris.load_cube(str(inputs['raster_cubes']), f'hydrobasins_raster_{raster_hb_name}')
@@ -261,6 +275,8 @@ def plot_mean_precip(inputs, outputs, dataset, hb_name):
     masked_mean_precip_map = np.ma.masked_array(mean_precip_map, raster_cube.data == 0)
     plt.imshow(masked_mean_precip_map,
                # cmap=cmap, norm=norm,
+               norm=LogNorm(),
+               vmin=1e-3, vmax=max_mean_precip,
                origin='lower', extent=extent)
     plt.colorbar(orientation='horizontal')
 
@@ -516,22 +532,33 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
         weighted_mean_precip_tpl = 'data/basin_weighted_analysis/{hb_name}/' \
                                    '{dataset}.{hb_name}.area_weighted.mean_precip.hdf'
 
+        weighted_mean_precip_filenames = defaultdict(list)
         for dataset, hb_name in itertools.product(DATASETS, hb_names):
             fmt_kwargs = {'dataset': dataset, 'hb_name': hb_name}
             dataset_path = get_dataset_path(dataset)
             resolution = DATASET_RESOLUTION[dataset]
             weights_filename = f'data/basin_weighted_analysis/{hb_name}/weights_{resolution}_{hb_name}.nc'
+            max_min_path = f'data/basin_weighted_analysis/{hb_name}/mean_precip_max_min.pkl'
+
             weighted_mean_precip_filename = weighted_mean_precip_tpl.format(**fmt_kwargs)
+            weighted_mean_precip_filenames[hb_name].append(weighted_mean_precip_filename)
 
             task_ctrl.add(Task(native_weighted_basin_mean_precip_analysis,
                                {'dataset_path': dataset_path, 'weights': weights_filename},
                                [weighted_mean_precip_filename]))
 
             task_ctrl.add(Task(plot_mean_precip,
-                               {'weighted': weighted_mean_precip_filename, 'raster_cubes': hb_raster_cubes_fn},
+                               {'weighted': weighted_mean_precip_filename,
+                                'raster_cubes': hb_raster_cubes_fn,
+                                'mean_precip_max_min': max_min_path},
                                [PATHS['figsdir'] / 'basin_weighted_analysis' / 'map' /
                                 'mean_precip' / f'map_{dataset}.{hb_name}.area_weighted.png'],
                                func_args=[dataset, hb_name]))
+
+        for hb_name in hb_names:
+            # N.B. out of order.
+            max_min_path = f'data/basin_weighted_analysis/{hb_name}/mean_precip_max_min.pkl'
+            task_ctrl.add(Task(calc_mean_precip_max_min, weighted_mean_precip_filenames[hb_name], [max_min_path]))
 
         weighted_phase_mag_tpl = 'data/basin_weighted_analysis/{hb_name}/' \
                                  '{dataset}.{hb_name}.{mode}.area_weighted.phase_mag.hdf'
