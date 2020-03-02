@@ -53,9 +53,16 @@ def calc_precip_amount_freq_intensity(season, season_cube, precip_thresh,
                                       num_per_day=24, convert_kgpm2ps1_to_mmphr=True,
                                       calc_method='low_mem', ignore_mask=True):
     if not ignore_mask:
+        # I.e. user must delete this exception.
         raise NotImplementedError('Results not 100% reliable, use at own risk')
 
-    factor = 3600 if convert_kgpm2ps1_to_mmphr else 1
+    if convert_kgpm2ps1_to_mmphr:
+        assert season_cube.units == 'kg m-2 s-1'
+        factor = 3600
+    else:
+        assert season_cube.units == 'mm hr-1'
+        factor = 1
+
     assert season_cube.shape[0] % num_per_day == 0, 'Cube has wrong time dimension'
     num_days = season_cube.shape[0] // num_per_day
 
@@ -165,6 +172,15 @@ def calc_precip_amount_freq_intensity(season, season_cube, precip_thresh,
     analysis_cubes = iris.cube.CubeList([season_mean, season_std,
                                          season_hourly_freq, season_hourly_amount, 
                                          season_hourly_intensity])
+    attrs = {
+        'created_by': 'cosmic.WP2.calc_precip_amount_freq_intensity',
+        'calc_method': calc_method,
+        'convert_kgpm2ps1_to_mmphr': convert_kgpm2ps1_to_mmphr,
+        'num_days': num_days,
+        'num_per_day': num_per_day,
+    }
+    for cube in analysis_cubes:
+        cube.attributes.update(attrs)
     return analysis_cubes
 
 
@@ -179,22 +195,6 @@ def save_analysis_cubes(datadir, season, precip_thresh, analysis_cubes,
                                                        **output_file_kwargs)
     iris.save(analysis_cubes, str(output_filepath))
     return analysis_cubes
-
-
-def default_main(season):
-    runid = 'ak543'
-    split_stream = 'a.p9'
-    loc = 'asia'
-
-    nc_season = gen_nc_precip_filenames(DEFAULT_DATADIR, season, 2005, 2010,
-                                        runid=runid, split_stream=split_stream, loc=loc)
-    season_cube = iris.load([str(p) for p in nc_season]).concatenate_cube()
-    analysis_cubes = calc_precip_amount_freq_intensity(DEFAULT_DATADIR, season, season_cube, 
-                                                       DEFAULT_PRECIP_THRESH)
-    save_analysis_cubes(DEFAULT_DATADIR, season, DEFAULT_PRECIP_THRESH,
-                        runid=runid, 
-                        split_stream=split_stream,
-                        loc=loc)
 
 
 if __name__ == '__main__':
