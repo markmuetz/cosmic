@@ -175,7 +175,7 @@ def calc_precip_amount_freq_intensity(season, season_cube, precip_thresh,
     attrs = {
         'created_by': 'cosmic.WP2.calc_precip_amount_freq_intensity',
         'calc_method': calc_method,
-        'convert_kgpm2ps1_to_mmphr': convert_kgpm2ps1_to_mmphr,
+        'convert_kgpm2ps1_to_mmphr': str(convert_kgpm2ps1_to_mmphr),
         'num_days': num_days,
         'num_per_day': num_per_day,
     }
