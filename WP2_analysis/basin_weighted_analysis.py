@@ -139,7 +139,7 @@ def native_weighted_basin_mean_precip_analysis(inputs, outputs):
                                 (area_weight[basin_domain] * basin_weight[basin_domain]).sum())
         basin_weighted_mean_precip.append(weighted_mean_precip)
 
-    df = pd.DataFrame(basin_weighted_mean_precip, columns=['basin_weighted_mean_precip_kg_per_m2_per_s1'])
+    df = pd.DataFrame(basin_weighted_mean_precip, columns=['basin_weighted_mean_precip_mm_per_hr'])
     df.to_hdf(outputs[0], outputs[0].stem.replace('.', '_').replace('-', '_'))
 
 
@@ -394,7 +394,24 @@ def df_phase_mag_add_x1_y1(df):
     df['x2'] = df['magnitude'] * np.sin(df['phase'] * np.pi / 12)
 
 
-def gen_rmses(inputs, outputs, area_weighted, hb_names):
+def gen_mean_precip_rmses(inputs, outputs, hb_names):
+    all_rmses = {}
+    for dataset in DATASETS[:-1]:
+        mean_precip_rmses = []
+        for hb_name in hb_names:
+            cmorph_mean_precip = pd.read_hdf(inputs[('cmorph', hb_name)])
+            dataset_mean_precip = pd.read_hdf(inputs[(dataset, hb_name)])
+
+            mean_precip_rmses.append(rmse(cmorph_mean_precip.basin_weighted_mean_precip_mm_per_hr,
+                                          dataset_mean_precip.basin_weighted_mean_precip_mm_per_hr))
+
+        all_rmses[dataset] = mean_precip_rmses
+
+    with outputs[0].open('wb') as f:
+        pickle.dump(all_rmses, f)
+
+
+def gen_phase_mag_rmses(inputs, outputs, area_weighted, hb_names):
     all_rmses = {}
     raster_cubes = iris.load(str(inputs['raster_cubes']))
 
@@ -456,7 +473,32 @@ def gen_map_from_basin_values(cmorph_phase_mag, raster):
     return phase_map, mag_map
 
 
-def plot_cmorph_vs_all_datasets(inputs, outputs):
+def plot_cmorph_vs_all_datasets_mean_precip(inputs, outputs):
+    with inputs[0].open('rb') as f:
+        all_rmses = pickle.load(f)
+
+    all_rmse_filename = outputs[0]
+
+    fig, ax = plt.subplots(1, 1, sharex=True, num=str(all_rmse_filename), figsize=(12, 8))
+
+    # ax1.set_ylim((0, 5))
+    for dataset, rmses in all_rmses.items():
+        ax.plot(rmses, label=dataset)
+    if len(rmses) == 3:
+        ax.set_xticks([0, 1, 2])
+    elif len(rmses) == 11:
+        ax.set_xticks([0, 5, 10])
+        ax.set_xticks(range(11), minor=True)
+    ax.set_xticklabels(['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
+
+    ax.set_ylabel('mean precip.\nRMSE (mm hr$^{-1}$)')
+    ax.set_xlabel('basin scale (km$^2$)')
+    ax.legend()
+    plt.tight_layout()
+    plt.savefig(all_rmse_filename)
+
+
+def plot_cmorph_vs_all_datasets_phase_mag(inputs, outputs):
 
     with inputs[0].open('rb') as f:
         all_rmses = pickle.load(f)
@@ -555,6 +597,23 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
                                 'mean_precip' / f'map_{dataset}.{hb_name}.area_weighted.png'],
                                func_args=[dataset, hb_name]))
 
+        mean_precip_rmse_data_filename = f'data/basin_weighted_analysis/mean_precip_all_rmses.{basin_scales}.pkl'
+        gen_mean_precip_rmses_inputs = {
+            (ds, hb_name): weighted_mean_precip_tpl.format(dataset=ds, hb_name=hb_name)
+            for ds, hb_name in itertools.product(DATASETS, hb_names)
+        }
+        task_ctrl.add(Task(gen_mean_precip_rmses,
+                           inputs=gen_mean_precip_rmses_inputs,
+                           outputs=[mean_precip_rmse_data_filename],
+                           func_kwargs={'hb_names': hb_names}
+                           ))
+
+        task_ctrl.add(Task(plot_cmorph_vs_all_datasets_mean_precip,
+                           inputs=[mean_precip_rmse_data_filename],
+                           outputs=[PATHS['figsdir'] / 'basin_weighted_analysis' / 'cmorph_vs' / 'mean_precip' /
+                                    f'cmorph_vs_all_datasets.all_rmse.{basin_scales}.png'],
+                           ))
+
         for hb_name in hb_names:
             # N.B. out of order.
             max_min_path = f'data/basin_weighted_analysis/{hb_name}/mean_precip_max_min.pkl'
@@ -611,14 +670,14 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
             }
             gen_rmses_inputs['raster_cubes'] = hb_raster_cubes_fn
 
-            task_ctrl.add(Task(gen_rmses,
+            task_ctrl.add(Task(gen_phase_mag_rmses,
                                inputs=gen_rmses_inputs,
                                outputs=[vrmse_data_filename],
                                func_kwargs={'area_weighted': area_weighted, 'hb_names': hb_names}
                                ))
-            task_ctrl.add(Task(plot_cmorph_vs_all_datasets,
+            task_ctrl.add(Task(plot_cmorph_vs_all_datasets_phase_mag,
                                [vrmse_data_filename],
-                               [PATHS['figsdir'] / 'basin_weighted_analysis' / 'cmorph_vs' /
+                               [PATHS['figsdir'] / 'basin_weighted_analysis' / 'cmorph_vs' / 'phase_mag' /
                                 f'cmorph_vs_all_datasets.all_rmse.{weighted}.{basin_scales}.png'],
                                )
                           )
