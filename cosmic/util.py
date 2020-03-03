@@ -22,6 +22,10 @@ def rmse(a1, a2):
     return np.sqrt(((a1 - a2)**2).mean())
 
 
+def mae(a1, a2):
+    return np.abs(a1 - a2).mean()
+
+
 def circular_rmse(a1, a2):
     diff = (a1 - a2) % 24
     diff[diff > 12] = (24 - diff)[diff > 12]
