@@ -537,7 +537,7 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
     task_ctrl = TaskControl(enable_file_task_content_checks=True)
 
     for basin_scales in ['small_medium_large', 'sliding']:
-        hb_raster_cubes_fn = f'data/basin_weighted_analysis/hb_N1280_raster_{basin_scales}.nc'
+        hb_raster_cubes_fn = PATHS['output_datadir'] / f'basin_weighted_analysis/hb_N1280_raster_{basin_scales}.nc'
         cmorph_path = (PATHS['datadir'] /
                        'cmorph_data/8km-30min/cmorph_ppt_jja.199801-201812.asia_precip.ppt_thresh_0p1.N1280.nc')
         task_ctrl.add(Task(gen_hydrobasins_raster_cubes, [cmorph_path], [hb_raster_cubes_fn],
@@ -547,13 +547,13 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
             hb_names = HB_NAMES
         else:
             hb_names = [f'S{i}' for i in range(11)]
-        shp_path_tpl = 'data/basin_weighted_analysis/{hb_name}/hb_{hb_name}.{ext}'
+        shp_path_tpl = 'basin_weighted_analysis/{hb_name}/hb_{hb_name}.{ext}'
         for hb_name in hb_names:
             # Creates a few different files with different extensions - need to have them all in outputs
             # so that they are moved to the right place after run by Task.atomic_write.
             task_ctrl.add(Task(gen_hydrobasins_files,
                                [],
-                               {ext: shp_path_tpl.format(hb_name=hb_name, ext=ext)
+                               {ext: PATHS['output_datadir'] / shp_path_tpl.format(hb_name=hb_name, ext=ext)
                                 for ext in ['shp', 'dbf', 'prj', 'cpg', 'shx']},
                                func_args=[hb_name],
                                ))
@@ -565,13 +565,15 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
                 dataset_cube_path = PATHS['datadir'] / 'u-ak543/ap9.pp/precip_200601/ak543a.p9200601.asia_precip.nc'
             elif dataset[:7] == 'HadGEM3':
                 dataset_cube_path = HADGEM_FILENAMES[dataset]
-            input_filenames = {dataset: dataset_cube_path, hb_name: shp_path_tpl.format(hb_name=hb_name, ext='shp')}
+            input_filenames = {dataset: dataset_cube_path,
+                               hb_name: PATHS['output_datadir'] / shp_path_tpl.format(hb_name=hb_name, ext='shp')}
 
             resolution = DATASET_RESOLUTION[dataset]
-            weights_filename = f'data/basin_weighted_analysis/{hb_name}/weights_{resolution}_{hb_name}.nc'
+            weights_filename = (PATHS['output_datadir'] /
+                                f'basin_weighted_analysis/{hb_name}/weights_{resolution}_{hb_name}.nc')
             task_ctrl.add(Task(gen_weights_cube, input_filenames, [weights_filename]))
 
-        weighted_mean_precip_tpl = 'data/basin_weighted_analysis/{hb_name}/' \
+        weighted_mean_precip_tpl = 'basin_weighted_analysis/{hb_name}/' \
                                    '{dataset}.{hb_name}.area_weighted.mean_precip.hdf'
 
         weighted_mean_precip_filenames = defaultdict(list)
@@ -579,10 +581,11 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
             fmt_kwargs = {'dataset': dataset, 'hb_name': hb_name}
             dataset_path = get_dataset_path(dataset)
             resolution = DATASET_RESOLUTION[dataset]
-            weights_filename = f'data/basin_weighted_analysis/{hb_name}/weights_{resolution}_{hb_name}.nc'
-            max_min_path = f'data/basin_weighted_analysis/{hb_name}/mean_precip_max_min.pkl'
+            weights_filename = (PATHS['output_datadir'] /
+                                f'basin_weighted_analysis/{hb_name}/weights_{resolution}_{hb_name}.nc')
+            max_min_path = PATHS['output_datadir'] / f'basin_weighted_analysis/{hb_name}/mean_precip_max_min.pkl'
 
-            weighted_mean_precip_filename = weighted_mean_precip_tpl.format(**fmt_kwargs)
+            weighted_mean_precip_filename = PATHS['output_datadir'] / weighted_mean_precip_tpl.format(**fmt_kwargs)
             weighted_mean_precip_filenames[hb_name].append(weighted_mean_precip_filename)
 
             task_ctrl.add(Task(native_weighted_basin_mean_precip_analysis,
@@ -597,9 +600,10 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
                                 'mean_precip' / f'map_{dataset}.{hb_name}.area_weighted.png'],
                                func_args=[dataset, hb_name]))
 
-        mean_precip_rmse_data_filename = f'data/basin_weighted_analysis/mean_precip_all_rmses.{basin_scales}.pkl'
+        mean_precip_rmse_data_filename = (PATHS['output_datadir'] /
+                                          f'basin_weighted_analysis/mean_precip_all_rmses.{basin_scales}.pkl')
         gen_mean_precip_rmses_inputs = {
-            (ds, hb_name): weighted_mean_precip_tpl.format(dataset=ds, hb_name=hb_name)
+            (ds, hb_name): PATHS['output_datadir'] / weighted_mean_precip_tpl.format(dataset=ds, hb_name=hb_name)
             for ds, hb_name in itertools.product(DATASETS, hb_names)
         }
         task_ctrl.add(Task(gen_mean_precip_rmses,
@@ -616,10 +620,10 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
 
         for hb_name in hb_names:
             # N.B. out of order.
-            max_min_path = f'data/basin_weighted_analysis/{hb_name}/mean_precip_max_min.pkl'
+            max_min_path = PATHS['output_datadir'] / f'basin_weighted_analysis/{hb_name}/mean_precip_max_min.pkl'
             task_ctrl.add(Task(calc_mean_precip_max_min, weighted_mean_precip_filenames[hb_name], [max_min_path]))
 
-        weighted_phase_mag_tpl = 'data/basin_weighted_analysis/{hb_name}/' \
+        weighted_phase_mag_tpl = 'basin_weighted_analysis/{hb_name}/' \
                                  '{dataset}.{hb_name}.{mode}.area_weighted.phase_mag.hdf'
 
         for dataset, hb_name, mode in itertools.product(DATASETS, hb_names, PRECIP_MODES):
@@ -630,9 +634,9 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
                 cube_name = f'{mode}_of_precip_jja'
             dataset_path = get_dataset_path(dataset)
             resolution = DATASET_RESOLUTION[dataset]
-            weights_filename = f'data/basin_weighted_analysis/{hb_name}/weights_{resolution}_{hb_name}.nc'
+            weights_filename = PATHS['output_datadir'] / f'basin_weighted_analysis/{hb_name}/weights_{resolution}_{hb_name}.nc'
 
-            weighted_phase_mag_filename = weighted_phase_mag_tpl.format(**fmt_kwargs)
+            weighted_phase_mag_filename = PATHS['output_datadir'] / weighted_phase_mag_tpl.format(**fmt_kwargs)
             task_ctrl.add(Task(native_weighted_basin_diurnal_cycle_analysis,
                                {'diurnal_cycle': dataset_path, 'weights': weights_filename},
                                [weighted_phase_mag_filename],
@@ -644,8 +648,9 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
                 if hb_name == 'med':
                     raster_hb_name = 'medium'
 
-                raster_filename = f'data/basin_diurnal_cycle_analysis/{dataset}/basin_area_avg_' \
-                                  f'{cube_name}_{mode}_hydrobasins_raster_{raster_hb_name}_harmonic.hdf'
+                raster_filename = (PATHS['output_datadir'] /
+                                   f'basin_diurnal_cycle_analysis/{dataset}/basin_area_avg_'
+                                   f'{cube_name}_{mode}_hydrobasins_raster_{raster_hb_name}_harmonic.hdf')
 
                 task_ctrl.add(Task(compare_weighted_raster,
                                    {'weighted': weighted_phase_mag_filename, 'raster': raster_filename},
@@ -663,9 +668,12 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
         for area_weighted in [True, False]:
             weighted = 'area_weighted' if area_weighted else 'not_area_weighted'
 
-            vrmse_data_filename = f'data/basin_weighted_analysis/all_rmses.{weighted}.{basin_scales}.pkl'
+            vrmse_data_filename = (PATHS['output_datadir'] /
+                                   f'basin_weighted_analysis/all_rmses.{weighted}.{basin_scales}.pkl')
             gen_rmses_inputs = {
-                (ds, mode, hb_name): weighted_phase_mag_tpl.format(dataset=ds, hb_name=hb_name, mode=mode)
+                (ds, mode, hb_name): PATHS['output_datadir'] / weighted_phase_mag_tpl.format(dataset=ds,
+                                                                                             hb_name=hb_name,
+                                                                                             mode=mode)
                 for ds, mode, hb_name in itertools.product(DATASETS, PRECIP_MODES, hb_names)
             }
             gen_rmses_inputs['raster_cubes'] = hb_raster_cubes_fn
