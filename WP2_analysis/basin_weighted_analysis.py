@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 from basmati.hydrosheds import load_hydrobasins_geodataframe
-from cosmic.util import (load_cmap_data, vrmse, circular_rmse, rmse,
+from cosmic.util import (load_cmap_data, vrmse, circular_rmse, rmse, mae,
                          build_raster_cube_from_cube, build_weights_cube_from_cube)
 from cosmic.fourier_series import FourierSeries
 from remake import Task, TaskControl
@@ -285,6 +285,59 @@ def plot_mean_precip(inputs, outputs, dataset, hb_name):
     plt.close()
 
 
+def plot_cmorph_mean_precip_diff(inputs, outputs, dataset, hb_name):
+    weighted_basin_mean_precip_filename = inputs['dataset_weighted']
+    cmorph_weighted_basin_mean_precip_filename = inputs['cmorph_weighted']
+
+    df_mean_precip = pd.read_hdf(weighted_basin_mean_precip_filename)
+    df_cmorph_mean_precip = pd.read_hdf(cmorph_weighted_basin_mean_precip_filename)
+
+    cmorph_rmse = rmse(df_mean_precip.basin_weighted_mean_precip_mm_per_hr,
+                       df_cmorph_mean_precip.basin_weighted_mean_precip_mm_per_hr)
+    cmorph_mae = mae(df_mean_precip.basin_weighted_mean_precip_mm_per_hr,
+                     df_cmorph_mean_precip.basin_weighted_mean_precip_mm_per_hr)
+
+    raster_hb_name = hb_name
+    raster_cube = iris.load_cube(str(inputs['raster_cubes']), f'hydrobasins_raster_{raster_hb_name}')
+    raster = raster_cube.data
+
+    mean_precip_map = np.zeros_like(raster, dtype=float)
+    for i in range(1, raster.max() + 1):
+        mean_precip_map[raster == i] = df_mean_precip.values[i - 1]
+
+    cmorph_mean_precip_map = np.zeros_like(raster, dtype=float)
+    for i in range(1, raster.max() + 1):
+        cmorph_mean_precip_map[raster == i] = df_cmorph_mean_precip.values[i - 1]
+
+    # Proper way to work out extent for imshow.
+    # lat.points contains centres of each cell.
+    # bounds contains the boundary of the pixel - this is what imshow should take.
+    lon = raster_cube.coord('longitude')
+    lat = raster_cube.coord('latitude')
+    if not lat.has_bounds():
+        lat.guess_bounds()
+    if not lon.has_bounds():
+        lon.guess_bounds()
+    lon_min, lon_max = lon.bounds[0, 0], lon.bounds[-1, 1]
+    lat_min, lat_max = lat.bounds[0, 0], lat.bounds[-1, 1]
+    extent = (lon_min, lon_max, lat_min, lat_max)
+
+    plt.figure(figsize=(10, 8))
+    plt.title(f'{dataset} mean_precip. RMSE: {cmorph_rmse:.3f} mm hr$^{{-1}}$; MAE: {cmorph_mae:.3f} mm hr$^{{-1}}$')
+    masked_mean_precip_map = np.ma.masked_array(mean_precip_map - cmorph_mean_precip_map, raster_cube.data == 0)
+    # absmax = np.abs(masked_mean_precip_map).max()
+    absmax = 3
+    plt.imshow(masked_mean_precip_map,
+               cmap='bwr',
+               vmin=-absmax, vmax=absmax,
+               origin='lower', extent=extent)
+    plt.colorbar(orientation='horizontal')
+
+    mean_precip_filename = outputs[0]
+    plt.savefig(mean_precip_filename)
+    plt.close()
+
+
 def plot_phase_mag(inputs, outputs, dataset, hb_name, mode):
     weighted_basin_phase_mag_filename = inputs['weighted']
     df_phase_mag = pd.read_hdf(weighted_basin_phase_mag_filename)
@@ -398,14 +451,17 @@ def gen_mean_precip_rmses(inputs, outputs, hb_names):
     all_rmses = {}
     for dataset in DATASETS[:-1]:
         mean_precip_rmses = []
+        mean_precip_maes = []
         for hb_name in hb_names:
             cmorph_mean_precip = pd.read_hdf(inputs[('cmorph', hb_name)])
             dataset_mean_precip = pd.read_hdf(inputs[(dataset, hb_name)])
 
             mean_precip_rmses.append(rmse(cmorph_mean_precip.basin_weighted_mean_precip_mm_per_hr,
                                           dataset_mean_precip.basin_weighted_mean_precip_mm_per_hr))
+            mean_precip_maes.append(mae(cmorph_mean_precip.basin_weighted_mean_precip_mm_per_hr,
+                                        dataset_mean_precip.basin_weighted_mean_precip_mm_per_hr))
 
-        all_rmses[dataset] = mean_precip_rmses
+        all_rmses[dataset] = mean_precip_rmses, mean_precip_maes
 
     with outputs[0].open('wb') as f:
         pickle.dump(all_rmses, f)
@@ -479,11 +535,14 @@ def plot_cmorph_vs_all_datasets_mean_precip(inputs, outputs):
 
     all_rmse_filename = outputs[0]
 
+    plt.clf()
     fig, ax = plt.subplots(1, 1, sharex=True, num=str(all_rmse_filename), figsize=(12, 8))
 
     # ax1.set_ylim((0, 5))
-    for dataset, rmses in all_rmses.items():
-        ax.plot(rmses, label=dataset)
+    for dataset, (rmses, maes) in all_rmses.items():
+        p = ax.plot(rmses, label=dataset)
+        colour = p[0].get_color()
+        ax.plot(maes, linestyle='--', color=colour)
     if len(rmses) == 3:
         ax.set_xticks([0, 1, 2])
     elif len(rmses) == 11:
@@ -491,7 +550,7 @@ def plot_cmorph_vs_all_datasets_mean_precip(inputs, outputs):
         ax.set_xticks(range(11), minor=True)
     ax.set_xticklabels(['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
 
-    ax.set_ylabel('mean precip.\nRMSE (mm hr$^{-1}$)')
+    ax.set_ylabel('mean precip.\nRMSE/MAE (mm hr$^{-1}$)')
     ax.set_xlabel('basin scale (km$^2$)')
     ax.legend()
     plt.tight_layout()
@@ -599,6 +658,18 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
                                [PATHS['figsdir'] / 'basin_weighted_analysis' / 'map' /
                                 'mean_precip' / f'map_{dataset}.{hb_name}.area_weighted.png'],
                                func_args=[dataset, hb_name]))
+
+            if dataset != 'cmorph':
+                fmt_kwargs = {'dataset': 'cmorph', 'hb_name': hb_name}
+                cmorph_weighted_mean_precip_filename = PATHS['output_datadir'] / weighted_mean_precip_tpl.format(**fmt_kwargs)
+                task_ctrl.add(Task(plot_cmorph_mean_precip_diff,
+                                   {'dataset_weighted': weighted_mean_precip_filename,
+                                    'cmorph_weighted': cmorph_weighted_mean_precip_filename,
+                                    'raster_cubes': hb_raster_cubes_fn,
+                                    'mean_precip_max_min': max_min_path},
+                                   [PATHS['figsdir'] / 'basin_weighted_analysis' / 'map' /
+                                    'cmorph_mean_precip_diff' / f'map_{dataset}.{hb_name}.area_weighted.png'],
+                                   func_args=[dataset, hb_name]))
 
         mean_precip_rmse_data_filename = (PATHS['output_datadir'] /
                                           f'basin_weighted_analysis/mean_precip_all_rmses.{basin_scales}.pkl')
