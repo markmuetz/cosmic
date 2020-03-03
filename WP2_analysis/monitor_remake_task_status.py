@@ -29,7 +29,7 @@ def main(stdscr, status_dir='.remake/metadata_v3/task_status'):
         stdscr.addstr(1, 0, f'Complete: {statuses["COMPLETE"]}')
         stdscr.addstr(2, 0, f'Running : {statuses["RUNNING"]}')
         stdscr.addstr(3, 0, f'Error   : {statuses["ERROR"]}')
-        for i, path in enumerate(running):
+        for i, path in enumerate(running[:40]):
             stdscr.addstr(5 + i, 0, f'{path.stem}')
 
         stdscr.refresh()
