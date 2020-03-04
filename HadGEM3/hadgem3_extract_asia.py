@@ -1,6 +1,6 @@
 import sys
 
-from cosmic.util import load_config
+from cosmic.util import load_module
 from cosmic.processing.extract_asia import HadGEM3_extract_asia_precip
 
 
@@ -12,6 +12,6 @@ def main(models_settings, model, year, season):
 
 
 if __name__ == '__main__':
-    config = load_config(sys.argv[1])
+    config = load_module(sys.argv[1])
     config_key = sys.argv[2]
     main(config.MODELS, *config.SCRIPT_ARGS[config_key])

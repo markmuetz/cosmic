@@ -3,7 +3,7 @@ from pathlib import Path
 
 import iris
 
-from cosmic.util import load_config, filepath_regrid
+from cosmic.util import load_module, filepath_regrid
 
 
 def main(year, month):
@@ -21,6 +21,6 @@ def main(year, month):
 
 
 if __name__ == '__main__':
-    config = load_config(sys.argv[1])
+    config = load_module(sys.argv[1])
     config_key = sys.argv[2]
     main(*config.SCRIPT_ARGS[config_key])

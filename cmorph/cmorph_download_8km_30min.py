@@ -2,7 +2,7 @@ import sys
 import datetime as dt
 from pathlib import Path
 
-from cosmic.util import load_config
+from cosmic.util import load_module
 from cosmic.datasets.cmorph.cmorph_downloader import CmorphDownloader
 
 BASEDIR = Path('/gws/nopw/j04/cosmic/mmuetz/data/cmorph_data/8km-30min/raw')
@@ -22,7 +22,7 @@ def main(year):
 
 
 if __name__ == '__main__':
-    config = load_config(sys.argv[1])
+    config = load_module(sys.argv[1])
     config_key = sys.argv[2]
     main(config.SCRIPT_ARGS[config_key])
     # main(int(sys.argv[1]))

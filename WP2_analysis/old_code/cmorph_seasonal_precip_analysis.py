@@ -3,7 +3,7 @@ from pathlib import Path
 
 import iris
 
-from cosmic.util import load_config
+from cosmic.util import load_module
 import cosmic.WP2.seasonal_precip_analysis as spa
 
 
@@ -46,7 +46,7 @@ def main(cmorph_dataset, resolution, start_year_month, end_year_month, season, p
 
 
 if __name__ == '__main__':
-    config = load_config(sys.argv[1])
+    config = load_module(sys.argv[1])
     config_key = sys.argv[2]
 
     (start_year_month, end_year_month, season, precip_thresh) = config.SCRIPT_ARGS[config_key]

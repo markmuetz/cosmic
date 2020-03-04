@@ -3,7 +3,7 @@ from pathlib import Path
 
 import iris
 
-from cosmic.util import load_config
+from cosmic.util import load_module
 import cosmic.WP2.seasonal_precip_analysis as spa
 
 
@@ -29,7 +29,7 @@ def main(start_year_month, end_year_month,
 
 
 if __name__ == '__main__':
-    config = load_config(sys.argv[1])
+    config = load_module(sys.argv[1])
     config_key = sys.argv[2]
     main(config.START_YEAR_MONTH, config.END_YEAR_MONTH, 
          config.SPLIT_STREAM, config.LOC,

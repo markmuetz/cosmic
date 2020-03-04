@@ -25,6 +25,8 @@ from paths import PATHS
 
 logger = getLogger('remake.basin_weighted_analysis')
 
+REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
+
 BSUB_KWARGS = {
     'queue': 'short-serial',
     'max_runtime': '04:00',
@@ -323,7 +325,7 @@ def plot_cmorph_mean_precip_diff(inputs, outputs, dataset, hb_name):
     extent = (lon_min, lon_max, lat_min, lat_max)
 
     plt.figure(figsize=(10, 8))
-    plt.title(f'{dataset} mean_precip. RMSE: {cmorph_rmse:.3f} mm hr$^{{-1}}$; MAE: {cmorph_mae:.3f} mm hr$^{{-1}}$')
+    plt.title(f'{dataset} mean_precip. RMSE: {cmorph_rmse:.4f} mm hr$^{{-1}}$; MAE: {cmorph_mae:.3f} mm hr$^{{-1}}$')
     masked_mean_precip_map = np.ma.masked_array(mean_precip_map - cmorph_mean_precip_map, raster_cube.data == 0)
     # absmax = np.abs(masked_mean_precip_map).max()
     absmax = 3

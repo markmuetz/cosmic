@@ -1,7 +1,7 @@
 import sys
 import datetime as dt
 
-from cosmic.util import load_config
+from cosmic.util import load_module
 from cosmic.datasets.cmorph.cmorph_downloader import CmorphDownloader
 
 
@@ -19,6 +19,6 @@ def main(year):
 
 
 if __name__ == '__main__':
-    config = load_config(sys.argv[1])
+    config = load_module(sys.argv[1])
     config_key = int(sys.argv[2])
     main(config.SCRIPT_ARGS[config_key])

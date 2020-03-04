@@ -3,7 +3,7 @@ import sys
 import iris
 from iris.experimental.equalise_cubes import equalise_attributes
 
-from cosmic.util import load_config
+from cosmic.util import load_module
 import cosmic.WP2.seasonal_precip_analysis as spa
 
 
@@ -32,7 +32,7 @@ def main(models_settings, start_year, end_year, model, precip_thresh, season):
 
 
 if __name__ == '__main__':
-    config = load_config(sys.argv[1])
+    config = load_module(sys.argv[1])
     config_key = sys.argv[2]
     main(config.MODELS, config.START_YEAR, config.END_YEAR,
          *config.SCRIPT_ARGS[config_key])
