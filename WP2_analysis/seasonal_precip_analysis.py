@@ -12,6 +12,8 @@ BSUB_KWARGS = {
     'max_runtime': '10:00',
 }
 
+REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
+
 
 def fmt_year_month(year, month):
     return f'{year}{month:02}'

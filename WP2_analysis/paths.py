@@ -7,13 +7,13 @@ ALL_PATHS = {
         'datadir': Path('/home/markmuetz/mirrors/jasmin/gw_cosmic/mmuetz/data'),
         'output_datadir': Path('/home/markmuetz/cosmic_WP2_analysis/data'),
         'hydrosheds_dir': Path('/home/markmuetz/HydroSHEDS'),
-        'figsdir': Path('figs/mistakenot'),
+        'figsdir': Path('/home/markmuetz/cosmic_WP2_analysis/figs/mistakenot'),
     },
     'zerogravitas': {
         'datadir': Path('/home/markmuetz/mirrors/jasmin/gw_cosmic/mmuetz/data'),
         'output_datadir': Path('/home/markmuetz/cosmic_WP2_analysis/data'),
         'hydrosheds_dir': Path('/home/markmuetz/HydroSHEDS'),
-        'figsdir': Path('figs/zerogravitas'),
+        'figsdir': Path('/home/markmuetz/cosmic_WP2_analysis/figs/zerogravitas'),
     },
     'jasmin': {
         'datadir': Path('/gws/nopw/j04/cosmic/mmuetz/data'),
