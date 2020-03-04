@@ -22,48 +22,19 @@ TITLE_RUNID_MAP = {
 }
 
 
-class AFI_base:
-    def __init__(self, datadir, figsdir, duration, precip_thresh, method='peak'):
-        self.datadir = Path(datadir)
-        self.figsdir = Path(figsdir)
-        self.figsdir.mkdir(parents=True, exist_ok=True)
-        self.duration = duration
-        self.precip_thresh = precip_thresh
-        self.thresh_text = str(precip_thresh).replace('.', 'p')
+class AFI_basePlotter:
+    def __init__(self, season, method='peak'):
+        self.season = season
         self.method = method
-
-        self.runids = ['cmorph_8km', 'ak543', 'al508']
-        self.season = 'jja'
-
-        self.cubes = {}
-        self.load_cubes()
         self.fig_axes, self.cb_axes = self.gen_axes()
+        self.cubes = {}
+        self.runids = []
 
-    def __str__(self):
-        return f'{self.__class__.__name__}: {self.duration}, {self.precip_thresh}'
-
-    def load_cubes(self):
-        for runid in self.runids:
-            self.cubes[runid] = {}
-            if runid == 'cmorph_8km':
-                rel_path = 'cmorph_data/8km-30min'
-                if self.duration == 'short':
-                    daterange = '200906-200908'
-                elif self.duration == 'long':
-                    daterange = '199801-201812'
-                filename = f'cmorph_ppt_{self.season}.{daterange}.asia_precip.ppt_thresh_{self.thresh_text}.N1280.nc'
-            else:
-                if self.duration == 'short':
-                    daterange = '200806-200808'
-                elif self.duration == 'long':
-                    daterange = '200502-200901'
-
-                rel_path = f'u-{runid}/ap9.pp'
-                filename = f'{runid}a.p9{self.season}.{daterange}.asia_precip.ppt_thresh_{self.thresh_text}.nc'
-
-            for mode in MODES:
-                cube = iris.load_cube(str(self.datadir / rel_path / filename), f'{mode}_of_precip_{self.season}')
-                self.cubes[runid][f'{mode}_{self.season}'] = cube
+    def set_cubes(self, cubes):
+        self.cubes = cubes
+        for runid, cube_name in cubes.keys():
+            if runid not in self.runids:
+                self.runids.append(runid)
 
     def plot(self):
         print(f'plotting {self}')
@@ -72,7 +43,7 @@ class AFI_base:
             images = []
             for j, mode in enumerate(MODES):
                 ax = self.fig_axes[i, j]
-                images.append(self.plot_ax(ax, self.cubes[runid][f'{mode}_{self.season}'], runid, mode))
+                images.append(self.plot_ax(ax, self.cubes[runid, f'{mode}_of_precip_{self.season}'], runid, mode))
 
                 ax.coastlines(resolution='50m')
                 ax.set_xlim((97.5, 125))
@@ -104,7 +75,6 @@ class AFI_base:
 
         self.fig.subplots_adjust(top=0.95, bottom=0.05, left=0.07, right=0.99, wspace=0.1, hspace=0.1)
 
-    def save(self):
-        plt.savefig(f'{self.figsdir}/'
-                    f'{self.name}.{self.duration}.{self.season}.{self.method}.ppt_thresh_{self.precip_thresh}.png')
+    def save(self, path):
+        plt.savefig(path)
         plt.close('all')

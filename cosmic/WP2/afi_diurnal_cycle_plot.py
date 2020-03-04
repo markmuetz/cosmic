@@ -1,16 +1,15 @@
 from argparse import ArgumentParser
-import sys
 
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import cartopy.crs as ccrs
 
-from .afi_base import AFI_base, load_cmap_data, MODES, TITLE_MODE_MAP, TITLE_RUNID_MAP
+from .afi_base import AFI_basePlotter, load_cmap_data, MODES, TITLE_MODE_MAP, TITLE_RUNID_MAP
 from cosmic.WP2.diurnal_cycle_analysis import calc_diurnal_cycle_phase_amp_peak, calc_diurnal_cycle_phase_amp_harmonic
 
 
-class AFI_diurnal_cycle(AFI_base):
+class AFI_diurnalCyclePlotter(AFI_basePlotter):
     name = 'afi_diurnal_cycle'
 
     def gen_axes(self):

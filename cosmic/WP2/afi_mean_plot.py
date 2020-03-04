@@ -6,12 +6,10 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import cartopy.crs as ccrs
 
-from .afi_base import AFI_base, load_cmap_data, MODES, TITLE_MODE_MAP, TITLE_RUNID_MAP
+from .afi_base import AFI_basePlotter, load_cmap_data, MODES, TITLE_MODE_MAP, TITLE_RUNID_MAP
 
 
-class AFI_mean(AFI_base):
-    name = 'afi_mean'
-
+class AFI_meanPlotter(AFI_basePlotter):
     def gen_axes(self):
         self.fig = plt.figure(figsize=(10, 10))
         gs = gridspec.GridSpec(4, 3, figure=self.fig, height_ratios=[1, 1, 1, 0.2])
