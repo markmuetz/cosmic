@@ -10,6 +10,9 @@ from remake import Task, TaskControl
 from paths import PATHS
 
 
+REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
+
+
 def gen_vector_basin_stats(inputs, outputs, hb_names):
     columns = ['basin_scale', 'num_basins', 'total_area', 'avg_area', ]
     output = []
@@ -43,10 +46,13 @@ def gen_weights_basin_stats(inputs, outputs, resolutions, hb_names):
 
 
 def gen_task_ctrl():
-    task_ctrl = TaskControl()
+    task_ctrl = TaskControl(enable_file_task_content_checks=True,
+                            dotremake_dir='.remake.basin_stats')
     hb_names = [f'S{i}' for i in range(11)]
 
-    inputs = {f'basin_vector_{hb_name}': f'data/basin_weighted_analysis/hb_{hb_name}.shp'
+    output_datadir = PATHS['output_datadir']
+
+    inputs = {f'basin_vector_{hb_name}': output_datadir / 'basin_weighted_analysis' / hb_name / f'hb_{hb_name}.shp'
               for hb_name in hb_names}
 
     task_ctrl.add(Task(gen_vector_basin_stats,
@@ -56,7 +62,8 @@ def gen_task_ctrl():
                        ))
 
     resolutions = ['N1280', 'N512', 'N216', 'N96']
-    inputs = {f'basin_weights_{res}_{hb_name}': f'data/basin_weighted_analysis/weights_{res}_{hb_name}.nc'
+    inputs = {f'basin_weights_{res}_{hb_name}': (output_datadir /
+                                                 'basin_weighted_analysis' / hb_name / f'weights_{res}_{hb_name}.nc')
               for res in resolutions
               for hb_name in hb_names}
 
