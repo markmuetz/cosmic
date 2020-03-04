@@ -5,6 +5,7 @@ from remake import TaskControl, Task
 from cosmic.WP2 import plot_seasonal_analysis
 
 from paths import PATHS
+from util import task_unique_name_from_fn_args_kwargs
 
 REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
 
@@ -82,13 +83,10 @@ def gen_task_ctrl():
     task_ctrl = TaskControl(enable_file_task_content_checks=True, dotremake_dir='.remake.plot_seasonal_analysis')
 
     for fn, args, kwargs in all_seasonal_analysis_gen():
-        task_str = (fn.__code__.co_name +
-                    ''.join(str(a) for a in args) +
-                    ''.join(str(k) + str(v) for k, v in kwargs.items()))
-        task_unique_filename = sha1(task_str.encode()).hexdigest() + '.task'
+        task_unique_name = task_unique_name_from_fn_args_kwargs(fn, args, kwargs)
         task = Task(fn,
                     [plot_seasonal_analysis.__file__],
-                    [PATHS['figsdir'] / 'seasonal_analysis' / task_unique_filename],
+                    [PATHS['figsdir'] / 'seasonal_analysis' / task_unique_name],
                     func_args=args,
                     func_kwargs=kwargs)
         task_ctrl.add(task)
