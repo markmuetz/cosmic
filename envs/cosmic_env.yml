@@ -110,6 +110,7 @@ dependencies:
   - markupsafe=1.1.1=py38h516909a_0
   - matplotlib=2.2.4=py38_2
   - matplotlib-base=2.2.4=py38h250f245_2
+  - metpy=0.12.0=py_0
   - mock=3.0.5=py38_0
   - msgpack-python=0.6.2=py38hc9558a2_0
   - munch=2.5.0=py_0
