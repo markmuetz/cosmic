@@ -1,4 +1,4 @@
-from hashlib import sha1
+import headless_matplotlib
 import itertools
 
 from remake import TaskControl, Task

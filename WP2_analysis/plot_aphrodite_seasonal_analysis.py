@@ -1,3 +1,4 @@
+import headless_matplotlib
 from pathlib import Path
 
 from remake import TaskControl, Task

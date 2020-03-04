@@ -1,3 +1,4 @@
+import headless_matplotlib
 import matplotlib.pyplot as plt
 
 from remake import TaskControl, Task

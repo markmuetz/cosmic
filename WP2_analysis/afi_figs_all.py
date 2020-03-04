@@ -1,7 +1,7 @@
 import itertools
 
+import headless_matplotlib
 import iris
-import matplotlib.pyplot as plt
 
 from cosmic.WP2.afi_mean_plot import AFI_meanPlotter
 from cosmic.WP2.afi_diurnal_cycle_plot import AFI_diurnalCyclePlotter
