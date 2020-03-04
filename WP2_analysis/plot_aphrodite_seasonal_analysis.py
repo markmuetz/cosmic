@@ -10,7 +10,7 @@ REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
 
 
 def gen_task_ctrl():
-    task_ctrl = TaskControl(enable_file_task_content_checks=True, dotremake_dir='.remake.plot_gauge_data')
+    task_ctrl = TaskControl(enable_file_task_content_checks=True, dotremake_dir='.remake.plot_aphrodite')
     aphrodite_dir = Path('aphrodite_data/025deg')
     inputs = {
         ' daily precipitation analysis interpolated onto 0.25deg grids': (PATHS['datadir'] /
