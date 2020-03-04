@@ -182,16 +182,17 @@ def load_module(local_filename):
     if not module_path.exists():
         raise CosmicError(f'Module file {module_path} does not exist')
 
-    # No longer needed due to sys.modules line below.
     # Make sure any local imports in the config script work.
-    # sys.path.append(str(module_path.parent))
+    sys.path.append(str(module_path.parent))
     module_name = Path(local_filename).stem
 
     try:
         # See: https://stackoverflow.com/a/50395128/54557
         spec = importlib.util.spec_from_file_location(module_name, module_path)
         module = importlib.util.module_from_spec(spec)
-        sys.modules[spec.name] = module
+        # N.B. this did not work for me when importing file based on name.
+        # Instead used above sys.path.append.
+        # sys.modules[spec.name] = module
         spec.loader.exec_module(module)
     except SyntaxError as se:
         print(f'Bad syntax in config file {module_path}')
