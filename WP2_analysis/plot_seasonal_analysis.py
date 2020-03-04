@@ -1,3 +1,4 @@
+from hashlib import sha1
 import itertools
 
 from remake import TaskControl, Task
@@ -38,20 +39,25 @@ HADGEMS = [
 ]
 
 
+def do_plot(inputs, outputs, *args):
+    plot_seasonal_analysis.main(*args)
+    outputs[0].touch()
+
+
 def all_seasonal_analysis_gen():
     for runid, daterange in itertools.product(RUNIDS, UM_DATERANGE):
         seasons = ['jja']
         resolution = None
         args = (PATHS['datadir'], PATHS['hydrosheds_dir'], PATHS['figsdir'],
                 runid, daterange, seasons, resolution, PRECIP_THRESHES)
-        yield plot_seasonal_analysis.main, args, {}
+        yield do_plot, args, {}
 
     for runid in HADGEMS:
         seasons = ['JJA']
         resolution = 'N1280'
         args = (PATHS['datadir'], PATHS['hydrosheds_dir'], PATHS['figsdir'],
                 runid, '2005-2009', seasons, resolution, PRECIP_THRESHES)
-        yield plot_seasonal_analysis.main, args, {}
+        yield do_plot, args, {}
 
     for cmorph, daterange in itertools.product(CMORPHS, CMORPH_DATERANGE):
         seasons = ['jja']
@@ -60,31 +66,31 @@ def all_seasonal_analysis_gen():
             if daterange == '199801-201812':
                 args = (PATHS['datadir'], PATHS['hydrosheds_dir'], PATHS['figsdir'],
                         cmorph, daterange, seasons, resolution, [0.1])
-                yield plot_seasonal_analysis.main, args, {}
+                yield do_plot, args, {}
 
             resolution = 'N1280'
             args = (PATHS['datadir'], PATHS['hydrosheds_dir'], PATHS['figsdir'],
                     cmorph, daterange, seasons, resolution, PRECIP_THRESHES)
-            yield plot_seasonal_analysis.main, args, {}
+            yield do_plot, args, {}
         else:
             args = (PATHS['datadir'], PATHS['hydrosheds_dir'], PATHS['figsdir'],
                     cmorph, daterange, seasons, resolution, PRECIP_THRESHES)
-            yield plot_seasonal_analysis.main, args, {}
+            yield do_plot, args, {}
 
 
 def gen_task_ctrl():
     task_ctrl = TaskControl(enable_file_task_content_checks=True, dotremake_dir='.remake.plot_seasonal_analysis')
-    # This depends on the file cosmic/plot_seasonal_analysis.py -- any changes to this will require rerun.
-    task = Task(main, [plot_seasonal_analysis.__file__], [PATHS['figsdir'] / 'plot_seasonal_analysis' / 'task.out'])
-    task_ctrl.add(task)
-    return task_ctrl
 
-
-def main(inputs, outputs):
     for fn, args, kwargs in all_seasonal_analysis_gen():
-        fn(*args, **kwargs)
-    outputs[0].touch()
+        task_str = (fn.__code__.co_name +
+                    ''.join(str(a) for a in args) +
+                    ''.join(str(k) + str(v) for k, v in kwargs.items()))
+        task_unique_filename = sha1(task_str.encode()).hexdigest() + '.task'
+        task = Task(fn,
+                    [plot_seasonal_analysis.__file__],
+                    [PATHS['figsdir'] / 'seasonal_analysis' / task_unique_filename],
+                    func_args=args,
+                    func_kwargs=kwargs)
+        task_ctrl.add(task)
 
-
-if __name__ == '__main__':
-    main(None, None)
+    return task_ctrl
