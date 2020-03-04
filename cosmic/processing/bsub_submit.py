@@ -5,7 +5,7 @@ import subprocess as sp
 from pathlib import Path
 from timeit import default_timer as timer
 
-from cosmic.util import load_config, sysrun
+from cosmic.util import load_module, sysrun
 
 
 BSUB_SCRIPT_TPL = """#!/bin/bash
@@ -60,7 +60,7 @@ def submit_bsub_script(bsub_script_path):
 
 
 def main(config_filename):
-    config = load_config(config_filename)
+    config = load_module(config_filename)
     logger.debug(config)
 
     bsub_dir = Path('bsub_scripts')

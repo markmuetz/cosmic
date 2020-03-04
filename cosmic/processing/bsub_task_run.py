@@ -2,7 +2,7 @@ import sys
 from hashlib import sha1
 from pathlib import Path
 
-from cosmic.util import load_config
+from cosmic.util import load_module
 
 from remake.setup_logging import setup_stdout_logging
 
@@ -16,7 +16,7 @@ def main(config_filename, task_path_hash_key, config_path_hash):
     if config_path_hash != curr_config_path_hash:
         raise Exception(f'config file {config_path} has changed -- cannot run task.')
 
-    config = load_config(config_filename)
+    config = load_module(config_filename)
     task_ctrl = config.gen_task_ctrl()
     assert not task_ctrl.finalized, f'task control {task_ctrl} already finalized'
     task_ctrl.finalize()

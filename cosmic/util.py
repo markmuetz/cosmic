@@ -177,23 +177,27 @@ def load_cmap_data(cmap_data_filename):
     return cmap, norm, cmap_data['bounds'], cbar_kwargs
 
 
-def load_config(local_filename):
-    config_filepath = Path.cwd() / local_filename
-    if not config_filepath.exists():
-        raise CosmicError(f'Config file {config_filepath} does not exist')
+def load_module(local_filename):
+    module_path = Path.cwd() / local_filename
+    if not module_path.exists():
+        raise CosmicError(f'Module file {module_path} does not exist')
 
+    # No longer needed due to sys.modules line below.
     # Make sure any local imports in the config script work.
-    sys.path.append(str(config_filepath.parent))
+    # sys.path.append(str(module_path.parent))
+    module_name = Path(local_filename).stem
 
     try:
-        spec = importlib.util.spec_from_file_location('config', config_filepath)
-        config = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(config)
+        # See: https://stackoverflow.com/a/50395128/54557
+        spec = importlib.util.spec_from_file_location(module_name, module_path)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
     except SyntaxError as se:
-        print(f'Bad syntax in config file {config_filepath}')
+        print(f'Bad syntax in config file {module_path}')
         raise
 
-    return config
+    return module
 
 
 def sysrun(cmd):

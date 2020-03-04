@@ -7,7 +7,7 @@ from pathlib import Path
 import iris
 from iris.experimental import equalise_cubes
 
-from cosmic.util import load_config
+from cosmic.util import load_module
 
 logging.basicConfig(stream=sys.stdout, level=os.getenv('COSMIC_LOGLEVEL', 'INFO'), 
                     format='%(asctime)s %(levelname)8s: %(message)s')
@@ -101,6 +101,6 @@ def main(config, nc_dirpath):
 
 
 if __name__ == '__main__':
-    config = load_config(sys.argv[1])
+    config = load_module(sys.argv[1])
     config_key = sys.argv[2]
     main(config, config.SCRIPT_ARGS[config_key])

@@ -7,7 +7,7 @@ import logging
 import subprocess as sp
 from pathlib import Path
 
-from cosmic.util import load_config, sysrun
+from cosmic.util import load_module, sysrun
 import cosmic.processing.bsub_task_run as bsub_task_run
 
 from remake.setup_logging import add_file_logging
@@ -110,7 +110,7 @@ def main():
     output_dir.mkdir(exist_ok=True)
     add_file_logging(output_dir / 'bsub_task_submit.log')
 
-    config = load_config(args.config_filename)
+    config = load_module(args.config_filename)
     logger.debug(config)
 
     bsub_dir = Path('bsub_scripts')

@@ -6,7 +6,7 @@ from timeit import default_timer as timer
 
 import iris
 
-from cosmic.util import load_config
+from cosmic.util import load_module
 
 
 MONTH_MAP = {
@@ -75,7 +75,7 @@ def main(config, pp_filepath):
 
 
 if __name__ == '__main__':
-    config = load_config(sys.argv[1])
+    config = load_module(sys.argv[1])
     config_key = sys.argv[2]
     main(config, config.SCRIPT_ARGS[config_key])
 

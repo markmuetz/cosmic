@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 from timeit import default_timer as timer
 
-from cosmic.util import load_config, sysrun
+from cosmic.util import load_module, sysrun
 
 logging.basicConfig(stream=sys.stdout, level=os.getenv('COSMIC_LOGLEVEL', 'INFO'), 
                     format='%(asctime)s %(levelname)8s: %(message)s')
@@ -100,7 +100,7 @@ def gen_years_months(start_year_month, end_year_month):
 
 def main(config_filename):
     logger.info('retrieve_from_mass')
-    config = load_config(config_filename)
+    config = load_module(config_filename)
     logger.debug(config.ACTIVE_RUNIDS)
 
     # Check have access to all runids.
