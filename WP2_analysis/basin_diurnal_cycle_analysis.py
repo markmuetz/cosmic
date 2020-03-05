@@ -12,10 +12,11 @@ from scipy.stats import linregress
 import cosmic.WP2.diurnal_cycle_analysis as dca
 from basmati.hydrosheds import load_hydrobasins_geodataframe
 from remake import Task, TaskControl
-# from cosmic.task import Task, TaskControl
 from cosmic.fourier_series import FourierSeries
 from cosmic.util import build_raster_cube_from_cube, load_cmap_data, circular_rmse, rmse
 from paths import PATHS
+
+REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
 
 SCALES = {
     'small': (2_000, 20_000),
@@ -40,27 +41,24 @@ def savefig(filename):
     plt.close('all')
 
 
-def load_dataset(dataset, mode='amount'):
+def dataset_path(dataset):
     if dataset == 'cmorph':
         cmorph_path = (PATHS['datadir'] /
                        'cmorph_data/8km-30min/cmorph_ppt_jja.199801-201812.asia_precip.ppt_thresh_0p1.N1280.nc')
-        cmorph_cube = iris.load_cube(str(cmorph_path), f'{mode}_of_precip_jja')
-        return cmorph_cube
+        return cmorph_path
     elif dataset[:2] == 'u-':
         um_path = (PATHS['datadir'] /
-                   f'{dataset}/ap9.pp/{dataset[2:]}a.p9jja.200502-200901.asia_precip.ppt_thresh_0p1.nc')
-        um_cube = iris.load_cube(str(um_path), f'{mode}_of_precip_jja')
-        return um_cube
+                   f'{dataset}/ap9.pp/{dataset[2:]}a.p9jja.200506-200808.asia_precip.ppt_thresh_0p1.nc')
+        return um_path
     elif dataset[:7] == 'HadGEM3':
         hadgem_path = (PATHS['datadir'] /
                        f'PRIMAVERA_HighResMIP_MOHC/local/{dataset}/{dataset}.highresSST-present.'
                        f'r1i1p1f1.2005-2009.JJA.asia_precip.N1280.ppt_thresh_0p1.nc')
-        hadgem_cube = iris.load_cube(str(hadgem_path), f'{mode}_of_precip_JJA')
-        return hadgem_cube
+        return hadgem_path
 
 
 def gen_hydrobasins_raster_cubes(inputs, outputs, scales=SCALES):
-    diurnal_cycle_cube = load_dataset(DATASETS[0], )
+    diurnal_cycle_cube = iris.load_cube(str(inputs[0]), 'amount_of_precip_jja')
     hydrosheds_dir = PATHS['hydrosheds_dir']
     hb = load_hydrobasins_geodataframe(hydrosheds_dir, 'as', range(1, 9))
     raster_cubes = []
@@ -72,13 +70,19 @@ def gen_hydrobasins_raster_cubes(inputs, outputs, scales=SCALES):
     iris.save(raster_cubes, str(outputs[0]))
 
 
-def gen_basin_vector_area_avg(inputs, outputs, diurnal_cycle_cube, raster, method):
+def gen_basin_vector_area_avg(inputs, outputs, scale, cube_name, method):
+    diurnal_cycle_cube = iris.load_cube(str(inputs['diurnal_cycle_cubes']), cube_name)
+    raster_cube = iris.load_cube(str(inputs['raster_cubes']), f'hydrobasins_raster_{scale}')
+    raster = raster_cube.data
     phase_mag = dca.calc_vector_area_avg(diurnal_cycle_cube, raster, method)
     df = pd.DataFrame(phase_mag, columns=['phase', 'magnitude'])
     df.to_hdf(outputs[0], outputs[0].stem)
 
 
-def gen_basin_area_avg_phase_mag(inputs, outputs, diurnal_cycle_cube, raster, method):
+def gen_basin_area_avg_phase_mag(inputs, outputs, scale, cube_name, method):
+    diurnal_cycle_cube = iris.load_cube(str(inputs['diurnal_cycle_cubes']), cube_name)
+    raster_cube = iris.load_cube(str(inputs['raster_cubes']), f'hydrobasins_raster_{scale}')
+    raster = raster_cube.data
     lon = diurnal_cycle_cube.coord('longitude').points
     lat = diurnal_cycle_cube.coord('latitude').points
     dc_basins = []
@@ -117,8 +121,11 @@ def gen_basin_area_avg_phase_mag(inputs, outputs, diurnal_cycle_cube, raster, me
     df.to_hdf(outputs[0], outputs[0].stem)
 
 
-def gen_phase_mag_map(inputs, outputs, diurnal_cycle_cube, raster):
-    df_phase_mag = pd.read_hdf(inputs[0], inputs[0].stem)
+def gen_phase_mag_map(inputs, outputs, scale, cube_name):
+    diurnal_cycle_cube = iris.load_cube(str(inputs['diurnal_cycle_cubes']), cube_name)
+    raster_cube = iris.load_cube(str(inputs['raster_cubes']), f'hydrobasins_raster_{scale}')
+    raster = raster_cube.data
+    df_phase_mag = pd.read_hdf(inputs['df_phase_mag'])
     # Use phase_mag and raster to make 2D maps.
     phase_mag = df_phase_mag.values
     phase_map = np.zeros_like(raster, dtype=float)
@@ -155,7 +162,12 @@ def plot_mag_cmorph_vs_datasets_ax(ax, rmses, xticks):
     ax.set_xticks(xticks, ['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
 
 
-def plot_cmorph_vs_all_datasets(inputs, outputs, rmses, xticks):
+def plot_cmorph_vs_all_datasets(inputs, outputs, raster_scales):
+    if raster_scales == 'small_medium_large':
+        xticks = [0, 1, 2]
+    elif raster_scales == 'sliding':
+        xticks = [0, 5, 10]
+    rmses = pickle.loads(inputs[0].read_bytes())
     both_filename = outputs[0]
     fig, axes = plt.subplots(2, 3, sharex=True, num=str(both_filename), figsize=(12, 8))
     for i, mode in enumerate(rmses.keys()):
@@ -179,7 +191,13 @@ def plot_cmorph_vs_all_datasets(inputs, outputs, rmses, xticks):
     savefig(both_filename)
 
 
-def plot_cmorph_vs_all_datasets2(inputs, outputs, mode, rmses_for_mode, xticks):
+def plot_cmorph_vs_all_datasets2(inputs, outputs, mode, raster_scales):
+    if raster_scales == 'small_medium_large':
+        xticks = [0, 1, 2]
+    elif raster_scales == 'sliding':
+        xticks = [0, 5, 10]
+    rmses = pickle.loads(inputs[0].read_bytes())
+    rmses_for_mode = rmses[mode]
     phase_filename, mag_filename = outputs
     plt.figure(str(phase_filename))
     plt.clf()
@@ -198,11 +216,12 @@ def plot_cmorph_vs_all_datasets2(inputs, outputs, mode, rmses_for_mode, xticks):
     savefig(mag_filename)
 
 
-def plot_phase_mag(inputs, outputs, basin_scale, mode, raster_cube, row):
+def plot_phase_mag(inputs, outputs, scale, mode, row):
+    raster_cube = iris.load_cube(str(inputs['raster_cubes']), f'hydrobasins_raster_{scale}')
     phase_filename, mag_filename = outputs
-    print(f'Plot maps - {basin_scale}_{mode}: {row.dataset}_{row.task.outputs[0]}')
+    print(f'Plot maps - {scale}_{mode}: {row.dataset}_{row.task.outputs[0]}')
     cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig3_cb.pkl')
-    phase_mag_cubes = row.task.load_output()
+    phase_mag_cubes = iris.load(str(inputs['phase_mag_cubes']))
     phase_map = phase_mag_cubes.extract_strict('phase_map')
     mag_map = phase_mag_cubes.extract_strict('magnitude_map')
 
@@ -238,13 +257,13 @@ def plot_phase_mag(inputs, outputs, basin_scale, mode, raster_cube, row):
     savefig(mag_filename)
 
 
-def plot_dataset_scatter(inputs, outputs, basin_scale, mode, row1, row2):
+def plot_dataset_scatter(inputs, outputs, scale, mode, row1, row2):
     phase_scatter_filename, mag_scatter_filename = outputs
-    title = f'{basin_scale}_{mode}_{row1.dataset}_{row1.analysis_order}_{row1.method}-' \
+    title = f'{scale}_{mode}_{row1.dataset}_{row1.analysis_order}_{row1.method}-' \
             f'{row2.dataset}_{row2.analysis_order}_{row2.method}'
     print(f'Plot comparison - {title}')
-    phase_mag1 = row1.task.load_output()
-    phase_mag2 = row2.task.load_output()
+    phase_mag1 = pd.read_hdf(inputs[0])
+    phase_mag2 = pd.read_hdf(inputs[1])
     plt.figure(f'{title}_phase_scatter', figsize=(10, 8))
     plt.clf()
     use_sin = False
@@ -290,67 +309,105 @@ def plot_dataset_scatter(inputs, outputs, basin_scale, mode, row1, row2):
     savefig(mag_scatter_filename)
 
 
+def gen_rmses(inputs, outputs, scales):
+    rmses = {}
+    raster_cubes = iris.load(str(inputs['raster_cubes']))
+
+    for mode in MODES:
+        rmses_for_mode = {}
+
+        for dataset in DATASETS[1:]:
+            phase_rmses = []
+            mag_rmses = []
+            for scale in scales:
+                raster_cube = raster_cubes.extract_strict(f'hydrobasins_raster_{scale}')
+                raster = raster_cube.data
+                cmorph_phase_mag = iris.load(str(inputs[mode, 'cmorph', scale]))
+                dataset_phase_mag = iris.load(str(inputs[mode, dataset, scale]))
+
+                cmorph_phase = cmorph_phase_mag.extract_strict('phase_map')
+                cmorph_mag = cmorph_phase_mag.extract_strict('magnitude_map')
+
+                dataset_phase = dataset_phase_mag.extract_strict('phase_map')
+                dataset_mag = dataset_phase_mag.extract_strict('magnitude_map')
+
+                phase_rmses.append(circular_rmse(cmorph_phase.data[raster != 0],
+                                                 dataset_phase.data[raster != 0]))
+                mag_rmses.append(rmse(cmorph_mag.data[raster != 0],
+                                      dataset_mag.data[raster != 0]))
+            rmses_for_mode[dataset] = (phase_rmses, mag_rmses)
+        rmses[mode] = rmses_for_mode
+    with outputs[0].open('wb') as f:
+        pickle.dump(rmses, f)
+
+
+def verify_lats_lons(inputs, outputs):
+    cubes = [iris.load_cube(str(p), 'precip_flux_mean') for p in inputs]
+    first_lats, first_lons = cubes[0].coord('latitude').points, cubes[0].coord('longitude').points
+    for cube in cubes[1:]:
+        lats, lons = cube.coord('latitude').points, cube.coord('longitude').points
+        if (lats != first_lats).any() or (lons != first_lons).any():
+            raise Exception(f'flat lon mismatch between {cube} and {cubes[0]}')
+    outputs[0].write_text(f'All lats/lons identical for: {[p for p in inputs]}\nlats:{lats}\nlons:{lons}\n')
+
+
 class DiurnalCycleAnalysis:
-    def __init__(self, raster_scales='small_medium_large', force=False):
-        self.analysis_task_ctrl = TaskControl()
-        self.fig_task_ctrl = TaskControl()
-        self.raster_scales = raster_scales
-        if self.raster_scales == 'small_medium_large':
-            self.scales = SCALES
-        elif self.raster_scales == 'sliding':
-            self.scales = SLIDING_SCALES
+    def __init__(self, force=False):
+        self.task_ctrl = TaskControl(enable_file_task_content_checks=True,
+                                     dotremake_dir='.remake.basin_diurnal_cycle_analysis')
         self.force = force
+        self.df_keys_data = []
         self.df_keys = None
         self.figsdir = PATHS['figsdir'] / 'basin_diurnal_cycle_analysis'
-        self.figsdir.mkdir(parents=True, exist_ok=True)
-        self.keys = []
-        self.prev_lon, self.prev_lat = None, None
-        self.ordered_raster_cubes = []
+        self.hb_raster_cubes_fn = None
+        self.raster_scales = None
+        self.scales = None
 
-    def load_ordered_raster_cubes(self):
-        hb_raster_cubes_fn = f'data/basin_diurnal_cycle_analysis/hb_N1280_raster_{self.raster_scales}.nc'
-        hb_raster_cubes_task = Task(gen_hydrobasins_raster_cubes, [], [hb_raster_cubes_fn],
-                                    func_args=[self.scales])
-        hb_raster_cubes = hb_raster_cubes_task.run().load_output()
-        self.ordered_raster_cubes = [hb_raster_cubes.extract_strict(f'hydrobasins_raster_{s}') for s in self.scales]
+    def gen_all(self):
+        dataset_paths = [dataset_path(d) for d in DATASETS]
+
+        self.task_ctrl.add(Task(verify_lats_lons, dataset_paths, [PATHS['output_datadir'] /
+                                                                  'basin_diurnal_cycle_analysis' /
+                                                                  'verify_lats_lons.txt' ]))
+
+        for self.raster_scales in ['small_medium_large', 'sliding']:
+            if self.raster_scales == 'small_medium_large':
+                self.scales = SCALES
+            elif self.raster_scales == 'sliding':
+                self.scales = SLIDING_SCALES
+
+            self.hb_raster_cubes_fn = (PATHS['output_datadir'] /
+                                       f'basin_diurnal_cycle_analysis/hb_N1280_raster_{self.raster_scales}.nc')
+            hb_raster_cubes_task = Task(gen_hydrobasins_raster_cubes, [dataset_path('cmorph')], [self.hb_raster_cubes_fn],
+                                        func_args=[self.scales])
+            self.task_ctrl.add(hb_raster_cubes_task)
+
+            for dataset, mode in itertools.product(DATASETS, MODES):
+                self.gen_analysis_tasks(dataset, mode)
+            self.df_keys = pd.DataFrame(self.df_keys_data)
+
+            for scale, mode in itertools.product(self.scales, MODES):
+                self.gen_fig_tasks(scale, mode)
+
+            self.gen_cmorph_vs_datasets_fig_tasks()
+
+    def run(self):
+        self.task_ctrl.finalize()
+        self.task_ctrl.run(self.force)
 
     def gen_analysis_tasks(self, dataset, mode):
-        if not self.ordered_raster_cubes:
-            self.load_ordered_raster_cubes()
-
         print(f'Dataset, mode: {dataset}, {mode}')
-        diurnal_cycle_cube = load_dataset(dataset, mode)
-        # Verify all longitudes/latitudes are the same.
-        lon = diurnal_cycle_cube.coord('longitude').points
-        lat = diurnal_cycle_cube.coord('latitude').points
-        if self.prev_lon is not None and self.prev_lat is not None:
-            assert (lon == self.prev_lon).all() and (lat == self.prev_lat).all()
-        self.prev_lon, self.prev_lat = lon, lat
+        diurnal_cycle_cube_path = dataset_path(dataset)
 
-        for raster_cube, method in itertools.product(self.ordered_raster_cubes,
-                                                     ['peak', 'harmonic']):
-            print(f'  raster_cube, method: {raster_cube.name()}, {method}')
-            self.basin_vector_area_avg(dataset, diurnal_cycle_cube, raster_cube, method, mode)
-            self.basin_area_avg(dataset, diurnal_cycle_cube, raster_cube, method, mode)
+        for scale, method in itertools.product(self.scales,
+                                               ['peak', 'harmonic']):
+            print(f'  scale, method: {scale}, {method}')
+            self.basin_vector_area_avg(dataset, diurnal_cycle_cube_path, scale, method, mode)
+            self.basin_area_avg(dataset, diurnal_cycle_cube_path, scale, method, mode)
 
-    def run_all(self):
-        for dataset, mode in itertools.product(DATASETS, MODES):
-            self.gen_analysis_tasks(dataset, mode)
-
-        self.analysis_task_ctrl.finalize()
-        self.df_keys = self.analysis_task_ctrl.index
-
-        for raster_cube, mode in itertools.product(self.ordered_raster_cubes, MODES):
-            self.gen_fig_tasks(raster_cube, mode)
-
-        self.gen_cmorph_vs_datasets_fig_tasks()
-
-        self.analysis_task_ctrl.run(self.force)
-        self.fig_task_ctrl.finalize().run(self.force)
-
-    def gen_rmses(self, inputs, outputs):
-        rmses = {}
-
+    def gen_cmorph_vs_datasets_fig_tasks(self):
+        rmses_filename = Path(PATHS['output_datadir'] / f'basin_diurnal_cycle_analysis/rmses_{self.raster_scales}.pkl')
+        inputs = {}
         for mode in MODES:
             selector = ((self.df_keys.method == 'harmonic') &
                         (self.df_keys.type == 'phase_mag_cubes') &
@@ -359,107 +416,92 @@ class DiurnalCycleAnalysis:
 
             df_cmorph = self.df_keys[selector & (self.df_keys.dataset == 'cmorph')]
 
-            rmses_for_mode = {}
-
             for dataset in DATASETS[1:]:
-                phase_rmses = []
-                mag_rmses = []
                 df_dataset = self.df_keys[selector & (self.df_keys.dataset == dataset)]
-                for raster_cube, scale in zip(self.ordered_raster_cubes, self.scales):
-                    raster = raster_cube.data
+                for scale in self.scales:
+                    inputs[mode, 'cmorph', scale] = (df_cmorph[df_cmorph.basin_scale == scale]
+                                                     .task.values[0].outputs[0])
+                    inputs[mode, dataset, scale] = (df_dataset[df_dataset.basin_scale == scale]
+                                                    .task.values[0].outputs[0])
+        inputs['raster_cubes'] = self.hb_raster_cubes_fn
+        self.task_ctrl.add(Task(gen_rmses, inputs, [rmses_filename], func_args=(self.scales,)))
 
-                    cmorph_phase_mag = (df_cmorph[df_cmorph.basin_scale == f'hydrobasins_raster_{scale}']
-                                        .task.values[0].load_output())
-                    dataset_phase_mag = (df_dataset[df_dataset.basin_scale == f'hydrobasins_raster_{scale}']
-                                         .task.values[0].load_output())
-
-                    cmorph_phase = cmorph_phase_mag.extract_strict('phase_map')
-                    cmorph_mag = cmorph_phase_mag.extract_strict('magnitude_map')
-
-                    dataset_phase = dataset_phase_mag.extract_strict('phase_map')
-                    dataset_mag = dataset_phase_mag.extract_strict('magnitude_map')
-
-                    phase_rmses.append(circular_rmse(cmorph_phase.data[raster != 0],
-                                                     dataset_phase.data[raster != 0]))
-                    mag_rmses.append(rmse(cmorph_mag.data[raster != 0],
-                                          dataset_mag.data[raster != 0]))
-                rmses_for_mode[dataset] = (phase_rmses, mag_rmses)
-            rmses[mode] = rmses_for_mode
-        with outputs[0].open('wb') as f:
-            pickle.dump(rmses, f)
-
-    def gen_cmorph_vs_datasets_fig_tasks(self):
-        rmses_filename = Path(f'data/rmses_{self.raster_scales}.pkl')
-        rmses = Task(self.gen_rmses, [], [rmses_filename]).run().load_output()
-
-        if self.raster_scales == 'small_medium_large':
-            xticks = [0, 1, 2]
-        elif self.raster_scales == 'sliding':
-            xticks = [0, 5, 10]
         both_filename = Path(f'{self.figsdir}/cmorph_vs/{self.raster_scales}/'
                              f'cmorph_vs_datasets.all.phase_and_mag.png')
-        self.fig_task_ctrl.add(Task(plot_cmorph_vs_all_datasets, [], [both_filename],
-                                    func_args=[rmses, xticks]))
+        self.task_ctrl.add(Task(plot_cmorph_vs_all_datasets, [rmses_filename], [both_filename],
+                                func_args=[self.raster_scales]))
 
-        for mode, rmses_for_mode in rmses.items():
+        for mode in MODES:
             phase_filename = Path(f'{self.figsdir}/cmorph_vs/{self.raster_scales}/'
                                   f'cmorph_vs_datasets.{mode}.phase.circular_rmse.png')
             mag_filename = Path(f'{self.figsdir}/cmorph_vs/{self.raster_scales}/'
                                 f'cmorph_vs_datasets.{mode}.mag.rmse.png')
-            self.fig_task_ctrl.add(Task(plot_cmorph_vs_all_datasets2, [], [phase_filename, mag_filename],
-                                        func_args=[mode, rmses_for_mode, xticks]))
+            self.task_ctrl.add(Task(plot_cmorph_vs_all_datasets2, [rmses_filename], [phase_filename, mag_filename],
+                                    func_args=[mode, self.raster_scales]))
 
-    def basin_vector_area_avg(self, dataset, diurnal_cycle_cube, raster_cube, method, mode):
-        raster = raster_cube.data
-        fn_base = f'data/basin_diurnal_cycle_analysis/{dataset}/vector_area_avg_' \
-                  f'{diurnal_cycle_cube.name()}_{mode}_{raster_cube.name()}_{method}'
-        df_phase_mag_key = f'{fn_base}.hdf'
+    def basin_vector_area_avg(self, dataset, diurnal_cycle_cube_path, scale, method, mode):
+        fn_base = f'basin_diurnal_cycle_analysis/{dataset}/vector_area_avg_' \
+                  f'{diurnal_cycle_cube_path.stem}_{mode}_{scale}_{method}'
+        df_phase_mag_key = PATHS['output_datadir'] / f'{fn_base}.hdf'
 
         task_kwargs = dict(
             dataset=dataset,
             mode=mode,
-            basin_scale=raster_cube.name(),
+            basin_scale=scale,
             analysis_order='vector_area_avg',
             method=method,
         )
-        phase_mag_task = Task(gen_basin_vector_area_avg, [], [df_phase_mag_key],
-                              func_args=[diurnal_cycle_cube, raster, method],
-                              type='phase_mag', **task_kwargs)
 
-        phase_mag_cubes_key = f'{fn_base}.nc'
-        phase_mag_cubes_task = Task(gen_phase_mag_map, [df_phase_mag_key], [phase_mag_cubes_key],
-                                    func_args=[diurnal_cycle_cube, raster],
-                                    type='phase_mag_cubes', **task_kwargs)
-        self.analysis_task_ctrl.add(phase_mag_task)
-        self.analysis_task_ctrl.add(phase_mag_cubes_task)
+        inputs = {'raster_cubes': self.hb_raster_cubes_fn, 'diurnal_cycle_cubes': diurnal_cycle_cube_path}
+        if dataset[:7] == 'HadGEM3':
+            cube_name = 'amount_of_precip_JJA'
+        else:
+            cube_name = 'amount_of_precip_jja'
+        phase_mag_task = Task(gen_basin_vector_area_avg, inputs, [df_phase_mag_key],
+                              func_args=[scale, cube_name, method])
+        self.df_keys_data.append({**task_kwargs, **{'type': 'phase_mag', 'task': phase_mag_task}})
 
-    def basin_area_avg(self, dataset, diurnal_cycle_cube, raster_cube, method, mode):
-        raster = raster_cube.data
+        phase_mag_cubes_key = PATHS['output_datadir'] / f'{fn_base}.nc'
+        phase_mag_cubes_task = Task(gen_phase_mag_map,
+                                    {**inputs, **{'df_phase_mag': df_phase_mag_key}},
+                                    [phase_mag_cubes_key],
+                                    func_args=[scale, cube_name])
+        self.df_keys_data.append({**task_kwargs, **{'type': 'phase_mag_cubes', 'task': phase_mag_cubes_task}})
+        self.task_ctrl.add(phase_mag_task)
+        self.task_ctrl.add(phase_mag_cubes_task)
 
-        fn_base = f'data/basin_diurnal_cycle_analysis/{dataset}/basin_area_avg_' \
-                  f'{diurnal_cycle_cube.name()}_{mode}_{raster_cube.name()}_{method}'
+    def basin_area_avg(self, dataset, diurnal_cycle_cube_path, scale, method, mode):
+        fn_base = f'basin_diurnal_cycle_analysis/{dataset}/basin_area_avg_' \
+                  f'{diurnal_cycle_cube_path.stem}_{mode}_{scale}_{method}'
 
         task_kwargs = dict(
             dataset=dataset,
             mode=mode,
-            basin_scale=raster_cube.name(),
+            basin_scale=scale,
             analysis_order='basin_area_avg',
             method=method,
         )
 
-        df_phase_mag_key = f'{fn_base}.hdf'
-        phase_mag_task = Task(gen_basin_area_avg_phase_mag, [], [df_phase_mag_key],
-                              func_args=[diurnal_cycle_cube, raster, method],
-                              type='phase_mag', **task_kwargs)
+        df_phase_mag_key = PATHS['output_datadir'] / f'{fn_base}.hdf'
+        inputs = {'raster_cubes': self.hb_raster_cubes_fn, 'diurnal_cycle_cubes': diurnal_cycle_cube_path}
+        if dataset[:7] == 'HadGEM3':
+            cube_name = 'amount_of_precip_JJA'
+        else:
+            cube_name = 'amount_of_precip_jja'
+        phase_mag_task = Task(gen_basin_area_avg_phase_mag, inputs, [df_phase_mag_key],
+                              func_args=[scale, cube_name, method])
+        self.df_keys_data.append({**task_kwargs, **{'type': 'phase_mag', 'task': phase_mag_task}})
 
-        phase_mag_cubes_key = f'{fn_base}.nc'
-        phase_mag_cubes_task = Task(gen_phase_mag_map, [df_phase_mag_key], [phase_mag_cubes_key],
-                                    func_args=[diurnal_cycle_cube, raster],
-                                    type='phase_mag_cubes', **task_kwargs)
-        self.analysis_task_ctrl.add(phase_mag_task)
-        self.analysis_task_ctrl.add(phase_mag_cubes_task)
+        phase_mag_cubes_key = PATHS['output_datadir'] / f'{fn_base}.nc'
+        phase_mag_cubes_task = Task(gen_phase_mag_map,
+                                    {**inputs, **{'df_phase_mag': df_phase_mag_key}},
+                                    [phase_mag_cubes_key],
+                                    func_args=[scale, cube_name])
+        self.df_keys_data.append({**task_kwargs, **{'type': 'phase_mag_cubes', 'task': phase_mag_cubes_task}})
+        self.task_ctrl.add(phase_mag_task)
+        self.task_ctrl.add(phase_mag_cubes_task)
 
-    def gen_fig_tasks(self, raster_cube, mode):
+    def gen_fig_tasks(self, scale, mode):
         # Loop over datasets for basin_area_avg -> harmonic  for each mode and raster cube.
         for row in [
             ir[1]
@@ -467,11 +509,11 @@ class DiurnalCycleAnalysis:
             self.df_keys[(self.df_keys['type'] == 'phase_mag_cubes') &
                          (self.df_keys['dataset'] != 'cmorph') &
                          (self.df_keys['analysis_order'] == 'basin_area_avg') &
-                         (self.df_keys['basin_scale'] == raster_cube.name()) &
+                         (self.df_keys['basin_scale'] == scale) &
                          (self.df_keys['mode'] == mode) &
                          (self.df_keys['method'] == 'harmonic')
                          ].iterrows()]:
-            self.gen_phase_mag_maps_tasks(raster_cube, mode, row)
+            self.gen_phase_mag_maps_tasks(scale, mode, row)
 
         # Loop over analysis types for CMORPH for each mode and raster cube.
         for row in [
@@ -479,10 +521,10 @@ class DiurnalCycleAnalysis:
                 for ir in
                 self.df_keys[(self.df_keys['type'] == 'phase_mag_cubes') &
                              (self.df_keys['dataset'] == 'cmorph') &
-                             (self.df_keys['basin_scale'] == raster_cube.name()) &
+                             (self.df_keys['basin_scale'] == scale) &
                              (self.df_keys['mode'] == mode)
                              ].iterrows()]:
-            self.gen_phase_mag_maps_tasks(raster_cube, mode, row)
+            self.gen_phase_mag_maps_tasks(scale, mode, row)
 
         # Loop over datasets for basin_area_avg -> harmonic  for each mode and raster cube.
         phase_mag_rows = [
@@ -490,13 +532,13 @@ class DiurnalCycleAnalysis:
             for ir in
             self.df_keys[(self.df_keys['type'] == 'phase_mag') &
                          (self.df_keys['analysis_order'] == 'basin_area_avg') &
-                         (self.df_keys['basin_scale'] == raster_cube.name()) &
+                         (self.df_keys['basin_scale'] == scale) &
                          (self.df_keys['method'] == 'harmonic') &
                          (self.df_keys['mode'] == mode)
                          ].iterrows()]
 
         for row1, row2 in itertools.combinations(phase_mag_rows, 2):
-            self.gen_dataset_comparison_tasks(raster_cube, mode, row1, row2)
+            self.gen_dataset_comparison_tasks(scale, mode, row1, row2)
 
         # Loop over analysis types for CMORPH for each mode and raster cube.
         phase_mag_rows2 = [
@@ -504,50 +546,53 @@ class DiurnalCycleAnalysis:
             for ir in
             self.df_keys[(self.df_keys['type'] == 'phase_mag') &
                          (self.df_keys['dataset'] == 'cmorph') &
-                         (self.df_keys['basin_scale'] == raster_cube.name()) &
+                         (self.df_keys['basin_scale'] == scale) &
                          (self.df_keys['mode'] == mode)
                          ].iterrows()]
 
         for row1, row2 in itertools.combinations(phase_mag_rows2, 2):
-            self.gen_dataset_comparison_tasks(raster_cube, mode, row1, row2)
+            self.gen_dataset_comparison_tasks(scale, mode, row1, row2)
 
-    def gen_phase_mag_maps_tasks(self, raster_cube, mode, row):
-        basin_scale = raster_cube.name().split('_')[-1]
+    def gen_phase_mag_maps_tasks(self, scale, mode, row):
         phase_filename = Path(f'{self.figsdir}/map/{mode}/{row.dataset}_{row.analysis_order}_{row.method}'
-                              f'.{basin_scale}.phase.png')
+                              f'.{scale}.phase.png')
         mag_filename = Path(f'{self.figsdir}/map/{mode}/{row.dataset}_{row.analysis_order}_{row.method}'
-                            f'.{basin_scale}.mag.png')
-        self.fig_task_ctrl.add(Task(plot_phase_mag, [], [phase_filename, mag_filename],
-                                    func_args=[basin_scale, mode, raster_cube, row]))
+                            f'.{scale}.mag.png')
+        inputs = {'raster_cubes': self.hb_raster_cubes_fn, 'phase_mag_cubes': row.task.outputs[0]}
+        self.task_ctrl.add(Task(plot_phase_mag, inputs, [phase_filename, mag_filename],
+                                func_args=[scale, mode, row]))
 
-    def gen_dataset_comparison_tasks(self, raster_cube, mode, row1, row2):
-        basin_scale = raster_cube.name().split('_')[-1]
+    def gen_dataset_comparison_tasks(self, scale, mode, row1, row2):
         phase_scatter_filename = Path(f'{self.figsdir}/comparison/{mode}/'
                                       f'{row1.dataset}_{row1.analysis_order}_{row1.method}_vs_'
                                       f'{row2.dataset}_{row2.analysis_order}_{row2.method}.'
-                                      f'{basin_scale}.phase.png')
+                                      f'{scale}.phase.png')
         mag_scatter_filename = Path(f'{self.figsdir}/comparison/{mode}/'
                                     f'{row1.dataset}_{row1.analysis_order}_{row1.method}_vs_'
                                     f'{row2.dataset}_{row2.analysis_order}_{row2.method}.'
-                                    f'{basin_scale}.mag.png')
+                                    f'{scale}.mag.png')
 
-        self.fig_task_ctrl.add(Task(plot_dataset_scatter, [], [phase_scatter_filename, mag_scatter_filename],
-                                    func_args=[basin_scale, mode, row1, row2]))
-
-
-def run_analysis(scales, force):
-    analysis = DiurnalCycleAnalysis(scales, force)
-    analysis.run_all()
+        inputs = [row1.task.outputs[0], row2.task.outputs[0]]
+        self.task_ctrl.add(Task(plot_dataset_scatter,
+                                inputs,
+                                [phase_scatter_filename, mag_scatter_filename],
+                                func_args=[scale, mode, row1, row2]))
 
 
-def basin_analysis_all():
-    yield run_analysis, ['small_medium_large', False], {}
-    yield run_analysis, ['sliding', False], {}
+def run_analysis(force):
+    analysis = DiurnalCycleAnalysis(force)
+    analysis.gen_all()
+    analysis.run()
+
+
+def gen_task_ctrl():
+    analysis = DiurnalCycleAnalysis(False)
+    analysis.gen_all()
+    return analysis.task_ctrl
 
 
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--force', action='store_true')
-    parser.add_argument('--scales', default='small_medium_large', choices=['small_medium_large', 'sliding'])
     args = parser.parse_args()
-    run_analysis(args.scales, args.force)
+    run_analysis(args.force)
