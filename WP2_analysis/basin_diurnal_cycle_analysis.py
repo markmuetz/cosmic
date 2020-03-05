@@ -36,7 +36,6 @@ DATASETS = ['cmorph', 'u-ak543', 'u-al508', 'HadGEM3-GC31-HM', 'HadGEM3-GC31-MM'
 def savefig(filename):
     filename = Path(filename)
     filename.parent.mkdir(parents=True, exist_ok=True)
-    print(f'  save fig: {filename}')
     plt.savefig(f'{filename}')
     plt.close('all')
 
@@ -219,7 +218,6 @@ def plot_cmorph_vs_all_datasets2(inputs, outputs, mode, raster_scales):
 def plot_phase_mag(inputs, outputs, scale, mode, row):
     raster_cube = iris.load_cube(str(inputs['raster_cubes']), f'hydrobasins_raster_{scale}')
     phase_filename, mag_filename = outputs
-    print(f'Plot maps - {scale}_{mode}: {row.dataset}_{row.task.outputs[0]}')
     cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig3_cb.pkl')
     phase_mag_cubes = iris.load(str(inputs['phase_mag_cubes']))
     phase_map = phase_mag_cubes.extract_strict('phase_map')
@@ -261,7 +259,6 @@ def plot_dataset_scatter(inputs, outputs, scale, mode, row1, row2):
     phase_scatter_filename, mag_scatter_filename = outputs
     title = f'{scale}_{mode}_{row1.dataset}_{row1.analysis_order}_{row1.method}-' \
             f'{row2.dataset}_{row2.analysis_order}_{row2.method}'
-    print(f'Plot comparison - {title}')
     phase_mag1 = pd.read_hdf(inputs[0])
     phase_mag2 = pd.read_hdf(inputs[1])
     plt.figure(f'{title}_phase_scatter', figsize=(10, 8))
@@ -396,12 +393,10 @@ class DiurnalCycleAnalysis:
         self.task_ctrl.run(self.force)
 
     def gen_analysis_tasks(self, dataset, mode):
-        print(f'Dataset, mode: {dataset}, {mode}')
         diurnal_cycle_cube_path = dataset_path(dataset)
 
         for scale, method in itertools.product(self.scales,
                                                ['peak', 'harmonic']):
-            print(f'  scale, method: {scale}, {method}')
             self.basin_vector_area_avg(dataset, diurnal_cycle_cube_path, scale, method, mode)
             self.basin_area_avg(dataset, diurnal_cycle_cube_path, scale, method, mode)
 
