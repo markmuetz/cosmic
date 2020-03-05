@@ -11,6 +11,7 @@ import headless_matplotlib  # uses 'agg' backend if HEADLESS env var set.
 import matplotlib.pyplot as plt
 import matplotlib.colorbar as cbar
 from matplotlib.colors import LogNorm
+import cartopy.crs as ccrs
 import numpy as np
 import pandas as pd
 
@@ -272,15 +273,40 @@ def plot_mean_precip(inputs, outputs, dataset, hb_name):
     lat_min, lat_max = lat.bounds[0, 0], lat.bounds[-1, 1]
     extent = (lon_min, lon_max, lat_min, lat_max)
 
+    cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig2_cb1.pkl')
+
     plt.figure(figsize=(10, 8))
+    ax = plt.subplot(projection=ccrs.PlateCarree())
     plt.title(f'{dataset} mean_precip')
+    grey_fill = np.zeros((mean_precip_map.shape[0], mean_precip_map.shape[1], 3), dtype=int)
+    grey_fill[raster_cube.data == 0] = (200, 200, 200)
+    ax.imshow(grey_fill, extent=extent)
+
     masked_mean_precip_map = np.ma.masked_array(mean_precip_map, raster_cube.data == 0)
-    plt.imshow(masked_mean_precip_map,
-               # cmap=cmap, norm=norm,
-               norm=LogNorm(),
-               vmin=1e-3, vmax=max_mean_precip,
-               origin='lower', extent=extent)
-    plt.colorbar(orientation='horizontal')
+    im = ax.imshow(masked_mean_precip_map * 24,
+                   cmap=cmap, norm=norm,
+                   # vmin=1e-3, vmax=max_mean_precip,
+                   origin='lower', extent=extent)
+    plt.colorbar(im, label=f'precip. (mm day$^{{-1}}$)',
+                 **cbar_kwargs, spacing='uniform',
+                 orientation='horizontal')
+    ax.coastlines(resolution='50m')
+
+    xticks = range(60, 160, 20)
+    ax.set_xticks(xticks)
+    ax.set_xticklabels([f'${t}\\degree$ E' for t in xticks])
+    ax.set_xticks(np.linspace(58, 150, 47), minor=True)
+
+    yticks = range(20, 60, 20)
+    ax.set_yticks(yticks)
+    ax.set_yticklabels([f'${t}\\degree$ N' for t in yticks])
+    ax.set_yticks(np.linspace(2, 56, 28), minor=True)
+    ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False,
+                   bottom=True, top=True, left=True, right=True, which='both')
+    ax.set_xlim((extent[0], extent[1]))
+    ax.set_ylim((extent[2], extent[3]))
+    plt.tight_layout()
+    plt.tight_layout()
 
     mean_precip_filename = outputs[0]
     plt.savefig(mean_precip_filename)
@@ -325,15 +351,38 @@ def plot_cmorph_mean_precip_diff(inputs, outputs, dataset, hb_name):
     extent = (lon_min, lon_max, lat_min, lat_max)
 
     plt.figure(figsize=(10, 8))
+    ax = plt.subplot(projection=ccrs.PlateCarree())
     plt.title(f'{dataset} mean_precip. RMSE: {cmorph_rmse:.3f} mm hr$^{{-1}}$; MAE: {cmorph_mae:.3f} mm hr$^{{-1}}$')
+    grey_fill = np.zeros((mean_precip_map.shape[0], mean_precip_map.shape[1], 3), dtype=int)
+    grey_fill[raster_cube.data == 0] = (200, 200, 200)
+    ax.imshow(grey_fill, extent=extent)
+
     masked_mean_precip_map = np.ma.masked_array(mean_precip_map - cmorph_mean_precip_map, raster_cube.data == 0)
-    # absmax = np.abs(masked_mean_precip_map).max()
-    absmax = 3
-    plt.imshow(masked_mean_precip_map,
-               cmap='bwr',
-               vmin=-absmax, vmax=absmax,
-               origin='lower', extent=extent)
-    plt.colorbar(orientation='horizontal')
+    absmax = 72
+    im = ax.imshow(masked_mean_precip_map * 24,
+                   cmap='bwr',
+                   vmin=-absmax, vmax=absmax,
+                   origin='lower', extent=extent)
+
+
+    plt.colorbar(im, label=f'precip. (mm day$^{{-1}}$)',
+                 orientation='horizontal')
+    ax.coastlines(resolution='50m')
+
+    xticks = range(60, 160, 20)
+    ax.set_xticks(xticks)
+    ax.set_xticklabels([f'${t}\\degree$ E' for t in xticks])
+    ax.set_xticks(np.linspace(58, 150, 47), minor=True)
+
+    yticks = range(20, 60, 20)
+    ax.set_yticks(yticks)
+    ax.set_yticklabels([f'${t}\\degree$ N' for t in yticks])
+    ax.set_yticks(np.linspace(2, 56, 28), minor=True)
+    ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False,
+                   bottom=True, top=True, left=True, right=True, which='both')
+    ax.set_xlim((extent[0], extent[1]))
+    ax.set_ylim((extent[2], extent[3]))
+    plt.tight_layout()
 
     mean_precip_filename = outputs[0]
     plt.savefig(mean_precip_filename)
