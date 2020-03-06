@@ -3,6 +3,7 @@ import itertools
 import iris
 import headless_matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 
 import geopandas as gpd
 
@@ -54,16 +55,27 @@ def plot_weights_cube(inputs, outputs):
     hb = gpd.read_file(str(inputs[hb_name]))
     weights_cube = iris.load_cube(str(inputs[model]))
     lat_max, lat_min, lon_max, lon_min, nlat, nlon = util.get_latlon_from_cube(weights_cube)
+    dlat = (lat_max - lat_min) / nlat
+    dlon = (lon_max - lon_min) / nlon
 
     for i, (w, basin, output_path) in enumerate(zip(weights_cube.slices_over('basin_index'),
                                                     [r for i, r in hb.iterrows()],
                                                     outputs.values())):
         plt.figure()
-        plt.imshow(w.data, origin='lower', extent=(lon_min, lon_max, lat_min, lat_max))
+        if (w.data == 0).all():
+            plt.savefig(output_path)
+            output_path.touch()
+            continue
+
+        (min_lat_index, max_lat_index), (min_lon_index, max_lon_index) = [(min(v), max(v))
+                                                                          for v in np.where(w.data != 0)]
+        min_lat, max_lat = weights_cube.coord('latitude').points[[min_lat_index, max_lat_index]]
+        min_lon, max_lon = weights_cube.coord('longitude').points[[min_lon_index, max_lon_index]]
+        plt.imshow(w.data, origin='lower', extent=(lon_min, lon_max, lat_min, lat_max), vmin=0, vmax=1)
         ax = plt.gca()
         hb[hb.PFAF_ID == basin.PFAF_ID].geometry.boundary.plot(ax=ax, color=None, edgecolor='r')
-        plt.xlim(basin.geometry.bounds[0], basin.geometry.bounds[2])
-        plt.ylim(basin.geometry.bounds[1], basin.geometry.bounds[3])
+        plt.xlim(min_lon - dlon, max_lon + dlon)
+        plt.ylim(min_lat - dlat, max_lat + dlat)
         plt.savefig(output_path)
         plt.close('all')
 

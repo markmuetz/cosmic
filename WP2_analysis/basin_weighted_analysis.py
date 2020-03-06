@@ -10,6 +10,7 @@ import geopandas as gpd
 import headless_matplotlib  # uses 'agg' backend if HEADLESS env var set.
 import matplotlib.pyplot as plt
 import matplotlib.colorbar as cbar
+from matplotlib import colors
 from matplotlib.colors import LogNorm
 import cartopy.crs as ccrs
 import numpy as np
@@ -85,6 +86,23 @@ CONSTRAINT_ASIA = (iris.Constraint(coord_values={'latitude': lambda cell: 0.9 < 
                    & iris.Constraint(coord_values={'longitude': lambda cell: 56.9 < cell < 151.1}))
 
 
+class MidpointNormalize(colors.Normalize):
+    """
+    Normalise the colorbar so that diverging bars work there way either side from a prescribed midpoint value)
+
+    e.g. im=ax1.imshow(array, norm=MidpointNormalize(midpoint=0.,vmin=-100, vmax=100))
+    """
+    def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
+        self.midpoint = midpoint
+        colors.Normalize.__init__(self, vmin, vmax, clip)
+
+    def __call__(self, value, clip=None):
+        # I'm ignoring masked values and all kinds of edge cases to make a
+        # simple example...
+        x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
+        return np.ma.masked_array(np.interp(value, x, y), np.isnan(value))
+
+
 def _configure_ax_asia(ax, extent=None):
     ax.coastlines(resolution='50m')
 
@@ -124,6 +142,7 @@ def plot_hydrobasins_files(inputs, outputs, hb_name):
     ax = plt.subplot(projection=ccrs.PlateCarree())
     ax.set_title(f'scale:{hb_name}, #basins:{len(hb_size)}')
     hb_size.plot(ax=ax)
+    hb_size.geometry.boundary.plot(ax=ax, color=None, edgecolor='k', linewidth=0.5)
     _configure_ax_asia(ax)
     plt.savefig(outputs[0])
     plt.close('all')
@@ -376,13 +395,14 @@ def plot_cmorph_mean_precip_diff(inputs, outputs, dataset, hb_name):
     ax.imshow(grey_fill, extent=extent)
 
     masked_mean_precip_map = np.ma.masked_array(mean_precip_map - cmorph_mean_precip_map, raster_cube.data == 0)
-    absmax = 72
-    im = ax.imshow(masked_mean_precip_map * 24,
+
+    im = ax.imshow(masked_mean_precip_map,
                    cmap='bwr',
-                   vmin=-absmax, vmax=absmax,
+                   norm=MidpointNormalize(-1, 3, 0),
+                   # vmin=-absmax, vmax=absmax,
                    origin='lower', extent=extent)
 
-    plt.colorbar(im, label=f'precip. (mm day$^{{-1}}$)',
+    plt.colorbar(im, label=f'precip. (mm hr$^{{-1}}$)',
                  orientation='horizontal')
     _configure_ax_asia(ax, extent)
     mean_precip_filename = outputs[0]
@@ -423,12 +443,14 @@ def plot_phase_mag(inputs, outputs, dataset, hb_name, mode):
     extent = (lon_min, lon_max, lat_min, lat_max)
 
     plt.figure(figsize=(10, 8))
-    plt.title(f'{dataset} {mode} phase')
+    ax = plt.subplot(projection=ccrs.PlateCarree())
+    ax.set_title(f'{dataset} {mode} phase')
     masked_phase_map = np.ma.masked_array(phase_map.data, raster_cube.data == 0)
-    plt.imshow(masked_phase_map,
-               cmap=cmap, norm=norm,
-               origin='lower', extent=extent, vmin=0, vmax=24)
-    plt.colorbar(orientation='horizontal')
+    im = ax.imshow(masked_phase_map,
+                   cmap=cmap, norm=norm,
+                   origin='lower', extent=extent, vmin=0, vmax=24)
+    plt.colorbar(im, orientation='horizontal')
+    _configure_ax_asia(ax, extent)
     # plt.tight_layout()
     plt.savefig(phase_filename)
     plt.close()
@@ -447,8 +469,8 @@ def plot_phase_mag(inputs, outputs, dataset, hb_name, mode):
                                    masked_mag_map >= med_thresh)
 
     fig = plt.figure(figsize=(10, 8))
-    plt.title(f'{dataset} {mode} phase (alpha)')
-    ax = plt.gca()
+    ax = plt.subplot(projection=ccrs.PlateCarree())
+    ax.set_title(f'{dataset} {mode} phase (alpha)')
     im0 = ax.imshow(peak_strong, origin='lower', extent=extent,
                     vmin=0, vmax=24, cmap=cmap, norm=norm)
     ax.imshow(peak_med, origin='lower', extent=extent, alpha=0.66,
@@ -466,15 +488,18 @@ def plot_phase_mag(inputs, outputs, dataset, hb_name, mode):
     cax.imshow(d, origin='lower', extent=(0, 24, 0, 2), aspect='auto')
     cax.set_yticks([])
     cax.set_xticks(np.linspace(0, 24, 9))
+    _configure_ax_asia(ax, extent)
     # plt.tight_layout()
     plt.savefig(alpha_phase_filename)
     plt.close()
 
     plt.figure(figsize=(10, 8))
-    plt.title(f'{dataset} {mode} strength')
-    plt.imshow(masked_mag_map,
-               origin='lower', extent=extent, vmin=1e-2, norm=LogNorm())
-    plt.colorbar(orientation='horizontal')
+    ax = plt.subplot(projection=ccrs.PlateCarree())
+    ax.set_title(f'{dataset} {mode} strength')
+    im = ax.imshow(masked_mag_map,
+                   origin='lower', extent=extent, vmin=1e-2, norm=LogNorm())
+    plt.colorbar(im, orientation='horizontal')
+    _configure_ax_asia(ax, extent)
     # plt.tight_layout()
     plt.savefig(mag_filename)
     plt.close()
