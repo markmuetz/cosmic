@@ -54,14 +54,14 @@ def UM_extract_asia_precip(runid, stream, year, month, nc_dirpath, stratiform=Fa
     done_filename.touch()
 
 
-def UM_gen_asia_precip_filepath(model, expt, variant, year, season, output_dir):
+def HadGEM_gen_asia_precip_filepath(model, expt, variant, year, season, output_dir):
     return (output_dir /
             f'{model}.{expt}.{variant}.{year}.{season}.asia_precip.nc')
 
 
 def HadGEM3_extract_asia_precip(model, nc_dirpath, output_dir, year, season='JJA',
                                 expt='highresSST-present', variant='r1i1p1f1'):
-    output_filepath = UM_gen_asia_precip_filepath(model, expt, variant, year, season, output_dir)
+    output_filepath = HadGEM_gen_asia_precip_filepath(model, expt, variant, year, season, output_dir)
     done_filename = (output_filepath.parent / (output_filepath.name + '.done'))
 
     if done_filename.exists():
