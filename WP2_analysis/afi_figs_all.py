@@ -51,7 +51,8 @@ class AfiTask(Task):
                 elif duration == 'long':
                     daterange = '199801-201812'
                 rel_path = 'cmorph_data/8km-30min'
-                filename = f'cmorph_ppt_{season}.{daterange}.asia_precip.ppt_thresh_{thresh_text}.N1280.nc'
+                filename = f'cmorph_8km_N1280.{daterange}.{season}.asia_precip_afi.ppt_thresh_{thresh_text}.nc'
+                # filename = f'cmorph_ppt_{season}.{daterange}.asia_precip.ppt_thresh_{thresh_text}.N1280.nc'
             else:
                 if duration == 'short':
                     daterange = '200806-200808'
@@ -59,7 +60,8 @@ class AfiTask(Task):
                     daterange = '200506-200808'
 
                 rel_path = f'u-{runid}/ap9.pp'
-                filename = f'{runid}a.p9{season}.{daterange}.asia_precip.ppt_thresh_{thresh_text}.nc'
+                # filename = f'{runid}a.p9{season}.{daterange}.asia_precip.ppt_thresh_{thresh_text}.nc'
+                filename = f'{runid}.{daterange}.{season}.asia_precip_afi.ppt_thresh_{thresh_text}.nc'
 
             for mode in MODES:
                 inputs[(runid, f'{mode}_of_precip_{season}')] = datadir / rel_path / filename
@@ -74,7 +76,7 @@ def gen_task_ctrl():
                             dotremake_dir='.remake.afi_all_figs')
 
     season = 'jja'
-    durations = ['long']
+    durations = ['short', 'long']
     precip_threshes = [0.1]
     methods = ['peak', 'harmonic']
     for duration, precip_thresh in itertools.product(durations, precip_threshes):

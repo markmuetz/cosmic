@@ -85,6 +85,29 @@ CONSTRAINT_ASIA = (iris.Constraint(coord_values={'latitude': lambda cell: 0.9 < 
                    & iris.Constraint(coord_values={'longitude': lambda cell: 56.9 < cell < 151.1}))
 
 
+def _configure_ax_asia(ax, extent=None):
+    ax.coastlines(resolution='50m')
+
+    xticks = range(60, 160, 20)
+    ax.set_xticks(xticks)
+    ax.set_xticklabels([f'${t}\\degree$ E' for t in xticks])
+    ax.set_xticks(np.linspace(58, 150, 47), minor=True)
+
+    yticks = range(20, 60, 20)
+    ax.set_yticks(yticks)
+    ax.set_yticklabels([f'${t}\\degree$ N' for t in yticks])
+    ax.set_yticks(np.linspace(2, 56, 28), minor=True)
+    ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False,
+                   bottom=True, top=True, left=True, right=True, which='both')
+    if extent is not None:
+        ax.set_xlim((extent[0], extent[1]))
+        ax.set_ylim((extent[2], extent[3]))
+    else:
+        ax.set_xlim((58, 150))
+        ax.set_ylim((2, 56))
+    plt.tight_layout()
+
+
 def gen_hydrobasins_files(inputs, outputs, hb_name):
     hydrosheds_dir = PATHS['hydrosheds_dir']
     hb = load_hydrobasins_geodataframe(hydrosheds_dir, 'as', range(1, 9))
@@ -93,6 +116,17 @@ def gen_hydrobasins_files(inputs, outputs, hb_name):
     else:
         hb_size = hb.area_select(*SCALES[hb_name])
     hb_size.to_file(outputs['shp'])
+
+
+def plot_hydrobasins_files(inputs, outputs, hb_name):
+    hb_size = gpd.read_file(str(inputs[0]))
+    fig = plt.figure(figsize=(10, 8))
+    ax = plt.subplot(projection=ccrs.PlateCarree())
+    ax.set_title(f'scale:{hb_name}, #basins:{len(hb_size)}')
+    hb_size.plot(ax=ax)
+    _configure_ax_asia(ax)
+    plt.savefig(outputs[0])
+    plt.close('all')
 
 
 def gen_hydrobasins_raster_cubes(inputs, outputs, scales=SCALES):
@@ -290,23 +324,7 @@ def plot_mean_precip(inputs, outputs, dataset, hb_name):
     plt.colorbar(im, label=f'precip. (mm day$^{{-1}}$)',
                  **cbar_kwargs, spacing='uniform',
                  orientation='horizontal')
-    ax.coastlines(resolution='50m')
-
-    xticks = range(60, 160, 20)
-    ax.set_xticks(xticks)
-    ax.set_xticklabels([f'${t}\\degree$ E' for t in xticks])
-    ax.set_xticks(np.linspace(58, 150, 47), minor=True)
-
-    yticks = range(20, 60, 20)
-    ax.set_yticks(yticks)
-    ax.set_yticklabels([f'${t}\\degree$ N' for t in yticks])
-    ax.set_yticks(np.linspace(2, 56, 28), minor=True)
-    ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False,
-                   bottom=True, top=True, left=True, right=True, which='both')
-    ax.set_xlim((extent[0], extent[1]))
-    ax.set_ylim((extent[2], extent[3]))
-    plt.tight_layout()
-    plt.tight_layout()
+    _configure_ax_asia(ax, extent)
 
     mean_precip_filename = outputs[0]
     plt.savefig(mean_precip_filename)
@@ -364,26 +382,9 @@ def plot_cmorph_mean_precip_diff(inputs, outputs, dataset, hb_name):
                    vmin=-absmax, vmax=absmax,
                    origin='lower', extent=extent)
 
-
     plt.colorbar(im, label=f'precip. (mm day$^{{-1}}$)',
                  orientation='horizontal')
-    ax.coastlines(resolution='50m')
-
-    xticks = range(60, 160, 20)
-    ax.set_xticks(xticks)
-    ax.set_xticklabels([f'${t}\\degree$ E' for t in xticks])
-    ax.set_xticks(np.linspace(58, 150, 47), minor=True)
-
-    yticks = range(20, 60, 20)
-    ax.set_yticks(yticks)
-    ax.set_yticklabels([f'${t}\\degree$ N' for t in yticks])
-    ax.set_yticks(np.linspace(2, 56, 28), minor=True)
-    ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False,
-                   bottom=True, top=True, left=True, right=True, which='both')
-    ax.set_xlim((extent[0], extent[1]))
-    ax.set_ylim((extent[2], extent[3]))
-    plt.tight_layout()
-
+    _configure_ax_asia(ax, extent)
     mean_precip_filename = outputs[0]
     plt.savefig(mean_precip_filename)
     plt.close()
@@ -665,6 +666,12 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
                                [],
                                {ext: PATHS['output_datadir'] / shp_path_tpl.format(hb_name=hb_name, ext=ext)
                                 for ext in ['shp', 'dbf', 'prj', 'cpg', 'shx']},
+                               func_args=[hb_name],
+                               ))
+            task_ctrl.add(Task(plot_hydrobasins_files,
+                               [PATHS['output_datadir'] / shp_path_tpl.format(hb_name=hb_name, ext='shp')],
+                               [PATHS['figsdir'] / 'basin_weighted_analysis' / 'map' /
+                                'hydrobasins_size' / f'map_{hb_name}.png'],
                                func_args=[hb_name],
                                ))
 
