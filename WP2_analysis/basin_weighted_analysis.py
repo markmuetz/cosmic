@@ -19,6 +19,7 @@ import pandas as pd
 from basmati.hydrosheds import load_hydrobasins_geodataframe
 from cosmic.util import (load_cmap_data, vrmse, circular_rmse, rmse, mae,
                          build_raster_cube_from_cube, build_weights_cube_from_cube)
+from cosmic.mid_point_norm import MidPointNorm
 from cosmic.fourier_series import FourierSeries
 from remake import Task, TaskControl
 from remake.util import tmp_to_actual_path
@@ -84,23 +85,6 @@ SLIDING_SCALES = dict([(f'S{i}', (SLIDING_LOWER[i], SLIDING_UPPER[i])) for i in 
 
 CONSTRAINT_ASIA = (iris.Constraint(coord_values={'latitude': lambda cell: 0.9 < cell < 56.1})
                    & iris.Constraint(coord_values={'longitude': lambda cell: 56.9 < cell < 151.1}))
-
-
-class MidpointNormalize(colors.Normalize):
-    """
-    Normalise the colorbar so that diverging bars work there way either side from a prescribed midpoint value)
-
-    e.g. im=ax1.imshow(array, norm=MidpointNormalize(midpoint=0.,vmin=-100, vmax=100))
-    """
-    def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
-        self.midpoint = midpoint
-        colors.Normalize.__init__(self, vmin, vmax, clip)
-
-    def __call__(self, value, clip=None):
-        # I'm ignoring masked values and all kinds of edge cases to make a
-        # simple example...
-        x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
-        return np.ma.masked_array(np.interp(value, x, y), np.isnan(value))
 
 
 def _configure_ax_asia(ax, extent=None):
@@ -398,7 +382,7 @@ def plot_cmorph_mean_precip_diff(inputs, outputs, dataset, hb_name):
 
     im = ax.imshow(masked_mean_precip_map,
                    cmap='bwr',
-                   norm=MidpointNormalize(-1, 3, 0),
+                   norm=MidPointNorm(0, -1, 3),
                    # vmin=-absmax, vmax=absmax,
                    origin='lower', extent=extent)
 
