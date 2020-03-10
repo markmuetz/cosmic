@@ -21,7 +21,7 @@ from cosmic.util import (load_cmap_data, vrmse, circular_rmse, rmse, mae,
                          build_raster_cube_from_cube, build_weights_cube_from_cube)
 from cosmic.mid_point_norm import MidPointNorm
 from cosmic.fourier_series import FourierSeries
-from remake import Task, TaskControl
+from remake import Task, TaskControl, remake_required
 from remake.util import tmp_to_actual_path
 
 from paths import PATHS
@@ -120,6 +120,7 @@ def gen_hydrobasins_files(inputs, outputs, hb_name):
     hb_size.to_file(outputs['shp'])
 
 
+@remake_required(depends_on=[_configure_ax_asia])
 def plot_hydrobasins_files(inputs, outputs, hb_name):
     hb_size = gpd.read_file(str(inputs[0]))
     fig = plt.figure(figsize=(10, 8))
@@ -281,6 +282,7 @@ def calc_mean_precip_max_min(inputs, outputs):
     outputs[0].write_bytes(pickle.dumps({'max_mean_precip': max_mean_precip, 'min_mean_precip': min_mean_precip}))
 
 
+@remake_required(depends_on=[_configure_ax_asia])
 def plot_mean_precip(inputs, outputs, dataset, hb_name):
     weighted_basin_mean_precip_filename = inputs['weighted']
     df_mean_precip = pd.read_hdf(weighted_basin_mean_precip_filename)
@@ -334,6 +336,7 @@ def plot_mean_precip(inputs, outputs, dataset, hb_name):
     plt.close()
 
 
+@remake_required(depends_on=[_configure_ax_asia])
 def plot_cmorph_mean_precip_diff(inputs, outputs, dataset, hb_name):
     weighted_basin_mean_precip_filename = inputs['dataset_weighted']
     cmorph_weighted_basin_mean_precip_filename = inputs['cmorph_weighted']
@@ -394,6 +397,7 @@ def plot_cmorph_mean_precip_diff(inputs, outputs, dataset, hb_name):
     plt.close()
 
 
+@remake_required(depends_on=[_configure_ax_asia])
 def plot_phase_mag(inputs, outputs, dataset, hb_name, mode):
     weighted_basin_phase_mag_filename = inputs['weighted']
     df_phase_mag = pd.read_hdf(weighted_basin_phase_mag_filename)
@@ -654,7 +658,7 @@ def plot_cmorph_vs_all_datasets_phase_mag(inputs, outputs):
 
 
 def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
-    task_ctrl = TaskControl(enable_file_task_content_checks=True)
+    task_ctrl = TaskControl(__file__)
 
     for basin_scales in ['small_medium_large', 'sliding']:
         hb_raster_cubes_fn = PATHS['output_datadir'] / f'basin_weighted_analysis/hb_N1280_raster_{basin_scales}.nc'
