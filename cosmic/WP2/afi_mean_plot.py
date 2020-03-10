@@ -72,15 +72,3 @@ class AFI_meanPlotter(AFI_basePlotter):
 
         im = ax.imshow(data, origin='lower', extent=extent, **kwargs)
         return im
-
-
-if __name__ == '__main__':
-    parser = ArgumentParser()
-    parser.add_argument('datadir')
-    parser.add_argument('duration')
-    parser.add_argument('precip_thresh')
-    args = parser.parse_args()
-
-    afi_mean = AFI_mean(args.datadir, args.duration, args.precip_thresh)
-    afi_mean.plot()
-    afi_mean.save()

@@ -56,15 +56,3 @@ class AFI_diurnalCyclePlotter(AFI_basePlotter):
                        vmin=0, vmax=24)
 
         return im
-
-
-if __name__ == '__main__':
-    parser = ArgumentParser()
-    parser.add_argument('datadir')
-    parser.add_argument('duration')
-    parser.add_argument('precip_thresh')
-    args = parser.parse_args()
-
-    afi_diurnal_cycle = AFI_diurnal_cycle(args.datadir, args.duration, args.precip_thresh)
-    afi_diurnal_cycle.plot()
-    afi_diurnal_cycle.save()
