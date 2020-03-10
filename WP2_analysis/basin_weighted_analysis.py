@@ -461,7 +461,7 @@ def plot_phase_mag(inputs, outputs, dataset, hb_name, mode):
     ax.set_title(f'{dataset} {mode} phase (alpha)')
     im0 = ax.imshow(peak_strong, origin='lower', extent=extent,
                     vmin=0, vmax=24, cmap=cmap, norm=norm)
-    ax.imshow(peak_med, origin='lower', extent=extent, alpha=0.66,
+    ax.imshow(peak_med, origin='lower', extent=extent, alpha=0.5,
               vmin=0, vmax=24, cmap=cmap, norm=norm)
     ax.imshow(peak_weak, origin='lower', extent=extent, alpha=0.33,
               vmin=0, vmax=24, cmap=cmap, norm=norm)
