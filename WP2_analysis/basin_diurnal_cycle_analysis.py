@@ -1,4 +1,4 @@
-from argparse import ArgumentParser
+import sys
 import itertools
 from pathlib import Path
 import pickle
@@ -350,8 +350,7 @@ def verify_lats_lons(inputs, outputs):
 
 class DiurnalCycleAnalysis:
     def __init__(self, force=False):
-        self.task_ctrl = TaskControl(enable_file_task_content_checks=True,
-                                     dotremake_dir='.remake.basin_diurnal_cycle_analysis')
+        self.task_ctrl = TaskControl(__file__)
         self.force = force
         self.df_keys_data = []
         self.df_keys = None
@@ -587,7 +586,7 @@ def gen_task_ctrl():
 
 
 if __name__ == '__main__':
-    parser = ArgumentParser()
-    parser.add_argument('--force', action='store_true')
-    args = parser.parse_args()
-    run_analysis(args.force)
+    task_ctrl = gen_task_ctrl()
+    task_ctrl.finalize()
+    if len(sys.argv) == 2 and sys.argv[1] == 'run':
+        task_ctrl.run()

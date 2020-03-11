@@ -16,7 +16,7 @@ def do_plot(inputs, outputs, *args, **kwargs):
 
 
 def gen_task_ctrl():
-    task_ctrl = TaskControl(enable_file_task_content_checks=True, dotremake_dir='.remake.plot_gauge_data')
+    task_ctrl = TaskControl(__file__)
     for fn, args, kwargs in all_plot_gauge_data_gen():
         kwargs_str = '.'.join([f'{k}-{i}' for k, i in kwargs.items()])
         task = Task(fn,

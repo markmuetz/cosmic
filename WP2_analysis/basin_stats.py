@@ -46,8 +46,7 @@ def gen_weights_basin_stats(inputs, outputs, resolutions, hb_names):
 
 
 def gen_task_ctrl():
-    task_ctrl = TaskControl(enable_file_task_content_checks=True,
-                            dotremake_dir='.remake.basin_stats')
+    task_ctrl = TaskControl(__file__)
     hb_names = [f'S{i}' for i in range(11)]
 
     output_datadir = PATHS['output_datadir']

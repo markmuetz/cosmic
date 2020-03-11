@@ -80,7 +80,7 @@ def all_seasonal_analysis_gen():
 
 
 def gen_task_ctrl():
-    task_ctrl = TaskControl(enable_file_task_content_checks=True, dotremake_dir='.remake.plot_seasonal_analysis')
+    task_ctrl = TaskControl(__file__)
 
     for fn, args, kwargs in all_seasonal_analysis_gen():
         task_unique_name = task_unique_name_from_fn_args_kwargs(fn, args, kwargs)

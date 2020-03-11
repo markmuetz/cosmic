@@ -81,7 +81,7 @@ def plot_weights_cube(inputs, outputs):
 
 
 def gen_task_ctrl():
-    task_ctrl = TaskControl(enable_file_task_content_checks=True, dotremake_dir='.remake.weights_vs_hydrobasins')
+    task_ctrl = TaskControl(__file__)
     for model, hb_name in itertools.product(MODELS, HB_NAMES):
         hb_names = {f'hb_name_{ext}': PATHS['output_datadir'] / f'raster_vs_hydrobasins/hb_{hb_name}.{ext}'
                     for ext in ['shp', 'dbf', 'prj', 'cpg', 'shx']}

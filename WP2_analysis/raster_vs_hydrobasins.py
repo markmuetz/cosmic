@@ -110,7 +110,7 @@ def gen_raster_stats(inputs_dict, outputs):
 
 
 def gen_task_ctrl():
-    task_ctrl = TaskControl(enable_file_task_content_checks=True, dotremake_dir='.remake.raster_vs_hydrobasins')
+    task_ctrl = TaskControl(__file__)
     scales = ['small', 'medium', 'large']
     for hb_name in scales:
         task = Task(gen_hydrobasins_files, [], [PATHS['output_datadir'] / f'raster_vs_hydrobasins/hb_{hb_name}.{ext}'

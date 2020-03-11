@@ -107,7 +107,7 @@ class UmHadgemSpaTask(Task):
 
 
 def gen_task_ctrl():
-    task_ctrl = TaskControl(enable_file_task_content_checks=True, dotremake_dir='.remake.seasonal_precip_analysis')
+    task_ctrl = TaskControl(__file__)
     precip_thresh = 0.1
     season = 'jja'
 
