@@ -1,6 +1,3 @@
-from argparse import ArgumentParser
-import sys
-
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
