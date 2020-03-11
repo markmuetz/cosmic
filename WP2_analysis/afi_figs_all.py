@@ -6,7 +6,7 @@ import iris
 from cosmic.WP2.afi_mean_plot import AFI_meanPlotter
 from cosmic.WP2.afi_diurnal_cycle_plot import AFI_diurnalCyclePlotter
 
-from remake import TaskControl, Task, remake_required
+from remake import TaskControl, Task, remake_required, RemakeOn
 
 from paths import PATHS
 from seasonal_precip_analysis import fmt_thresh_text
@@ -69,12 +69,12 @@ class AfiTask(Task):
                 inputs[(runid, f'{mode}_of_precip_{season}')] = datadir / rel_path / filename
 
         output_path = (figsdir / 'AFI' /
-                       f'{func.__code__.co_name}.{duration}.{season}.{method}.ppt_thresh_{thresh_text}.png')
+                       f'{func.__name__}.{duration}.{season}.{method}.ppt_thresh_{thresh_text}.png')
         super().__init__(func, inputs, [output_path], func_args=(season, method))
 
 
 def gen_task_ctrl():
-    task_ctrl = TaskControl(__file__, dotremake_dir='.remake.afi_all_figs')
+    task_ctrl = TaskControl(__file__)
 
     season = 'jja'
     durations = ['short', 'long']
@@ -95,3 +95,4 @@ def gen_task_ctrl():
 if __name__ == '__main__':
     task_ctrl = gen_task_ctrl()
     task_ctrl.finalize().print_status()
+    # task_ctrl.run()
