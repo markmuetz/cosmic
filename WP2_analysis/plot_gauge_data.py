@@ -1,6 +1,7 @@
 import headless_matplotlib
 import matplotlib.pyplot as plt
 
+import headless_matplotlib
 from remake import TaskControl, Task
 from cosmic.WP2 import plot_gauge_data
 

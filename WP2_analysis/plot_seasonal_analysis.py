@@ -1,6 +1,6 @@
-import headless_matplotlib
 import itertools
 
+import headless_matplotlib
 from remake import TaskControl, Task
 from cosmic.WP2 import plot_seasonal_analysis
 

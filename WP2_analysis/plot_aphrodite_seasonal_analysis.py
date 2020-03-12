@@ -1,6 +1,6 @@
-import headless_matplotlib
 from pathlib import Path
 
+import headless_matplotlib
 from remake import TaskControl, Task
 from cosmic.WP2.plot_aphrodite_seasonal_analysis import plot_aphrodite_seasonal_analysis
 

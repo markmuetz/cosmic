@@ -2,6 +2,7 @@
 from collections import Counter
 from pathlib import Path
 
+import headless_matplotlib
 import geopandas as gpd
 import iris
 import matplotlib.pyplot as plt

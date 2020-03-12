@@ -1,6 +1,7 @@
 import itertools
 from pathlib import Path
 
+import headless_matplotlib
 import imageio
 import matplotlib.pyplot as plt
 import numpy as np

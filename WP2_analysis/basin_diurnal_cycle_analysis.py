@@ -4,6 +4,7 @@ from pathlib import Path
 import pickle
 
 import iris
+import headless_matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
