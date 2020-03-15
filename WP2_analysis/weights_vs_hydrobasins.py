@@ -9,7 +9,7 @@ import geopandas as gpd
 
 from remake import Task, TaskControl
 import cosmic.util as util
-from paths import PATHS
+from config import PATHS
 
 REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
 

@@ -15,7 +15,7 @@ from basmati.hydrosheds import load_hydrobasins_geodataframe
 from remake import Task, TaskControl
 from cosmic.fourier_series import FourierSeries
 from cosmic.util import build_raster_cube_from_cube, load_cmap_data, circular_rmse, rmse
-from paths import PATHS
+from config import PATHS
 
 REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
 

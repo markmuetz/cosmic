@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from remake import Task, TaskControl
-from paths import PATHS
+from config import PATHS
 
 
 REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'

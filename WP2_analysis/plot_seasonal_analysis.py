@@ -4,7 +4,7 @@ import headless_matplotlib
 from remake import TaskControl, Task
 from cosmic.WP2 import plot_seasonal_analysis
 
-from paths import PATHS
+from config import PATHS
 from util import task_unique_name_from_fn_args_kwargs
 
 REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'

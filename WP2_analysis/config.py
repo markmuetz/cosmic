@@ -42,3 +42,9 @@ PATHS = ALL_PATHS[hostname]
 for k, path in PATHS.items():
     if not path.exists():
         warnings.warn(f'Warning: path missing {k}: {path}')
+
+STANDARD_NAMES = {
+    'cmorph': 'CMORPH',
+    'u-al508': 'N1280_CPS',
+    'u-ak543': 'N1280_EC',
+}

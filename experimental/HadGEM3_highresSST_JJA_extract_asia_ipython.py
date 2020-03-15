@@ -7,7 +7,7 @@ cube_asia_JJA[0].data.dtype
 32400 * 235 * 267 * 4 / 1e9
 iris.save(cube_asia_JJA, 'data/cube_asia_JJA_2000-2014.nc', zlib=True)
 get_ipython().run_line_magic('ls', '')
-from paths import PATHS
+from config import PATHS
 PATHS
 hm_datadir = PATHS['datadir'] / 'HadGEM3-GC31-HM/highresSST-present/r1i1p1f1/E1hr/pr/gn/v20170831/'
 hm_datadir.exists()

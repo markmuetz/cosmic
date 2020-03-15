@@ -13,7 +13,7 @@ from basmati.hydrosheds import load_hydrobasins_geodataframe
 from remake import Task, TaskControl
 from cosmic import util
 # from cosmic.task import Task, TaskControl
-from paths import PATHS
+from config import PATHS
 
 REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
 

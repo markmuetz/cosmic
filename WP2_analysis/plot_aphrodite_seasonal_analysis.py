@@ -4,7 +4,7 @@ import headless_matplotlib
 from remake import TaskControl, Task
 from cosmic.WP2.plot_aphrodite_seasonal_analysis import plot_aphrodite_seasonal_analysis
 
-from paths import PATHS
+from config import PATHS
 
 REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
 

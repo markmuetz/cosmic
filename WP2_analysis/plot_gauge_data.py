@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from remake import TaskControl, Task, remake_required
 from cosmic.WP2 import plot_gauge_data
 
-from paths import PATHS
+from config import PATHS
 
 
 REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'

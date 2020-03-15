@@ -24,7 +24,7 @@ from cosmic.fourier_series import FourierSeries
 from remake import Task, TaskControl, remake_required
 from remake.util import tmp_to_actual_path
 
-from paths import PATHS
+from config import PATHS
 
 logger = getLogger('remake.basin_weighted_analysis')
 

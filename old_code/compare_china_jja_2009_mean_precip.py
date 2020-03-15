@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 import itertools
 
 from cosmic.WP2.compare_china_jja_2009_mean_precip import compare_mean_precip
-from paths import PATHS
+from config import PATHS
 
 
 def all_compares_gen(check_calcs=True):

@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 from cosmic.WP2.multipeak import calc_data_maxima, plot_data_maxima_windowed
 
-from paths import PATHS
+from config import PATHS
 
 
 def multipeak_fig(title, exclusion, window, nsteps,china_only):

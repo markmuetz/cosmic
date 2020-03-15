@@ -8,7 +8,7 @@ from cosmic.WP2.afi_diurnal_cycle_plot import AFI_diurnalCyclePlotter
 
 from remake import TaskControl, Task, remake_required, RemakeOn
 
-from paths import PATHS
+from config import PATHS
 from seasonal_precip_analysis import fmt_thresh_text
 
 
