@@ -25,6 +25,7 @@ from remake import Task, TaskControl, remake_required
 from remake.util import tmp_to_actual_path
 
 from config import PATHS
+from util import get_extent_from_cube
 
 logger = getLogger('remake.basin_weighted_analysis')
 
@@ -300,19 +301,7 @@ def plot_mean_precip(inputs, outputs, dataset, hb_name):
     for i in range(1, raster.max() + 1):
         mean_precip_map[raster == i] = df_mean_precip.values[i - 1]
 
-    # Proper way to work out extent for imshow.
-    # lat.points contains centres of each cell.
-    # bounds contains the boundary of the pixel - this is what imshow should take.
-    lon = raster_cube.coord('longitude')
-    lat = raster_cube.coord('latitude')
-    if not lat.has_bounds():
-        lat.guess_bounds()
-    if not lon.has_bounds():
-        lon.guess_bounds()
-    lon_min, lon_max = lon.bounds[0, 0], lon.bounds[-1, 1]
-    lat_min, lat_max = lat.bounds[0, 0], lat.bounds[-1, 1]
-    extent = (lon_min, lon_max, lat_min, lat_max)
-
+    extent = get_extent_from_cube(raster_cube)
     cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig2_cb1.pkl')
 
     plt.figure(figsize=(10, 8))
@@ -362,18 +351,7 @@ def plot_cmorph_mean_precip_diff(inputs, outputs, dataset, hb_name):
     for i in range(1, raster.max() + 1):
         cmorph_mean_precip_map[raster == i] = df_cmorph_mean_precip.values[i - 1]
 
-    # Proper way to work out extent for imshow.
-    # lat.points contains centres of each cell.
-    # bounds contains the boundary of the pixel - this is what imshow should take.
-    lon = raster_cube.coord('longitude')
-    lat = raster_cube.coord('latitude')
-    if not lat.has_bounds():
-        lat.guess_bounds()
-    if not lon.has_bounds():
-        lon.guess_bounds()
-    lon_min, lon_max = lon.bounds[0, 0], lon.bounds[-1, 1]
-    lat_min, lat_max = lat.bounds[0, 0], lat.bounds[-1, 1]
-    extent = (lon_min, lon_max, lat_min, lat_max)
+    extent = get_extent_from_cube(raster_cube)
 
     plt.figure(figsize=(10, 8))
     ax = plt.subplot(projection=ccrs.PlateCarree())
@@ -418,18 +396,7 @@ def plot_phase_mag(inputs, outputs, dataset, hb_name, mode):
                              dim_coords_and_dims=[(raster_cube.coord('latitude'), 0),
                                                   (raster_cube.coord('longitude'), 1)])
 
-    # Proper way to work out extent for imshow.
-    # lat.points contains centres of each cell.
-    # bounds contains the boundary of the pixel - this is what imshow should take.
-    lon = phase_map.coord('longitude')
-    lat = phase_map.coord('latitude')
-    if not lat.has_bounds():
-        lat.guess_bounds()
-    if not lon.has_bounds():
-        lon.guess_bounds()
-    lon_min, lon_max = lon.bounds[0, 0], lon.bounds[-1, 1]
-    lat_min, lat_max = lat.bounds[0, 0], lat.bounds[-1, 1]
-    extent = (lon_min, lon_max, lat_min, lat_max)
+    extent = get_extent_from_cube(phase_map)
 
     plt.figure(figsize=(10, 8))
     ax = plt.subplot(projection=ccrs.PlateCarree())

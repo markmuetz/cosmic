@@ -15,7 +15,9 @@ from basmati.hydrosheds import load_hydrobasins_geodataframe
 from remake import Task, TaskControl
 from cosmic.fourier_series import FourierSeries
 from cosmic.util import build_raster_cube_from_cube, load_cmap_data, circular_rmse, rmse
+
 from config import PATHS
+from util import get_extent_from_cube
 
 REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
 
@@ -224,18 +226,7 @@ def plot_phase_mag(inputs, outputs, scale, mode, row):
     phase_map = phase_mag_cubes.extract_strict('phase_map')
     mag_map = phase_mag_cubes.extract_strict('magnitude_map')
 
-    # Proper way to work out extent for imshow.
-    # lat.points contains centres of each cell.
-    # bounds contains the boundary of the pixel - this is what imshow should take.
-    lon = phase_map.coord('longitude')
-    lat = phase_map.coord('latitude')
-    if not lat.has_bounds():
-        lat.guess_bounds()
-    if not lon.has_bounds():
-        lon.guess_bounds()
-    lon_min, lon_max = lon.bounds[0, 0], lon.bounds[-1, 1]
-    lat_min, lat_max = lat.bounds[0, 0], lat.bounds[-1, 1]
-    extent = (lon_min, lon_max, lat_min, lat_max)
+    extent = get_extent_from_cube(phase_map)
 
     plt.figure(f'{row.dataset}_{row.task.outputs[0]}_phase', figsize=(10, 8))
     plt.clf()

@@ -10,6 +10,7 @@ from remake import TaskControl, Task, remake_required
 from cosmic.util import load_cmap_data
 from config import PATHS, STANDARD_NAMES
 from basin_weighted_analysis import _configure_ax_asia, get_dataset_path
+from util import get_extent_from_cube
 
 REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
 
@@ -30,17 +31,7 @@ def plot_gridpoint_mean_precip_asia(inputs, outputs):
         assert ppt_cube.units == 'mm hr-1'
         ppt_cubes.append(ppt_cube)
 
-    # TODO: DRY (utils).
-    lon = ppt_cube.coord('longitude')
-    lat = ppt_cube.coord('latitude')
-    if not lat.has_bounds():
-        lat.guess_bounds()
-    if not lon.has_bounds():
-        lon.guess_bounds()
-    lon_min, lon_max = lon.bounds[0, 0], lon.bounds[-1, 1]
-    lat_min, lat_max = lat.bounds[0, 0], lat.bounds[-1, 1]
-    extent = (lon_min, lon_max, lat_min, lat_max)
-
+    extent = get_extent_from_cube(ppt_cube)
     fig, axes = plt.subplots(1, 3, sharex=True, figsize=(10, 3),
                              subplot_kw=dict(projection=ccrs.PlateCarree()))
     for ax, cube, dataset in zip(axes, ppt_cubes, inputs.keys()):
