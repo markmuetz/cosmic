@@ -178,7 +178,7 @@ def gen_task_ctrl():
     output_filenames = [PATHS['figsdir'] / 'weights_vs_hydrobasins' / 'weights_cube_table' / f'basins_table.pdf']
 
     task_ctrl.add(Task(plot_weights_cube_table, input_filenames, output_filenames,
-                       func_kwargs={'rows': zip(HB_NAMES[::-1], [770, 201, 23]),
+                       func_kwargs={'rows': list(zip(HB_NAMES[::-1], [770, 201, 23])),
                                     'cols': MODELS}
                        ))
     return task_ctrl
