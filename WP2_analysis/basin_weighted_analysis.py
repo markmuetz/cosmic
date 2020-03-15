@@ -87,7 +87,7 @@ CONSTRAINT_ASIA = (iris.Constraint(coord_values={'latitude': lambda cell: 0.9 < 
                    & iris.Constraint(coord_values={'longitude': lambda cell: 56.9 < cell < 151.1}))
 
 
-def _configure_ax_asia(ax, extent=None):
+def _configure_ax_asia(ax, extent=None, tight_layout=True):
     ax.coastlines(resolution='50m')
 
     xticks = range(60, 160, 20)
@@ -107,7 +107,8 @@ def _configure_ax_asia(ax, extent=None):
     else:
         ax.set_xlim((58, 150))
         ax.set_ylim((2, 56))
-    plt.tight_layout()
+    if tight_layout:
+        plt.tight_layout()
 
 
 def gen_hydrobasins_files(inputs, outputs, hb_name):

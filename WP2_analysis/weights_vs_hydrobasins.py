@@ -80,6 +80,76 @@ def plot_weights_cube(inputs, outputs):
         plt.close('all')
 
 
+def plot_weights_cube_table(inputs, outputs, rows, cols):
+    fig, axes = plt.subplots(3, 4, sharex='row', figsize=(10, 6),
+                             gridspec_kw={'height_ratios': [2, 2, 2.5]})
+    extents = {
+        'small': [107.5, 111.5, 17.8, 20.2],
+        'medium': [133, 141, 49.5, 54.5],
+        'large': [119, 133, 41, 53],
+    }
+    ticks = {
+        'small': (
+            [108, 111], [18, 20]
+        ),
+        'medium': (
+            [134, 140], [50, 54]
+        ),
+        'large': (
+            [120, 132], [42, 52]
+        ),
+    }
+    for axrow, row in zip(axes, rows):
+        hb_name, basin_index = row
+        hb = gpd.read_file(str(inputs[hb_name]))
+        for ax, model in zip(axrow, cols):
+            weights_cube = iris.load_cube(str(inputs[(model, hb_name)]))
+            basin = hb.loc[basin_index]
+            w = weights_cube[basin_index]
+
+            lat_max, lat_min, lon_max, lon_min, nlat, nlon = util.get_latlon_from_cube(weights_cube)
+            extent = (lon_min, lon_max, lat_min, lat_max)
+
+            im = ax.imshow(w.data, origin='lower', extent=extent, vmin=0, vmax=1)
+            hb[hb.PFAF_ID == basin.PFAF_ID].geometry.boundary.plot(ax=ax, color=None, edgecolor='r')
+
+            extent = extents[hb_name]
+            ax.set_xlim(extent[:2])
+            ax.set_ylim(extent[2:])
+
+            xticks, yticks = ticks[hb_name]
+            ax.set_xticks(xticks)
+            ax.set_xticklabels([f'${t}\\degree$ E' for t in xticks])
+            ax.set_yticks(yticks)
+            ax.set_yticklabels([f'${t}\\degree$ N' for t in yticks])
+
+    for axrow in axes:
+        for i in range(3):
+            axrow[i].get_yaxis().set_ticks([])
+            axrow[i].get_yaxis().tick_right()
+
+        axrow[-1].get_yaxis().tick_right()
+
+    cax = fig.add_axes([0.12, 0.07, 0.74, 0.02])
+    plt.colorbar(im, cax=cax, orientation='horizontal', label='cell weight')
+
+    axes[0, 0].set_title('N96')
+    axes[0, 1].set_title('N216')
+    axes[0, 2].set_title('N512')
+    axes[0, 3].set_title('N1280')
+
+    axes[0, 0].set_ylabel('small')
+    axes[0, 0].get_yaxis().set_label_coords(-0.1, 0.5)
+    axes[1, 0].set_ylabel('medium')
+    axes[1, 0].get_yaxis().set_label_coords(-0.1, 0.5)
+    axes[2, 0].set_ylabel('large')
+    axes[2, 0].get_yaxis().set_label_coords(-0.1, 0.5)
+
+    plt.subplots_adjust(left=0.04, right=0.94, top=0.96, bottom=0.15)
+
+    plt.savefig(outputs[0])
+
+
 def gen_task_ctrl():
     task_ctrl = TaskControl(__file__)
     for model, hb_name in itertools.product(MODELS, HB_NAMES):
@@ -92,10 +162,25 @@ def gen_task_ctrl():
         input_filenames = {'model': weights_filename,
                            'hb_name': PATHS['output_datadir'] / f'raster_vs_hydrobasins/hb_{hb_name}.shp'}
 
+        # TODO: Has not necessarily been created (if e.g. just querying task_ctrl).
+        # TODO: Also, creating loads of output files creates loads of metadata, which takes up space.
+        # TODO: Perhaps zip all the pngs together?
         hb = gpd.read_file(str(input_filenames['hb_name']))
         output_filenames = {i: PATHS['figsdir'] / 'weights_vs_hydrobasins' / f'{model}_{hb_name}' / f'basin_{i}.png'
                             for i in range(len(hb))}
         task_ctrl.add(Task(plot_weights_cube, input_filenames, output_filenames))
+
+    input_filenames = {(model, hb_name): (PATHS['output_datadir'] /
+                                          f'weights_vs_hydrobasins/weights_{model}_{hb_name}.nc')
+                       for model, hb_name in itertools.product(MODELS, HB_NAMES)}
+    for hb_name in HB_NAMES:
+        input_filenames[hb_name] = PATHS['output_datadir'] / f'raster_vs_hydrobasins/hb_{hb_name}.shp'
+    output_filenames = [PATHS['figsdir'] / 'weights_vs_hydrobasins' / 'weights_cube_table' / f'basins_table.pdf']
+
+    task_ctrl.add(Task(plot_weights_cube_table, input_filenames, output_filenames,
+                       func_kwargs={'rows': zip(HB_NAMES[::-1], [770, 201, 23]),
+                                    'cols': MODELS}
+                       ))
     return task_ctrl
 
 
