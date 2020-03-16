@@ -8,40 +8,41 @@ import numpy as np
 
 from cosmic.util import load_cmap_data
 
-MODES = ['amount', 'freq', 'intensity']
-
-TITLE_MODE_MAP = {
-    'amount': 'Amount',
-    'freq': 'Frequency',
-    'intensity': 'Intensity',
-}
-TITLE_RUNID_MAP = {
-    'cmorph_8km': 'CMORPH 8 km',
-    'ak543': 'UM explicit conv.',
-    'al508': 'UM parametrized conv.',
-}
 
 
 class AFI_basePlotter:
+    MODES = ['amount', 'freq', 'intensity']
+
+    TITLE_MODE_MAP = {
+        'amount': 'Amount',
+        'freq': 'Frequency',
+        'intensity': 'Intensity',
+    }
+    TITLE_RUNID_MAP = {
+        'cmorph_8km': 'CMORPH',
+        'al508': 'N1280',
+        'ak543': 'N1280-EC',
+    }
+
     def __init__(self, season, method='peak'):
         self.season = season
         self.method = method
         self.fig_axes, self.cb_axes = self.gen_axes()
         self.cubes = {}
-        self.runids = []
+        self.runids = list(self.TITLE_RUNID_MAP.keys())
 
     def set_cubes(self, cubes):
         self.cubes = cubes
-        for runid, cube_name in cubes.keys():
-            if runid not in self.runids:
-                self.runids.append(runid)
+        # for runid, cube_name in cubes.keys():
+        #     if runid not in self.runids:
+        #         self.runids.append(runid)
 
     def plot(self):
         print(f'plotting {self}')
         self.image_grid = []
         for i, runid in enumerate(self.runids):
             images = []
-            for j, mode in enumerate(MODES):
+            for j, mode in enumerate(self.MODES):
                 ax = self.fig_axes[i, j]
                 images.append(self.plot_ax(ax, self.cubes[runid, f'{mode}_of_precip_{self.season}'], runid, mode))
 
@@ -63,7 +64,7 @@ class AFI_basePlotter:
                     ax.get_xaxis().set_ticklabels([])
 
                 if j == 0:
-                    ax.set_ylabel(TITLE_RUNID_MAP[runid])
+                    ax.set_ylabel(self.TITLE_RUNID_MAP[runid])
                 else:
                     ax.get_yaxis().set_ticklabels([])
                 c = string.ascii_lowercase[i * len(self.runids) + j]

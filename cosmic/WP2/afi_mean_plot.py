@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import cartopy.crs as ccrs
 
-from .afi_base import AFI_basePlotter, load_cmap_data, MODES, TITLE_MODE_MAP, TITLE_RUNID_MAP
+from .afi_base import AFI_basePlotter, load_cmap_data
 
 
 class AFI_meanPlotter(AFI_basePlotter):
@@ -22,9 +22,9 @@ class AFI_meanPlotter(AFI_basePlotter):
         return np.array(fig_axes), np.array(cb_axes)
 
     def add_titles_colourbars(self):
-        for j, mode in enumerate(MODES):
+        for j, mode in enumerate(self.MODES):
             title_ax = self.fig_axes[0, j]
-            title_ax.set_title(TITLE_MODE_MAP[mode])
+            title_ax.set_title(self.TITLE_MODE_MAP[mode])
             im = self.image_grid[-1][j]
 
             cax = self.cb_axes[j]
