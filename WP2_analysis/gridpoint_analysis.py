@@ -23,6 +23,7 @@ DATASETS = [
 
 @remake_required(depends_on=[_configure_ax_asia])
 def plot_gridpoint_mean_precip_asia(inputs, outputs):
+
     # TODO: Saturated colour scale.
     cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig2_cb1.pkl')
     ppt_cubes = []

@@ -24,7 +24,7 @@ from cosmic.fourier_series import FourierSeries
 from remake import Task, TaskControl, remake_required
 from remake.util import tmp_to_actual_path
 
-from config import PATHS
+from config import PATHS, STANDARD_NAMES
 from util import get_extent_from_cube
 
 logger = getLogger('remake.basin_weighted_analysis')
@@ -320,6 +320,100 @@ def plot_mean_precip(inputs, outputs, dataset, hb_name):
                  **cbar_kwargs, spacing='uniform',
                  orientation='horizontal')
     _configure_ax_asia(ax, extent)
+
+    mean_precip_filename = outputs[0]
+    plt.savefig(mean_precip_filename)
+    plt.close()
+
+
+@remake_required(depends_on=[_configure_ax_asia])
+def plot_mean_precip_asia_combined(inputs, outputs, datasets, hb_names):
+    imshow_data = {}
+    for hb_name in hb_names:
+        raster_hb_name = hb_name
+        raster_cube = iris.load_cube(str(inputs['raster_cubes']), f'hydrobasins_raster_{raster_hb_name}')
+        raster = raster_cube.data
+        extent = get_extent_from_cube(raster_cube)
+
+        cmorph_weighted_basin_mean_precip_filename = inputs[f'weighted_{hb_name}_cmorph']
+        df_cmorph_mean_precip = pd.read_hdf(cmorph_weighted_basin_mean_precip_filename)
+
+        cmorph_mean_precip_map = np.zeros_like(raster, dtype=float)
+        for i in range(1, raster.max() + 1):
+            cmorph_mean_precip_map[raster == i] = df_cmorph_mean_precip.values[i - 1]
+
+        masked_cmorph_mean_precip_map = np.ma.masked_array(cmorph_mean_precip_map, raster_cube.data == 0)
+        imshow_data[('cmorph', hb_name)] = masked_cmorph_mean_precip_map * 24
+
+        for dataset in datasets[1:]:
+            weighted_basin_mean_precip_filename = inputs[f'weighted_{hb_name}_{dataset}']
+            df_mean_precip = pd.read_hdf(weighted_basin_mean_precip_filename)
+
+            mean_precip_map = np.zeros_like(raster, dtype=float)
+            for i in range(1, raster.max() + 1):
+                mean_precip_map[raster == i] = df_mean_precip.values[i - 1]
+
+            masked_mean_precip_map = np.ma.masked_array(mean_precip_map - cmorph_mean_precip_map,
+                                                        raster_cube.data == 0)
+            imshow_data[(dataset, hb_name)] = masked_mean_precip_map
+
+    fig, axes = plt.subplots(3, 3,
+                             figsize=(10, 6.5), subplot_kw={'projection': ccrs.PlateCarree()})
+    cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig2_cb1.pkl')
+
+    for axrow, hb_name in zip(axes, hb_names):
+        masked_cmorph_mean_precip_map = imshow_data[('cmorph', hb_name)]
+        ax = axrow[0]
+        # Not working for some reason.
+        grey_fill = np.zeros((cmorph_mean_precip_map.shape[0], cmorph_mean_precip_map.shape[1], 3), dtype=int)
+        grey_fill[raster_cube.data == 0] = (200, 200, 200)
+        # ax.imshow(grey_fill, extent=extent)
+
+        cmorph_im = ax.imshow(masked_cmorph_mean_precip_map,
+                              cmap=cmap, norm=norm,
+                              # vmin=1e-3, vmax=max_mean_precip,
+                              origin='lower', extent=extent)
+
+        for ax, dataset in zip(axrow[1:], datasets[1:]):
+            masked_mean_precip_map = imshow_data[(dataset, hb_name)]
+            # ax.imshow(grey_fill, extent=extent)
+            dataset_im = ax.imshow(masked_mean_precip_map,
+                                   cmap='bwr',
+                                   norm=MidPointNorm(0, -1, 3),
+                                   # vmin=-absmax, vmax=absmax,
+                                   origin='lower', extent=extent)
+
+    for ax, dataset in zip(axes[0], datasets):
+        if dataset == 'cmorph':
+            ax.set_title(STANDARD_NAMES[dataset])
+        else:
+            ax.set_title(f'{STANDARD_NAMES[dataset]} $-$ {STANDARD_NAMES["cmorph"]}')
+
+    for ax in axes.flatten():
+        _configure_ax_asia(ax, tight_layout=False)
+
+    for ax, hb_name in zip(axes[:, 0], hb_names):
+        if hb_name == 'med':
+            ax.set_ylabel('medium')
+        else:
+            ax.set_ylabel(hb_name)
+
+    for ax in axes[:, 2].flatten():
+        ax.get_yaxis().tick_right()
+
+    for ax in axes[:, :2].flatten():
+        ax.get_yaxis().set_ticks([])
+
+    for ax in axes[:2, :].flatten():
+        ax.get_xaxis().set_ticks([])
+
+    cax = fig.add_axes([0.10, 0.07, 0.2, 0.01])
+    plt.colorbar(cmorph_im, cax=cax, orientation='horizontal', label='precipitation (mm day$^{-1}$)', **cbar_kwargs)
+
+    cax2 = fig.add_axes([0.46, 0.07, 0.4, 0.01])
+    plt.colorbar(dataset_im, cax=cax2, orientation='horizontal', label='$\\Delta$ precipitation (mm hr$^{-1}$)')
+
+    plt.subplots_adjust(left=0.06, right=0.94, top=0.96, bottom=0.13, wspace=0.1, hspace=0.1)
 
     mean_precip_filename = outputs[0]
     plt.savefig(mean_precip_filename)
@@ -727,6 +821,20 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
                            outputs=[PATHS['figsdir'] / 'basin_weighted_analysis' / 'cmorph_vs' / 'mean_precip' /
                                     f'cmorph_vs_all_datasets.all_rmse.{basin_scales}.png'],
                            ))
+
+        if basin_scales == 'small_medium_large':
+            input_paths = {'raster_cubes': hb_raster_cubes_fn}
+            datasets = ['cmorph', 'u-al508', 'u-ak543']
+            paths = {f'weighted_{hb_name}_{dataset}': (PATHS['output_datadir'] /
+                                                       weighted_mean_precip_tpl.format(hb_name=hb_name,
+                                                                                       dataset=dataset))
+                     for hb_name, dataset in itertools.product(hb_names, datasets)}
+            input_paths.update(paths)
+            task_ctrl.add(Task(plot_mean_precip_asia_combined,
+                               input_paths,
+                               [PATHS['figsdir'] / 'basin_weighted_analysis' / 'map' /
+                                'mean_precip_asia_combined' / f'asia_combined_basin_scales.pdf'],
+                               func_args=[datasets, hb_names]))
 
         for hb_name in hb_names:
             # N.B. out of order.
