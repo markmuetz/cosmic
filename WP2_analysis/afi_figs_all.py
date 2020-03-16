@@ -3,6 +3,7 @@ import itertools
 import headless_matplotlib
 import iris
 
+from cosmic.WP2.afi_base import AFI_basePlotter
 from cosmic.WP2.afi_mean_plot import AFI_meanPlotter
 from cosmic.WP2.afi_diurnal_cycle_plot import AFI_diurnalCyclePlotter
 
@@ -17,7 +18,7 @@ REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
 MODES = ['amount', 'freq', 'intensity']
 
 
-@remake_required(depends_on=[AFI_meanPlotter])
+@remake_required(depends_on=[AFI_meanPlotter, AFI_basePlotter])
 def fig_afi_mean(inputs, outputs, season, method):
     afi_mean = AFI_meanPlotter(season, method)
     cubes = {}
@@ -28,7 +29,7 @@ def fig_afi_mean(inputs, outputs, season, method):
     afi_mean.save(outputs[0])
 
 
-@remake_required(depends_on=[AFI_diurnalCyclePlotter])
+@remake_required(depends_on=[AFI_diurnalCyclePlotter, AFI_basePlotter])
 def fig_afi_diurnal_cycle(inputs, outputs, season, method):
     afi_mean = AFI_diurnalCyclePlotter(season, method)
     cubes = {}
@@ -69,7 +70,7 @@ class AfiTask(Task):
                 inputs[(runid, f'{mode}_of_precip_{season}')] = datadir / rel_path / filename
 
         output_path = (figsdir / 'AFI' /
-                       f'{func.__name__}.{duration}.{season}.{method}.ppt_thresh_{thresh_text}.png')
+                       f'{func.__name__}.{duration}.{season}.{method}.ppt_thresh_{thresh_text}.pdf')
         super().__init__(func, inputs, [output_path], func_args=(season, method))
 
 

@@ -47,4 +47,7 @@ STANDARD_NAMES = {
     'cmorph': 'CMORPH',
     'u-al508': 'N1280',
     'u-ak543': 'N1280-EC',
+    'HadGEM3-GC31-HM': 'N512',
+    'HadGEM3-GC31-MM': 'N216',
+    'HadGEM3-GC31-LM': 'N96',
 }

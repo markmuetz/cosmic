@@ -1,4 +1,5 @@
 import sys
+import string
 from collections import defaultdict
 import itertools
 import pickle
@@ -407,13 +408,17 @@ def plot_mean_precip_asia_combined(inputs, outputs, datasets, hb_names):
     for ax in axes[:2, :].flatten():
         ax.get_xaxis().set_ticks([])
 
+    for i, ax in enumerate(axes.flatten()):
+        c = string.ascii_lowercase[i]
+        ax.text(0.01, 1.04, f'({c})', size=12, transform=ax.transAxes)
+
     cax = fig.add_axes([0.10, 0.07, 0.2, 0.01])
     plt.colorbar(cmorph_im, cax=cax, orientation='horizontal', label='precipitation (mm day$^{-1}$)', **cbar_kwargs)
 
     cax2 = fig.add_axes([0.46, 0.07, 0.4, 0.01])
     plt.colorbar(dataset_im, cax=cax2, orientation='horizontal', label='$\\Delta$ precipitation (mm hr$^{-1}$)')
 
-    plt.subplots_adjust(left=0.06, right=0.94, top=0.96, bottom=0.13, wspace=0.1, hspace=0.1)
+    plt.subplots_adjust(left=0.06, right=0.94, top=0.96, bottom=0.13, wspace=0.1, hspace=0.15)
 
     mean_precip_filename = outputs[0]
     plt.savefig(mean_precip_filename)
@@ -666,8 +671,8 @@ def plot_cmorph_vs_all_datasets_mean_precip(inputs, outputs):
     fig, ax = plt.subplots(1, 1, sharex=True, num=str(all_rmse_filename), figsize=(12, 8))
 
     # ax1.set_ylim((0, 5))
-    for dataset, (rmses, maes) in all_rmses.items():
-        p = ax.plot(rmses, label=dataset)
+    for dataset, (rmses, maes) in list(all_rmses.items())[::-1]:
+        p = ax.plot(rmses, label=STANDARD_NAMES[dataset])
         colour = p[0].get_color()
         ax.plot(maes, linestyle='--', color=colour)
     if len(rmses) == 3:
@@ -675,17 +680,17 @@ def plot_cmorph_vs_all_datasets_mean_precip(inputs, outputs):
     elif len(rmses) == 11:
         ax.set_xticks([0, 5, 10])
         ax.set_xticks(range(11), minor=True)
-    ax.set_xticklabels(['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
+    # ax.set_xticklabels(['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
+    ax.set_xticklabels(['small', 'medium', 'large'])
 
     ax.set_ylabel('mean precip.\nRMSE/MAE (mm hr$^{-1}$)')
-    ax.set_xlabel('basin scale (km$^2$)')
+    ax.set_xlabel('basin size')
     ax.legend()
     plt.tight_layout()
     plt.savefig(all_rmse_filename)
 
 
 def plot_cmorph_vs_all_datasets_phase_mag(inputs, outputs):
-
     with inputs[0].open('rb') as f:
         all_rmses = pickle.load(f)
 
@@ -696,26 +701,37 @@ def plot_cmorph_vs_all_datasets_phase_mag(inputs, outputs):
         ax1, ax2, ax3 = axes[:, i]
         # ax1.set_ylim((0, 5))
         rmses_for_mode = all_rmses[mode]
-        for dataset, (phase_rmses, mag_rmses, vrmses) in rmses_for_mode.items():
-            ax1.plot(phase_rmses, label=dataset)
-            ax2.plot(mag_rmses, label=dataset)
-            ax3.plot(vrmses, label=dataset)
+        for dataset, (phase_rmses, mag_rmses, vrmses) in list(rmses_for_mode.items())[::-1]:
+            ax1.plot(phase_rmses, label=STANDARD_NAMES[dataset])
+            ax2.plot(mag_rmses, label=STANDARD_NAMES[dataset])
+            ax3.plot(vrmses, label=STANDARD_NAMES[dataset])
         if len(vrmses) == 3:
             ax2.set_xticks([0, 1, 2])
         elif len(vrmses) == 11:
             ax2.set_xticks([0, 5, 10])
             ax2.set_xticks(range(11), minor=True)
-        ax2.set_xticklabels(['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
+        # ax2.set_xticklabels(['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
+        ax2.set_xticklabels(['small', 'medium', 'large'])
 
     axes[0, 0].set_title('Amount')
     axes[0, 1].set_title('Frequency')
     axes[0, 2].set_title('Intensity')
     axes[0, 0].set_ylabel('phase\ncircular RMSE (hr)')
+    axes[0, 0].get_yaxis().set_label_coords(-0.2, 0.5)
     axes[1, 0].set_ylabel('strength\nRMSE (-)')
+    axes[1, 0].set_ylim((0.04, 0.145))
+    axes[1, 0].get_yaxis().set_label_coords(-0.2, 0.5)
     axes[2, 0].set_ylabel('combined\nVRMSE (-)')
-    axes[2, 1].set_xlabel('basin scale (km$^2$)')
+    axes[2, 0].get_yaxis().set_label_coords(-0.2, 0.5)
+    axes[2, 1].set_xlabel('basin size')
     axes[1, 0].legend()
-    plt.tight_layout()
+
+    for i, ax in enumerate(axes.flatten()):
+        c = string.ascii_lowercase[i]
+        ax.text(0.01, 1.04, f'({c})', size=12, transform=ax.transAxes)
+
+    plt.subplots_adjust(left=0.1, right=0.94, top=0.96, bottom=0.06, wspace=0.2, hspace=0.2)
+
     plt.savefig(all_rmse_filename)
 
 
@@ -819,7 +835,7 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
         task_ctrl.add(Task(plot_cmorph_vs_all_datasets_mean_precip,
                            inputs=[mean_precip_rmse_data_filename],
                            outputs=[PATHS['figsdir'] / 'basin_weighted_analysis' / 'cmorph_vs' / 'mean_precip' /
-                                    f'cmorph_vs_all_datasets.all_rmse.{basin_scales}.png'],
+                                    f'cmorph_vs_all_datasets.all_rmse.{basin_scales}.pdf'],
                            ))
 
         if basin_scales == 'small_medium_large':
@@ -904,7 +920,7 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
             task_ctrl.add(Task(plot_cmorph_vs_all_datasets_phase_mag,
                                [vrmse_data_filename],
                                [PATHS['figsdir'] / 'basin_weighted_analysis' / 'cmorph_vs' / 'phase_mag' /
-                                f'cmorph_vs_all_datasets.all_rmse.{weighted}.{basin_scales}.png'],
+                                f'cmorph_vs_all_datasets.all_rmse.{weighted}.{basin_scales}.pdf'],
                                )
                           )
 

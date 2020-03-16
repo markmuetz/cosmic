@@ -1,4 +1,5 @@
 import sys
+import string
 import itertools
 import iris
 import headless_matplotlib
@@ -144,8 +145,11 @@ def plot_weights_cube_table(inputs, outputs, rows, cols):
     axes[1, 0].get_yaxis().set_label_coords(-0.1, 0.5)
     axes[2, 0].set_ylabel('large')
     axes[2, 0].get_yaxis().set_label_coords(-0.1, 0.5)
+    for i, ax in enumerate(axes.flatten()):
+        c = string.ascii_lowercase[i]
+        ax.text(0.01, 1.04, f'({c})', size=12, transform=ax.transAxes)
 
-    plt.subplots_adjust(left=0.04, right=0.94, top=0.96, bottom=0.15)
+    plt.subplots_adjust(left=0.04, right=0.94, top=0.96, bottom=0.15, hspace=0.3)
 
     plt.savefig(outputs[0])
 

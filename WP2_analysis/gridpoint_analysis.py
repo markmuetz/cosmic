@@ -1,3 +1,5 @@
+import string
+
 import headless_matplotlib
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
@@ -43,9 +45,13 @@ def plot_gridpoint_mean_precip_asia(inputs, outputs):
     axes[1].get_yaxis().set_ticklabels([])
     axes[2].get_yaxis().set_ticklabels([])
 
+    for i, ax in enumerate(axes):
+        c = string.ascii_lowercase[i]
+        ax.text(0.01, 1.04, f'({c})', size=12, transform=ax.transAxes)
+
     cax = fig.add_axes([0.12, 0.15, 0.74, 0.02])
     plt.colorbar(im, cax=cax, orientation='horizontal', label='precipitation (mm day$^{-1}$)', **cbar_kwargs)
-    plt.subplots_adjust(left=0.06, right=0.94, top=0.98, bottom=0.17)
+    plt.subplots_adjust(left=0.06, right=0.94, top=0.98, bottom=0.17, wspace=0.1)
     plt.savefig(outputs[0])
 
 

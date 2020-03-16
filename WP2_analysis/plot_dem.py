@@ -29,7 +29,7 @@ def plot_dem(inputs, outputs):
     ax = plt.axes(projection=ccrs.PlateCarree())
     grey_fill = np.zeros((raster.shape[0], raster.shape[1], 3), dtype=int)
     grey_fill[raster == 0] = (200, 200, 200)
-    ax.imshow(grey_fill[::-1], extent=extent)
+    # ax.imshow(grey_fill[::-1], extent=extent)
     im = ax.imshow(ma_dem[::-1, :], extent=extent, origin='lower', cmap='terrain')
 
     _configure_ax_asia(ax, tight_layout=False)
