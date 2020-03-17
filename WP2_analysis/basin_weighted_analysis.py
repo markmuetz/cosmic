@@ -327,7 +327,26 @@ def plot_mean_precip(inputs, outputs, dataset, hb_name):
     plt.close()
 
 
-@remake_required(depends_on=[_configure_ax_asia])
+def _configure_hb_name_dataset_map_grid(axes, hb_names, datasets):
+    for ax in axes.flatten():
+        _configure_ax_asia(ax, tight_layout=False)
+    for ax, hb_name in zip(axes[:, 0], hb_names):
+        if hb_name == 'med':
+            ax.set_ylabel('medium')
+        else:
+            ax.set_ylabel(hb_name)
+    for ax in axes[:, 2].flatten():
+        ax.get_yaxis().tick_right()
+    for ax in axes[:, :2].flatten():
+        ax.get_yaxis().set_ticks([])
+    for ax in axes[:2, :].flatten():
+        ax.get_xaxis().set_ticks([])
+    for i, ax in enumerate(axes.flatten()):
+        c = string.ascii_lowercase[i]
+        ax.text(0.01, 1.04, f'({c})', size=12, transform=ax.transAxes)
+
+
+@remake_required(depends_on=[_configure_ax_asia, _configure_hb_name_dataset_map_grid])
 def plot_mean_precip_asia_combined(inputs, outputs, datasets, hb_names):
     imshow_data = {}
     for hb_name in hb_names:
@@ -389,28 +408,7 @@ def plot_mean_precip_asia_combined(inputs, outputs, datasets, hb_names):
             ax.set_title(STANDARD_NAMES[dataset])
         else:
             ax.set_title(f'{STANDARD_NAMES[dataset]} $-$ {STANDARD_NAMES["cmorph"]}')
-
-    for ax in axes.flatten():
-        _configure_ax_asia(ax, tight_layout=False)
-
-    for ax, hb_name in zip(axes[:, 0], hb_names):
-        if hb_name == 'med':
-            ax.set_ylabel('medium')
-        else:
-            ax.set_ylabel(hb_name)
-
-    for ax in axes[:, 2].flatten():
-        ax.get_yaxis().tick_right()
-
-    for ax in axes[:, :2].flatten():
-        ax.get_yaxis().set_ticks([])
-
-    for ax in axes[:2, :].flatten():
-        ax.get_xaxis().set_ticks([])
-
-    for i, ax in enumerate(axes.flatten()):
-        c = string.ascii_lowercase[i]
-        ax.text(0.01, 1.04, f'({c})', size=12, transform=ax.transAxes)
+    _configure_hb_name_dataset_map_grid(axes, hb_names, datasets)
 
     cax = fig.add_axes([0.10, 0.07, 0.2, 0.01])
     plt.colorbar(cmorph_im, cax=cax, orientation='horizontal', label='precipitation (mm day$^{-1}$)', **cbar_kwargs)
@@ -475,7 +473,81 @@ def plot_cmorph_mean_precip_diff(inputs, outputs, dataset, hb_name):
     plt.close()
 
 
-@remake_required(depends_on=[_configure_ax_asia])
+
+def _plot_phase_alpha(ax, masked_phase_map, masked_mag_map, cmap, norm, extent):
+    thresh_boundaries = [100 * 1 / 3, 100 * 2 / 3]
+    # thresh_boundaries = [100 * 1 / 4, 100 * 1 / 3]
+    med_thresh, strong_thresh = np.percentile(masked_mag_map.compressed(),
+                                              thresh_boundaries)
+    peak_strong = np.ma.masked_array(masked_phase_map,
+                                     masked_mag_map < strong_thresh)
+    peak_med = np.ma.masked_array(masked_phase_map,
+                                  ((masked_mag_map >= strong_thresh) |
+                                   (masked_mag_map < med_thresh)))
+    peak_weak = np.ma.masked_array(masked_phase_map,
+                                   masked_mag_map >= med_thresh)
+    im0 = ax.imshow(peak_strong, origin='lower', extent=extent,
+                    vmin=0, vmax=24, cmap=cmap, norm=norm)
+    ax.imshow(peak_med, origin='lower', extent=extent, alpha=0.66,
+              vmin=0, vmax=24, cmap=cmap, norm=norm)
+    ax.imshow(peak_weak, origin='lower', extent=extent, alpha=0.33,
+              vmin=0, vmax=24, cmap=cmap, norm=norm)
+    # # plt.colorbar(im0, orientation='horizontal')
+    # cax = fig.add_axes([0.05, 0.05, 0.9, 0.05])
+    return im0
+
+
+@remake_required(depends_on=[_plot_phase_alpha, _configure_ax_asia, _configure_hb_name_dataset_map_grid])
+def plot_phase_alpha_combined(inputs, outputs, datasets, hb_names, mode):
+    imshow_data = {}
+    for hb_name in hb_names:
+        raster_hb_name = hb_name
+        raster_cube = iris.load_cube(str(inputs['raster_cubes']), f'hydrobasins_raster_{raster_hb_name}')
+        raster = raster_cube.data
+        for dataset in datasets:
+            weighted_basin_phase_mag_filename = inputs[f'weighted_{hb_name}_{dataset}']
+            df_phase_mag = pd.read_hdf(weighted_basin_phase_mag_filename)
+
+            phase_map, mag_map = gen_map_from_basin_values(df_phase_mag, raster)
+            phase_map = iris.cube.Cube(phase_map, long_name='phase_map', units='hr',
+                                       dim_coords_and_dims=[(raster_cube.coord('latitude'), 0),
+                                                            (raster_cube.coord('longitude'), 1)])
+            mag_map = iris.cube.Cube(mag_map, long_name='magnitude_map', units='-',
+                                     dim_coords_and_dims=[(raster_cube.coord('latitude'), 0),
+                                                          (raster_cube.coord('longitude'), 1)])
+            masked_phase_map = np.ma.masked_array(phase_map.data, raster_cube.data == 0)
+            masked_mag_map = np.ma.masked_array(mag_map.data, raster_cube.data == 0)
+            imshow_data[(hb_name, dataset)] = (masked_phase_map, masked_mag_map)
+
+    cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig3_cb.pkl')
+    fig, axes = plt.subplots(3, 3, figsize=(10, 7), subplot_kw={'projection': ccrs.PlateCarree()})
+    for axrow, hb_name in zip(axes, hb_names):
+        for ax, dataset in zip(axrow, datasets):
+            masked_phase_map, masked_mag_map = imshow_data[(hb_name, dataset)]
+            extent = get_extent_from_cube(phase_map)
+            _plot_phase_alpha(ax, masked_phase_map, masked_mag_map, cmap, norm, extent)
+
+    for ax, dataset in zip(axes[0], datasets):
+        ax.set_title(STANDARD_NAMES[dataset])
+    _configure_hb_name_dataset_map_grid(axes, hb_names, datasets)
+
+    cax = fig.add_axes([0.10, 0.07, 0.8, 0.05])
+    v = np.linspace(0, 1, 24)
+    d = cmap(v)[None, :, :4] * np.ones((3, 24, 4))
+    d[1, :, 3] = 0.66
+    d[0, :, 3] = 0.33
+    cax.imshow(d, origin='lower', extent=(0, 24, 0, 2), aspect='auto')
+    cax.set_yticks([0.3, 1.7])
+    cax.set_yticklabels(['weak', 'strong'])
+    cax.set_xticks(np.linspace(0, 24, 9))
+    cax.set_xlabel('phase and strength of diurnal cycle')
+
+    plt.subplots_adjust(left=0.06, right=0.94, top=0.96, bottom=0.16, wspace=0.1, hspace=0.15)
+
+    plt.savefig(outputs[0])
+
+
+@remake_required(depends_on=[_plot_phase_alpha, _configure_ax_asia])
 def plot_phase_mag(inputs, outputs, dataset, hb_name, mode):
     weighted_basin_phase_mag_filename = inputs['weighted']
     df_phase_mag = pd.read_hdf(weighted_basin_phase_mag_filename)
@@ -501,6 +573,8 @@ def plot_phase_mag(inputs, outputs, dataset, hb_name, mode):
     ax = plt.subplot(projection=ccrs.PlateCarree())
     ax.set_title(f'{dataset} {mode} phase')
     masked_phase_map = np.ma.masked_array(phase_map.data, raster_cube.data == 0)
+    masked_mag_map = np.ma.masked_array(mag_map.data, raster_cube.data == 0)
+
     im = ax.imshow(masked_phase_map,
                    cmap=cmap, norm=norm,
                    origin='lower', extent=extent, vmin=0, vmax=24)
@@ -510,31 +584,13 @@ def plot_phase_mag(inputs, outputs, dataset, hb_name, mode):
     plt.savefig(phase_filename)
     plt.close()
 
-    thresh_boundaries = [100 * 1 / 3, 100 * 2 / 3]
-    # thresh_boundaries = [100 * 1 / 4, 100 * 1 / 3]
-    masked_mag_map = np.ma.masked_array(mag_map.data, raster_cube.data == 0)
-    med_thresh, strong_thresh = np.percentile(masked_mag_map.compressed(),
-                                              thresh_boundaries)
-    peak_strong = np.ma.masked_array(masked_phase_map,
-                                     masked_mag_map < strong_thresh)
-    peak_med = np.ma.masked_array(masked_phase_map,
-                                  ((masked_mag_map >= strong_thresh) |
-                                   (masked_mag_map < med_thresh)))
-    peak_weak = np.ma.masked_array(masked_phase_map,
-                                   masked_mag_map >= med_thresh)
-
     fig = plt.figure(figsize=(10, 8))
     ax = plt.subplot(projection=ccrs.PlateCarree())
     ax.set_title(f'{dataset} {mode} phase (alpha)')
-    im0 = ax.imshow(peak_strong, origin='lower', extent=extent,
-                    vmin=0, vmax=24, cmap=cmap, norm=norm)
-    ax.imshow(peak_med, origin='lower', extent=extent, alpha=0.5,
-              vmin=0, vmax=24, cmap=cmap, norm=norm)
-    ax.imshow(peak_weak, origin='lower', extent=extent, alpha=0.33,
-              vmin=0, vmax=24, cmap=cmap, norm=norm)
 
-    # # plt.colorbar(im0, orientation='horizontal')
-    # cax = fig.add_axes([0.05, 0.05, 0.9, 0.05])
+    _plot_phase_alpha(ax, masked_phase_map, masked_mag_map, cmap, norm, extent)
+    _configure_ax_asia(ax, extent)
+
     cax, _ = cbar.make_axes_gridspec(ax, orientation='horizontal')
     v = np.linspace(0, 1, 24)
     d = cmap(v)[None, :, :4] * np.ones((3, 24, 4))
@@ -543,7 +599,7 @@ def plot_phase_mag(inputs, outputs, dataset, hb_name, mode):
     cax.imshow(d, origin='lower', extent=(0, 24, 0, 2), aspect='auto')
     cax.set_yticks([])
     cax.set_xticks(np.linspace(0, 24, 9))
-    _configure_ax_asia(ax, extent)
+
     # plt.tight_layout()
     plt.savefig(alpha_phase_filename)
     plt.close()
@@ -898,6 +954,21 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
                                 mode / f'map_{dataset}.{hb_name}.{mode}.area_weighted.{v}.png'
                                 for v in ['phase', 'alpha_phase', 'mag']],
                                func_args=[dataset, hb_name, mode]))
+
+        if basin_scales == 'small_medium_large':
+            datasets = ['cmorph', 'u-al508', 'u-ak543']
+            for mode in PRECIP_MODES:
+                input_paths = {f'weighted_{hb_name}_{dataset}': (PATHS['output_datadir'] /
+                                                                 weighted_phase_mag_tpl.format(hb_name=hb_name,
+                                                                                               dataset=dataset,
+                                                                                               mode=mode))
+                               for hb_name, dataset in itertools.product(hb_names, datasets)}
+                input_paths.update({'raster_cubes': hb_raster_cubes_fn})
+                task_ctrl.add(Task(plot_phase_alpha_combined,
+                                   input_paths,
+                                   [PATHS['figsdir'] / 'basin_weighted_analysis' / 'map' / 'phase_alpha_combined' /
+                                    f'{mode}_phase_alpha_combined_asia.pdf'],
+                                   func_args=(datasets, hb_names, mode)))
 
         for area_weighted in [True, False]:
             weighted = 'area_weighted' if area_weighted else 'not_area_weighted'
