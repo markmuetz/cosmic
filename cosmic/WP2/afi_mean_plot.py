@@ -8,8 +8,10 @@ from .afi_base import AFI_basePlotter, load_cmap_data
 
 class AFI_meanPlotter(AFI_basePlotter):
     def gen_axes(self):
-        self.fig = plt.figure(figsize=(10, 10))
-        gs = gridspec.GridSpec(4, 3, figure=self.fig, height_ratios=[1, 1, 1, 0.2])
+        if self.domain == 'china':
+            gs = gridspec.GridSpec(4, 3, figure=self.fig, height_ratios=[1, 1, 1, 0.2])
+        elif self.domain == 'asia':
+            gs = gridspec.GridSpec(4, 3, figure=self.fig, height_ratios=[1, 1, 1, 0.3])
         fig_axes = []
         cb_axes = []
         for i in range(3):

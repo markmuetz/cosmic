@@ -24,9 +24,15 @@ class AFI_basePlotter:
         'ak543': 'N1280-EC',
     }
 
-    def __init__(self, season, method='peak'):
+    def __init__(self, season, domain, method='peak'):
         self.season = season
         self.method = method
+        assert domain in ['china', 'asia']
+        self.domain = domain
+        if self.domain == 'china':
+            self.fig = plt.figure(figsize=(10, 10))
+        elif self.domain == 'asia':
+            self.fig = plt.figure(figsize=(10, 8))
         self.fig_axes, self.cb_axes = self.gen_axes()
         self.cubes = {}
         self.runids = list(self.TITLE_RUNID_MAP.keys())
@@ -47,17 +53,28 @@ class AFI_basePlotter:
                 images.append(self.plot_ax(ax, self.cubes[runid, f'{mode}_of_precip_{self.season}'], runid, mode))
 
                 ax.coastlines(resolution='50m')
-                ax.set_xlim((97.5, 125))
-                ax.set_ylim((18, 41))
-                xticks = [100, 110, 120]
-                ax.set_xticks(xticks)
-                ax.set_xticklabels([f'${t}\\degree$ E' for t in xticks])
-                ax.set_xticks(np.linspace(98, 124, 14), minor=True)
+                if self.domain == 'china':
+                    ax.set_xlim((97.5, 125))
+                    ax.set_ylim((18, 41))
+                    xticks = [100, 110, 120]
+                    ax.set_xticks(xticks)
+                    ax.set_xticks(np.linspace(98, 124, 14), minor=True)
 
-                yticks = [20, 30, 40]
-                ax.set_yticks(yticks)
+                    yticks = [20, 30, 40]
+                    ax.set_yticks(yticks)
+                    ax.set_yticks(np.linspace(18, 40, 12), minor=True)
+                elif self.domain == 'asia':
+                    xticks = range(60, 160, 20)
+                    ax.set_xticks(xticks)
+                    ax.set_xticks(np.linspace(58, 150, 47), minor=True)
+
+                    yticks = range(20, 60, 20)
+                    ax.set_yticks(yticks)
+                    ax.set_yticks(np.linspace(2, 56, 28), minor=True)
+
+                ax.set_xticklabels([f'${t}\\degree$ E' for t in xticks])
                 ax.set_yticklabels([f'${t}\\degree$ N' for t in yticks])
-                ax.set_yticks(np.linspace(18, 40, 12), minor=True)
+
                 ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False,
                                bottom=True, top=True, left=True, right=True, which='both')
                 if i != 2:
