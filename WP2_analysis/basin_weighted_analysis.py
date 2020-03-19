@@ -330,11 +330,11 @@ def plot_mean_precip(inputs, outputs, dataset, hb_name):
 def _configure_hb_name_dataset_map_grid(axes, hb_names, datasets):
     for ax in axes.flatten():
         _configure_ax_asia(ax, tight_layout=False)
-    for ax, hb_name in zip(axes[:, 0], hb_names):
+    for ax, hb_name in zip(axes[0], hb_names):
         if hb_name == 'med':
-            ax.set_ylabel('medium')
+            ax.set_title('medium')
         else:
-            ax.set_ylabel(hb_name)
+            ax.set_title(hb_name)
     for ax in axes[:, 2].flatten():
         ax.get_yaxis().tick_right()
     for ax in axes[:, :2].flatten():
@@ -378,10 +378,10 @@ def plot_mean_precip_asia_combined(inputs, outputs, datasets, hb_names):
             imshow_data[(dataset, hb_name)] = masked_mean_precip_map
 
     fig, axes = plt.subplots(3, 3,
-                             figsize=(10, 6.5), subplot_kw={'projection': ccrs.PlateCarree()})
+                             figsize=(10, 5.5), subplot_kw={'projection': ccrs.PlateCarree()})
     cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig2_cb1.pkl')
 
-    for axrow, hb_name in zip(axes, hb_names):
+    for axrow, hb_name in zip(axes.T, hb_names):
         masked_cmorph_mean_precip_map = imshow_data[('cmorph', hb_name)]
         ax = axrow[0]
         # Not working for some reason.
@@ -394,7 +394,7 @@ def plot_mean_precip_asia_combined(inputs, outputs, datasets, hb_names):
                               # vmin=1e-3, vmax=max_mean_precip,
                               origin='lower', extent=extent)
 
-        for ax, dataset in zip(axrow[1:], datasets[1:]):
+        for ax, dataset in zip(axrow.T[1:], datasets[1:]):
             masked_mean_precip_map = imshow_data[(dataset, hb_name)]
             # ax.imshow(grey_fill, extent=extent)
             dataset_im = ax.imshow(masked_mean_precip_map,
@@ -403,20 +403,26 @@ def plot_mean_precip_asia_combined(inputs, outputs, datasets, hb_names):
                                    # vmin=-absmax, vmax=absmax,
                                    origin='lower', extent=extent)
 
-    for ax, dataset in zip(axes[0], datasets):
+    for ax, dataset in zip(axes[:, 0], datasets):
         if dataset == 'cmorph':
-            ax.set_title(STANDARD_NAMES[dataset])
+            ax.set_ylabel(STANDARD_NAMES[dataset])
         else:
-            ax.set_title(f'{STANDARD_NAMES[dataset]} $-$ {STANDARD_NAMES["cmorph"]}')
+            ax.set_ylabel(f'{STANDARD_NAMES[dataset]} $-$ {STANDARD_NAMES["cmorph"]}')
     _configure_hb_name_dataset_map_grid(axes, hb_names, datasets)
 
-    cax = fig.add_axes([0.10, 0.07, 0.2, 0.01])
-    plt.colorbar(cmorph_im, cax=cax, orientation='horizontal', label='precipitation (mm day$^{-1}$)', **cbar_kwargs)
+    cax = fig.add_axes([0.92, 0.66, 0.01, 0.3])
+    # plt.colorbar(cmorph_im, cax=cax, orientation='vertical', label='precipitation (mm day$^{-1}$)', **cbar_kwargs)
+    plt.colorbar(cmorph_im, cax=cax, orientation='vertical', **cbar_kwargs)
+    cax.text(5.8, 1, 'precipitation (mm day$^{-1}$)', rotation=90)
 
-    cax2 = fig.add_axes([0.46, 0.07, 0.4, 0.01])
-    plt.colorbar(dataset_im, cax=cax2, orientation='horizontal', label='$\\Delta$ precipitation (mm hr$^{-1}$)')
+    # cax2 = fig.add_axes([0.46, 0.07, 0.4, 0.01])
+    cax2 = fig.add_axes([0.92, 0.02, 0.01, 0.6])
+    # cb = plt.colorbar(dataset_im, cax=cax2, orientation='vertical', label='$\\Delta$ precipitation (mm hr$^{-1}$)')
+    cb = plt.colorbar(dataset_im, cax=cax2, orientation='vertical')
+    cax2.text(5.8, 0.8, '$\\Delta$ precipitation (mm hr$^{-1}$)', rotation=90)
+    # cb.set_label_coords(-0.2, 0.5)
 
-    plt.subplots_adjust(left=0.06, right=0.94, top=0.96, bottom=0.13, wspace=0.1, hspace=0.15)
+    plt.subplots_adjust(left=0.06, right=0.86, top=0.96, bottom=0.04, wspace=0.1, hspace=0.15)
 
     mean_precip_filename = outputs[0]
     plt.savefig(mean_precip_filename)
@@ -521,14 +527,14 @@ def plot_phase_alpha_combined(inputs, outputs, datasets, hb_names, mode):
 
     cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig3_cb.pkl')
     fig, axes = plt.subplots(3, 3, figsize=(10, 7), subplot_kw={'projection': ccrs.PlateCarree()})
-    for axrow, hb_name in zip(axes, hb_names):
-        for ax, dataset in zip(axrow, datasets):
+    for axrow, dataset in zip(axes, datasets):
+        for ax, hb_name in zip(axrow, hb_names):
             masked_phase_map, masked_mag_map = imshow_data[(hb_name, dataset)]
             extent = get_extent_from_cube(phase_map)
             _plot_phase_alpha(ax, masked_phase_map, masked_mag_map, cmap, norm, extent)
 
-    for ax, dataset in zip(axes[0], datasets):
-        ax.set_title(STANDARD_NAMES[dataset])
+    for ax, dataset in zip(axes[:, 0], datasets):
+        ax.set_ylabel(STANDARD_NAMES[dataset])
     _configure_hb_name_dataset_map_grid(axes, hb_names, datasets)
 
     cax = fig.add_axes([0.10, 0.07, 0.8, 0.05])
