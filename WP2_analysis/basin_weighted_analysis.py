@@ -744,9 +744,9 @@ def plot_cmorph_vs_all_datasets_mean_precip(inputs, outputs):
 
     # ax1.set_ylim((0, 5))
     for dataset, (rmses, maes) in list(all_rmses.items())[::-1]:
-        p = ax.plot(rmses, label=STANDARD_NAMES[dataset])
+        p = ax.plot(np.array(rmses) * 24, label=STANDARD_NAMES[dataset])
         colour = p[0].get_color()
-        ax.plot(maes, linestyle='--', color=colour)
+        ax.plot(np.array(maes) * 24, linestyle='--', color=colour)
     if len(rmses) == 3:
         ax.set_xticks([0, 1, 2])
     elif len(rmses) == 11:
@@ -755,7 +755,7 @@ def plot_cmorph_vs_all_datasets_mean_precip(inputs, outputs):
     # ax.set_xticklabels(['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
     ax.set_xticklabels(['small', 'medium', 'large'])
 
-    ax.set_ylabel('mean precip.\nRMSE/MAE (mm hr$^{-1}$)')
+    ax.set_ylabel('mean precip.\nRMSE/MAE (mm day$^{-1}$)')
     ax.set_xlabel('basin size')
     ax.legend()
     plt.tight_layout()
