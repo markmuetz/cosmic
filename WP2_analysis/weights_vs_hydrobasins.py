@@ -83,7 +83,7 @@ def plot_weights_cube(inputs, outputs):
 
 def plot_weights_cube_table(inputs, outputs, rows, cols):
     fig, axes = plt.subplots(3, 4, sharex='row', figsize=(10, 6),
-                             gridspec_kw={'height_ratios': [2, 2, 2.5]})
+                             gridspec_kw={'height_ratios': [2, 2, 2.7]})
     extents = {
         'small': [107.5, 111.5, 17.8, 20.2],
         'medium': [133, 141, 49.5, 54.5],
@@ -149,7 +149,7 @@ def plot_weights_cube_table(inputs, outputs, rows, cols):
         c = string.ascii_lowercase[i]
         ax.text(0.01, 1.04, f'({c})', size=12, transform=ax.transAxes)
 
-    plt.subplots_adjust(left=0.04, right=0.94, top=0.96, bottom=0.15, hspace=0.3)
+    plt.subplots_adjust(left=0.04, right=0.94, top=0.96, bottom=0.15, hspace=0.32)
 
     plt.savefig(outputs[0])
 
