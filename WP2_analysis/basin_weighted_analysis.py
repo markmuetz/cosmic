@@ -9,6 +9,7 @@ import iris
 import geopandas as gpd
 # noinspection PyUnresolvedReferences
 import headless_matplotlib  # uses 'agg' backend if HEADLESS env var set.
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.colorbar as cbar
 from matplotlib import colors
@@ -375,19 +376,28 @@ def plot_mean_precip_asia_combined(inputs, outputs, datasets, hb_names):
 
             masked_mean_precip_map = np.ma.masked_array(mean_precip_map - cmorph_mean_precip_map,
                                                         raster_cube.data == 0)
-            imshow_data[(dataset, hb_name)] = masked_mean_precip_map
+            imshow_data[(dataset, hb_name)] = masked_mean_precip_map * 24
 
     fig, axes = plt.subplots(3, 3,
                              figsize=(10, 5.5), subplot_kw={'projection': ccrs.PlateCarree()})
     cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig2_cb1.pkl')
 
+    # orig. -- continuous scale.
+    # diff_cmap = mpl.cm.get_cmap('bwr')
+    # diff_norm = MidPointNorm(0, -24, 72)
+    bwr = mpl.cm.get_cmap('bwr')
+    cmap_scale = [0., .5 / 3, 1 / 3, .5, .6, .7, .8, 1.]  # 8 -- colours from bwr to use.
+    diff_bounds = [-27, -9, -3, -1, 1, 3, 9, 27, 81]  # 9 -- bounds to use.
+    diff_cmap = colors.LinearSegmentedColormap.from_list('diff_cmap', [bwr(x) for x in cmap_scale], bwr.N)
+    diff_norm = colors.BoundaryNorm(diff_bounds, diff_cmap.N)
+
+    # Fills masked values.
+    cmap.set_bad(color='k', alpha=0.1)
+    diff_cmap.set_bad(color='k', alpha=0.1)
+
     for axrow, hb_name in zip(axes.T, hb_names):
         masked_cmorph_mean_precip_map = imshow_data[('cmorph', hb_name)]
         ax = axrow[0]
-        # Not working for some reason.
-        grey_fill = np.zeros((cmorph_mean_precip_map.shape[0], cmorph_mean_precip_map.shape[1], 3), dtype=int)
-        grey_fill[raster_cube.data == 0] = (200, 200, 200)
-        # ax.imshow(grey_fill, extent=extent)
 
         cmorph_im = ax.imshow(masked_cmorph_mean_precip_map,
                               cmap=cmap, norm=norm,
@@ -396,10 +406,9 @@ def plot_mean_precip_asia_combined(inputs, outputs, datasets, hb_names):
 
         for ax, dataset in zip(axrow.T[1:], datasets[1:]):
             masked_mean_precip_map = imshow_data[(dataset, hb_name)]
-            # ax.imshow(grey_fill, extent=extent)
             dataset_im = ax.imshow(masked_mean_precip_map,
-                                   cmap='bwr',
-                                   norm=MidPointNorm(0, -1, 3),
+                                   cmap=diff_cmap,
+                                   norm=diff_norm,
                                    # vmin=-absmax, vmax=absmax,
                                    origin='lower', extent=extent)
 
@@ -419,7 +428,7 @@ def plot_mean_precip_asia_combined(inputs, outputs, datasets, hb_names):
     cax2 = fig.add_axes([0.92, 0.02, 0.01, 0.6])
     # cb = plt.colorbar(dataset_im, cax=cax2, orientation='vertical', label='$\\Delta$ precipitation (mm hr$^{-1}$)')
     cb = plt.colorbar(dataset_im, cax=cax2, orientation='vertical')
-    cax2.text(5.8, 0.8, '$\\Delta$ precipitation (mm hr$^{-1}$)', rotation=90)
+    cax2.text(5.8, 0.8, '$\\Delta$ precipitation (mm day$^{-1}$)', rotation=90)
     # cb.set_label_coords(-0.2, 0.5)
 
     plt.subplots_adjust(left=0.06, right=0.86, top=0.96, bottom=0.04, wspace=0.1, hspace=0.15)
@@ -479,7 +488,6 @@ def plot_cmorph_mean_precip_diff(inputs, outputs, dataset, hb_name):
     plt.close()
 
 
-
 def _plot_phase_alpha(ax, masked_phase_map, masked_mag_map, cmap, norm, extent):
     thresh_boundaries = [100 * 1 / 3, 100 * 2 / 3]
     # thresh_boundaries = [100 * 1 / 4, 100 * 1 / 3]
@@ -526,6 +534,8 @@ def plot_phase_alpha_combined(inputs, outputs, datasets, hb_names, mode):
             imshow_data[(hb_name, dataset)] = (masked_phase_map, masked_mag_map)
 
     cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig3_cb.pkl')
+    # Fills masked values.
+    cmap.set_bad(color='k', alpha=0.1)
     fig, axes = plt.subplots(3, 3, figsize=(10, 7), subplot_kw={'projection': ccrs.PlateCarree()})
     for axrow, dataset in zip(axes, datasets):
         for ax, hb_name in zip(axrow, hb_names):
