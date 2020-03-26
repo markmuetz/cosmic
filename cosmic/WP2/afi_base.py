@@ -9,14 +9,13 @@ import numpy as np
 from cosmic.util import load_cmap_data
 
 
-
 class AFI_basePlotter:
     MODES = ['amount', 'freq', 'intensity']
 
     TITLE_MODE_MAP = {
-        'amount': 'Amount',
-        'freq': 'Frequency',
-        'intensity': 'Intensity',
+        'amount': 'amount',
+        'freq': 'frequency',
+        'intensity': 'intensity',
     }
     TITLE_RUNID_MAP = {
         'cmorph_8km': 'CMORPH',
