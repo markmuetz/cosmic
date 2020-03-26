@@ -785,9 +785,9 @@ def plot_cmorph_vs_all_datasets_phase_mag(inputs, outputs):
         # ax2.set_xticklabels(['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
         ax2.set_xticklabels(['small', 'medium', 'large'])
 
-    axes[0, 0].set_title('Amount')
-    axes[0, 1].set_title('Frequency')
-    axes[0, 2].set_title('Intensity')
+    axes[0, 0].set_title('amount')
+    axes[0, 1].set_title('frequency')
+    axes[0, 2].set_title('intensity')
     axes[0, 0].set_ylabel('phase\ncircular RMSE (hr)')
     axes[0, 0].get_yaxis().set_label_coords(-0.2, 0.5)
     axes[1, 0].set_ylabel('strength\nRMSE (-)')
