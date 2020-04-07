@@ -8,11 +8,9 @@ import numpy as np
 
 import geopandas as gpd
 
-from remake import Task, TaskControl
+from remake import Task, TaskControl, remake_task_control
 import cosmic.util as util
 from config import PATHS
-
-REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
 
 FILENAME_TPL = 'PRIMAVERA_HighResMIP_MOHC/{model}/' \
                'highresSST-present/r1i1p1f1/E1hr/pr/gn/{timestamp}/' \
@@ -154,6 +152,7 @@ def plot_weights_cube_table(inputs, outputs, rows, cols):
     plt.savefig(outputs[0])
 
 
+@remake_task_control
 def gen_task_ctrl():
     task_ctrl = TaskControl(__file__)
     for model, hb_name in itertools.product(MODELS, HB_NAMES):

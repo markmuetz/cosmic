@@ -3,7 +3,7 @@ import iris
 from iris.experimental.equalise_cubes import equalise_attributes
 
 import cosmic.WP2.seasonal_precip_analysis as spa
-from remake import Task, TaskControl
+from remake import Task, TaskControl, remake_task_control
 
 from config import PATHS
 
@@ -11,8 +11,6 @@ BSUB_KWARGS = {
     'queue': 'short-serial',
     'max_runtime': '10:00',
 }
-
-REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
 
 
 def fmt_year_month(year, month):
@@ -106,6 +104,7 @@ class UmHadgemSpaTask(Task):
                          func_args=(season, precip_thresh, num_per_day, True))
 
 
+@remake_task_control
 def gen_task_ctrl():
     task_ctrl = TaskControl(__file__)
     precip_thresh = 0.1

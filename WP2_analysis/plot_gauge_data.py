@@ -1,13 +1,10 @@
 import headless_matplotlib
 import matplotlib.pyplot as plt
 
-from remake import TaskControl, Task, remake_required
+from remake import TaskControl, Task, remake_required, remake_task_control
 from cosmic.WP2 import plot_gauge_data
 
 from config import PATHS
-
-
-REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
 
 
 @remake_required(depends_on=[plot_gauge_data.plot_li2018_fig2a_reproduction])
@@ -16,6 +13,7 @@ def do_plot(inputs, outputs, *args, **kwargs):
     plt.savefig(outputs[0])
 
 
+@remake_task_control
 def gen_task_ctrl():
     task_ctrl = TaskControl(__file__)
     for fn, args, kwargs in all_plot_gauge_data_gen():

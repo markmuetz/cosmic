@@ -12,14 +12,12 @@ from scipy.stats import linregress
 
 import cosmic.WP2.diurnal_cycle_analysis as dca
 from basmati.hydrosheds import load_hydrobasins_geodataframe
-from remake import Task, TaskControl
+from remake import Task, TaskControl, remake_task_control
 from cosmic.fourier_series import FourierSeries
 from cosmic.util import build_raster_cube_from_cube, load_cmap_data, circular_rmse, rmse
 
 from config import PATHS
 from util import get_extent_from_cube
-
-REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
 
 SCALES = {
     'small': (2_000, 20_000),
@@ -571,6 +569,7 @@ def run_analysis(force):
     analysis.run()
 
 
+@remake_task_control
 def gen_task_ctrl():
     analysis = DiurnalCycleAnalysis(False)
     analysis.gen_all()

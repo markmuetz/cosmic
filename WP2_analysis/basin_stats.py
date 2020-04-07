@@ -6,11 +6,8 @@ import iris
 import numpy as np
 import pandas as pd
 
-from remake import Task, TaskControl
+from remake import Task, TaskControl, remake_task_control
 from config import PATHS
-
-
-REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
 
 
 def gen_vector_basin_stats(inputs, outputs, hb_names):
@@ -45,6 +42,7 @@ def gen_weights_basin_stats(inputs, outputs, resolutions, hb_names):
     df.to_csv(outputs[0])
 
 
+@remake_task_control
 def gen_task_ctrl():
     task_ctrl = TaskControl(__file__)
     hb_names = [f'S{i}' for i in range(11)]

@@ -6,13 +6,10 @@ import numpy as np
 
 from basmati.hydrosheds import load_hydrosheds_dem, load_hydrobasins_geodataframe
 from basmati.utils import build_raster_from_geometries
-from remake import TaskControl, Task, remake_required
+from remake import TaskControl, Task, remake_required, remake_task_control
 
 from config import PATHS
 from basin_weighted_analysis import _configure_ax_asia
-
-
-REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
 
 
 @remake_required(depends_on=[_configure_ax_asia])
@@ -42,6 +39,7 @@ def plot_dem(inputs, outputs):
     plt.savefig(outputs[0])
 
 
+@remake_task_control
 def gen_task_ctrl():
     task_ctrl = TaskControl(__file__)
     task_ctrl.add(Task(plot_dem, [], [PATHS['figsdir'] / 'dem' / f'dem_asia.pdf']))

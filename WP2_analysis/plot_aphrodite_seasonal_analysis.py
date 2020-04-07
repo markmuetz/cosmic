@@ -1,14 +1,13 @@
 from pathlib import Path
 
 import headless_matplotlib
-from remake import TaskControl, Task
+from remake import TaskControl, Task, remake_task_control
 from cosmic.WP2.plot_aphrodite_seasonal_analysis import plot_aphrodite_seasonal_analysis
 
 from config import PATHS
 
-REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
 
-
+@remake_task_control
 def gen_task_ctrl():
     task_ctrl = TaskControl(__file__)
     aphrodite_dir = Path('aphrodite_data/025deg')

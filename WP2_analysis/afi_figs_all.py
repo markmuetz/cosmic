@@ -7,13 +7,11 @@ from cosmic.WP2.afi_base import AFI_basePlotter
 from cosmic.WP2.afi_mean_plot import AFI_meanPlotter
 from cosmic.WP2.afi_diurnal_cycle_plot import AFI_diurnalCyclePlotter
 
-from remake import TaskControl, Task, remake_required, RemakeOn
+from remake import TaskControl, Task, remake_required, RemakeOn, remake_task_control
 
 from config import PATHS
 from seasonal_precip_analysis import fmt_thresh_text
 
-
-REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
 
 MODES = ['amount', 'freq', 'intensity']
 
@@ -74,6 +72,7 @@ class AfiTask(Task):
         super().__init__(func, inputs, [output_path], func_args=(season, domain, method))
 
 
+@remake_task_control
 def gen_task_ctrl():
     task_ctrl = TaskControl(__file__)
 
