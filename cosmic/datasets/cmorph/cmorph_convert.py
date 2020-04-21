@@ -26,14 +26,14 @@ def convert_cmorph_0p25deg_3hrly_to_netcdf4_month(data_dir, output_dir, year, mo
 
     lat_coord = iris.coords.Coord(lat, standard_name='latitude', units='degrees')
     lon_coord = iris.coords.Coord(lon, standard_name='longitude', units='degrees')
-    time_coord = iris.coords.Coord(times, standard_name='time', 
+    time_coord = iris.coords.Coord(times, standard_name='time',
                                    units=('hours since 1970-01-01 00:00:00'))
 
     data = _load_raw_0p25deg_3hrly_year(data_dir, year, month, '??')
 
     coords = [(time_coord, 0), (lat_coord, 1), (lon_coord, 2)]
-    cmorph_ppt_cube = iris.cube.Cube(data.reshape(len(times), 480, 1440), 
-                                     long_name='precipitation', units='mm hr-1',  
+    cmorph_ppt_cube = iris.cube.Cube(data.reshape(len(times), 480, 1440),
+                                     long_name='precipitation', units='mm hr-1',
                                      dim_coords_and_dims=coords)
 
     output_dir = Path(output_dir)
@@ -71,14 +71,14 @@ def convert_cmorph_8km_30min_to_netcdf4_month(data_dir, output_dir, year, month)
             curr_time += dt.timedelta(minutes=30)
         assert curr_time == end_time
 
-        time_coord = iris.coords.Coord(times, standard_name='time', 
+        time_coord = iris.coords.Coord(times, standard_name='time',
                                        units=('hours since 1970-01-01 00:00:00'))
 
         data = _load_raw_8km_3min_year(data_dir, year, month, day)
 
         coords = [(time_coord, 0), (lat_coord, 1), (lon_coord, 2)]
-        cmorph_ppt_cube = iris.cube.Cube(data.reshape(len(times), 1649, 4948), 
-                                         long_name='precipitation', units='mm hr-1',  
+        cmorph_ppt_cube = iris.cube.Cube(data.reshape(len(times), 1649, 4948),
+                                         long_name='precipitation', units='mm hr-1',
                                          dim_coords_and_dims=coords)
 
         output_dir = Path(output_dir)
@@ -111,6 +111,19 @@ def extract_asia_8km_30min(data_dir, year, month):
     output_filename = data_dir / (f'cmorph_ppt_{year}{month:02}.asia.nc')
     # Compression saves A LOT of space: 5.0G -> 67M.
     iris.save(asia_cmorph_ppt_cube, str(output_filename), zlib=True)
+
+
+def extract_europe_8km_30min(data_dir, year, month):
+    constraint_eu = (iris.Constraint(coord_values={'latitude': lambda cell: 28 < cell < 67})
+                     & iris.Constraint(coord_values={'longitude': lambda cell: -22 < cell < 37}))
+    # Different from above.
+    # N.B. run in dir for one month: only loads data for one month.
+    filenames = sorted(Path(data_dir).glob(f'cmorph_ppt_{year}????.nc'))
+
+    eu_cmorph_ppt_cube = iris.load([str(f) for f in filenames], constraint_eu).concatenate_cube()
+    output_filename = data_dir / (f'cmorph_ppt_{year}{month:02}.europe.nc')
+    # Compression saves A LOT of space: 5.0G -> 67M.
+    iris.save(eu_cmorph_ppt_cube, str(output_filename), zlib=True)
 
 
 def _load_raw_0p25deg_3hrly_year(data_dir, year, month):
@@ -147,7 +160,7 @@ def _load_raw_0p25deg_3hrly(filename):
         raw_cmorph_data = np.frombuffer(buf, '<f4')
 
     # Data is in mm/3hr, convert to mm/hr.
-    masked_cmorph_data = np.ma.masked_array(raw_cmorph_data, 
+    masked_cmorph_data = np.ma.masked_array(raw_cmorph_data,
                                             raw_cmorph_data == -999).reshape(8, 480, 1440) / 3
 
     return masked_cmorph_data
@@ -159,7 +172,7 @@ def _load_raw_8km_30min(fp):
         raw_cmorph_data = np.frombuffer(buf, '<f4')
 
     # Data is in mm/hr
-    masked_cmorph_data = np.ma.masked_array(raw_cmorph_data, 
+    masked_cmorph_data = np.ma.masked_array(raw_cmorph_data,
                                             raw_cmorph_data == -999).reshape(2, 1649, 4948)
 
     return masked_cmorph_data
