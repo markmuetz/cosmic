@@ -10,12 +10,12 @@ paths = sorted(BASE_PATH.glob('precip_??????'))
 CONFIG_KEYS = [p.stem for p in paths]
 
 BSUB_KWARGS = {
-    'job_name': 'ex_asia',
-    'queue': 'new_users',
-    'max_runtime': '00:30',
+    'job_name': 'ex_eu',
+    'queue': 'short-serial',
+    'max_runtime': '01:30',
 }
 
 STRATIFORM = True
 SCRIPT_ARGS = {}
 for k, path in zip(CONFIG_KEYS, paths):
-    SCRIPT_ARGS[k] = ('asia', path)
+    SCRIPT_ARGS[k] = ('europe', path)
