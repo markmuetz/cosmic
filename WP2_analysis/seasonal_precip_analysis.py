@@ -23,11 +23,11 @@ def fmt_thresh_text(precip_thresh):
     return str(precip_thresh).replace('.', 'p')
 
 
-def fmt_afi_output_filename(dataset, start_year_month, end_year_month, precip_thresh, season, loc='asia'):
+def fmt_afi_output_filename(dataset, start_year_month, end_year_month, precip_thresh, season, region='asia'):
     daterange = fmt_year_month(*start_year_month) + '-' + fmt_year_month(*end_year_month)
     thresh_text = fmt_thresh_text(precip_thresh)
 
-    output_path = f'{dataset}.{daterange}.{season}.{loc}_precip_afi.ppt_thresh_{thresh_text}.nc'
+    output_path = f'{dataset}.{daterange}.{season}.{region}_precip_afi.ppt_thresh_{thresh_text}.nc'
     return output_path
 
 
@@ -46,14 +46,14 @@ def gen_seasonal_precip_analysis(inputs, outputs, season, precip_thresh, num_per
 
 
 class CmorphSpaTask(Task):
-    def __init__(self, start_year_month, end_year_month, precip_thresh, season):
+    def __init__(self, start_year_month, end_year_month, precip_thresh, season, region):
         datadir = PATHS['datadir'] / 'cmorph_data' / '8km-30min'
-        file_tpl = 'cmorph_ppt_{year}{month:02}.asia.N1280.nc'
+        file_tpl = 'cmorph_ppt_{year}{month:02}.{region}.N1280.nc'
         nc_season = spa.gen_nc_precip_filenames(datadir, season, start_year_month, end_year_month,
-                                                file_tpl=file_tpl)
+                                                file_tpl=file_tpl, region=region)
 
         output_filename = fmt_afi_output_filename('cmorph_8km_N1280',
-                                                  start_year_month, end_year_month, precip_thresh, season)
+                                                  start_year_month, end_year_month, precip_thresh, season, region)
         self.output_path = PATHS['datadir'] / 'cmorph_data' / '8km-30min' / output_filename
 
         num_per_day = 48
@@ -67,16 +67,15 @@ class UmN1280SpaTask(Task):
         'al508',
     ]
 
-    def __init__(self, start_year_month, end_year_month, precip_thresh, season, runid):
+    def __init__(self, start_year_month, end_year_month, precip_thresh, season, region, runid):
         suite = f'u-{runid}'
         split_stream = 'a.p9'
-        loc = 'asia'
 
         datadir = PATHS['datadir'] / suite / 'ap9.pp'
         nc_season = spa.gen_nc_precip_filenames(datadir, season, start_year_month, end_year_month,
-                                                runid=runid, split_stream=split_stream, loc=loc)
+                                                runid=runid, split_stream=split_stream, loc=region)
 
-        output_filename = fmt_afi_output_filename(runid, start_year_month, end_year_month, precip_thresh, season)
+        output_filename = fmt_afi_output_filename(runid, start_year_month, end_year_month, precip_thresh, season, region)
         self.output_path = PATHS['datadir'] / suite / 'ap9.pp' / output_filename
 
         num_per_day = 24
@@ -111,17 +110,22 @@ def gen_task_ctrl():
     precip_thresh = 0.1
     season = 'jja'
 
-    start_year_month = (1998, 1)
-    end_year_month = (2018, 12)
-    task_ctrl.add(CmorphSpaTask(start_year_month, end_year_month, precip_thresh, season))
+    # for region in ['asia', 'europe']:
+    for region in ['europe']:
+        start_year_month = (1998, 1)
+        end_year_month = (2018, 12)
+        task_ctrl.add(CmorphSpaTask(start_year_month, end_year_month, precip_thresh, season, region))
 
-    start_year_month = (2005, 6)
-    end_year_month = (2008, 8)
-    for runid in UmN1280SpaTask.RUNIDS:
-        task_ctrl.add(UmN1280SpaTask(start_year_month, end_year_month, precip_thresh, season, runid))
+        start_year_month = (2005, 6)
+        end_year_month = (2008, 8)
+        for runid in UmN1280SpaTask.RUNIDS:
+            task_ctrl.add(UmN1280SpaTask(start_year_month, end_year_month, precip_thresh, season, region, runid))
 
-    for model in UmHadgemSpaTask.MODELS:
-        task_ctrl.add(UmHadgemSpaTask(start_year_month, end_year_month, precip_thresh, season, model))
+        # Disabled for now.
+        # for model in UmHadgemSpaTask.MODELS:
+        #     task_ctrl.add(UmHadgemSpaTask(start_year_month, end_year_month, precip_thresh, season, region, model))
+
+    return task_ctrl
 
     # Individual analysis for each JJA season.
     for year in range(1998, 2019):

@@ -5,8 +5,8 @@ SCRIPT_PATH = 'cmorph_extract_europe_8km_30min.py'
 
 BASEDIR = Path('/gws/nopw/j04/cosmic/mmuetz/data/cmorph_data/8km-30min')
 
-years = range(1998, 2019)
-months = range(1, 13)
+years = range(1999, 2019)
+months = range(6, 9)
 years_months = list(itertools.product(years, months))
 
 CONFIG_KEYS = [f'{y}{m:02}' for y, m in years_months]
@@ -14,7 +14,7 @@ CONFIG_KEYS = [f'{y}{m:02}' for y, m in years_months]
 BSUB_KWARGS = {
     'job_name': 'cmorph_eeu',
     'queue': 'short-serial',
-    'max_runtime': '01:30',
+    'max_runtime': '03:00',
     'mem': 32000,
 }
 
