@@ -19,8 +19,10 @@ CONSTRAINT_ASIA = (iris.Constraint(coord_values={'latitude': lambda cell: 0.9 < 
                    & iris.Constraint(coord_values={'longitude': lambda cell: 56.9 < cell < 151.1}))
 
 # Based on Malcolm Roberts' request and expanded by 2deg.
-CONSTRAINT_EU = (iris.Constraint(coord_values={'latitude': lambda cell: 28 < cell < 67})
-                 & iris.Constraint(coord_values={'longitude': lambda cell: -22 < cell < 37}))
+CONSTRAINT_EU = (iris.Constraint(coord_values={'latitude': lambda cell: 28 < cell < 67}))
+                 # CANNOT constrain across the GMT boundary (0).
+                 # Use intersection instead.
+                 # & iris.Constraint(coord_values={'longitude': lambda cell: -22 < cell < 37}))
 
 
 def UM_gen_region_precip_filepath(runid, stream, year, month, region, output_dir):
@@ -47,8 +49,8 @@ def UM_extract_region_precip(runid, stream, year, month, nc_dirpath, region='asi
     rainfall_flux_name = 'rainfall_flux'
     snowfall_flux_name = 'snowfall_flux'
     if stratiform:
-        rainfall_flux_name += 'stratiform_'
-        snowfall_flux_name += 'stratiform_'
+        rainfall_flux_name = 'stratiform_' + rainfall_flux_name
+        snowfall_flux_name = 'stratiform_' + snowfall_flux_name
     region_rainfall = (region_precip_cubes.extract(iris.Constraint(name=rainfall_flux_name))
                        .concatenate_cube())
     region_snowfall = (region_precip_cubes.extract(iris.Constraint(name=snowfall_flux_name))
@@ -57,7 +59,10 @@ def UM_extract_region_precip(runid, stream, year, month, nc_dirpath, region='asi
     region_total_precip = region_rainfall + region_snowfall
     region_total_precip.rename('precipitation_flux')
 
-    iris.save(region_total_precip, str(output_filepath))
+    if region == 'europe':
+        iris.save(region_total_precip.intersection(longitude=(-22, 37)), str(output_filepath))
+    else:
+        iris.save(region_total_precip, str(output_filepath))
     done_filename.touch()
 
 

@@ -114,16 +114,17 @@ def extract_asia_8km_30min(data_dir, year, month):
 
 
 def extract_europe_8km_30min(data_dir, year, month):
-    constraint_eu = (iris.Constraint(coord_values={'latitude': lambda cell: 28 < cell < 67})
-                     & iris.Constraint(coord_values={'longitude': lambda cell: -22 < cell < 37}))
+    # N.B. Max. lat of CMORPH is 60 N.
+    constraint_eu = (iris.Constraint(coord_values={'latitude': lambda cell: 28 < cell < 67}))
+                     # Cannot constrain on longitude across a boundary!
+                     # & iris.Constraint(coord_values={'longitude': lambda cell: -22 < cell < 37}))
     # Different from above.
     # N.B. run in dir for one month: only loads data for one month.
     filenames = sorted(Path(data_dir).glob(f'cmorph_ppt_{year}????.nc'))
 
     eu_cmorph_ppt_cube = iris.load([str(f) for f in filenames], constraint_eu).concatenate_cube()
     output_filename = data_dir / (f'cmorph_ppt_{year}{month:02}.europe.nc')
-    # Compression saves A LOT of space: 5.0G -> 67M.
-    iris.save(eu_cmorph_ppt_cube, str(output_filename), zlib=True)
+    iris.save(eu_cmorph_ppt_cube.intersection(longitude=(-22, 37)), str(output_filename), zlib=True)
 
 
 def _load_raw_0p25deg_3hrly_year(data_dir, year, month):
