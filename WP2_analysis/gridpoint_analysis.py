@@ -8,13 +8,11 @@ import numpy as np
 
 import iris
 
-from remake import TaskControl, Task, remake_required
+from remake import TaskControl, Task, remake_required, remake_task_control
 from cosmic.util import load_cmap_data
 from config import PATHS, STANDARD_NAMES
 from basin_weighted_analysis import _configure_ax_asia, get_dataset_path
 from util import get_extent_from_cube
-
-REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
 
 DATASETS = [
     'cmorph',
@@ -55,6 +53,7 @@ def plot_gridpoint_mean_precip_asia(inputs, outputs):
     plt.savefig(outputs[0])
 
 
+@remake_task_control
 def gen_task_ctrl():
     task_ctrl = TaskControl(__file__)
 

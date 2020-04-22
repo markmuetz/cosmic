@@ -1,13 +1,11 @@
 import itertools
 
 import headless_matplotlib
-from remake import TaskControl, Task
+from remake import TaskControl, Task, remake_task_control
 from cosmic.WP2 import plot_seasonal_analysis
 
 from config import PATHS
 from util import task_unique_name_from_fn_args_kwargs
-
-REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
 
 RUNIDS = [
     'ak543',
@@ -79,6 +77,7 @@ def all_seasonal_analysis_gen():
             yield do_plot, args, {}
 
 
+@remake_task_control
 def gen_task_ctrl():
     task_ctrl = TaskControl(__file__)
 

@@ -23,15 +23,13 @@ from cosmic.util import (load_cmap_data, vrmse, circular_rmse, rmse, mae,
                          build_raster_cube_from_cube, build_weights_cube_from_cube)
 from cosmic.mid_point_norm import MidPointNorm
 from cosmic.fourier_series import FourierSeries
-from remake import Task, TaskControl, remake_required
+from remake import Task, TaskControl, remake_required, remake_task_control
 from remake.util import tmp_to_actual_path
 
 from config import PATHS, STANDARD_NAMES
 from util import get_extent_from_cube
 
 logger = getLogger('remake.basin_weighted_analysis')
-
-REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
 
 BSUB_KWARGS = {
     'queue': 'short-serial',
@@ -807,6 +805,7 @@ def plot_cmorph_vs_all_datasets_phase_mag(inputs, outputs):
     plt.savefig(all_rmse_filename)
 
 
+@remake_task_control
 def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
     task_ctrl = TaskControl(__file__)
 

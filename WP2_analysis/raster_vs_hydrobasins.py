@@ -10,12 +10,10 @@ import numpy as np
 import pandas as pd
 
 from basmati.hydrosheds import load_hydrobasins_geodataframe
-from remake import Task, TaskControl
+from remake import Task, TaskControl, remake_task_control
 from cosmic import util
 # from cosmic.task import Task, TaskControl
 from config import PATHS
-
-REMAKE_TASK_CTRL_FUNC = 'gen_task_ctrl'
 
 FILENAME_TPL = '/home/markmuetz/mirrors/jasmin/gw_cosmic/mmuetz/data/PRIMAVERA_HighResMIP_MOHC/{model}/' \
                'highresSST-present/r1i1p1f1/E1hr/pr/gn/{timestamp}/' \
@@ -110,6 +108,7 @@ def gen_raster_stats(inputs_dict, outputs):
         f.write('\n'.join(output_text) + '\n')
 
 
+@remake_task_control
 def gen_task_ctrl():
     task_ctrl = TaskControl(__file__)
     scales = ['small', 'medium', 'large']
