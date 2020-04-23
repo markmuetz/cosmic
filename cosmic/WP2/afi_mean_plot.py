@@ -10,7 +10,7 @@ class AFI_meanPlotter(AFI_basePlotter):
     def gen_axes(self):
         if self.domain == 'china':
             gs = gridspec.GridSpec(4, 3, figure=self.fig, height_ratios=[1, 1, 1, 0.2])
-        elif self.domain == 'asia':
+        elif self.domain in ['asia', 'europe']:
             gs = gridspec.GridSpec(4, 3, figure=self.fig, height_ratios=[1, 1, 1, 0.3])
         fig_axes = []
         cb_axes = []
@@ -69,5 +69,8 @@ class AFI_meanPlotter(AFI_basePlotter):
             kwargs = {'vmin': 1e-2, 'vmax': 4, 'cmap': cmap}
         kwargs['norm'] = norm
 
+        if runid == 'cmorph_8km':
+            Lat, Lon = np.meshgrid(cube.coord('latitude').points, cube.coord('longitude').points, indexing='ij')
+            data = np.ma.masked_array(data, Lat > 59)
         im = ax.imshow(data, origin='lower', extent=extent, **kwargs)
         return im
