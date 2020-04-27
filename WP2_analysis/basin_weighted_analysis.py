@@ -17,6 +17,7 @@ from matplotlib.colors import LogNorm
 import cartopy.crs as ccrs
 import numpy as np
 import pandas as pd
+from scipy.stats import linregress
 
 from basmati.hydrosheds import load_hydrobasins_geodataframe
 from cosmic.util import (load_cmap_data, vrmse, circular_rmse, rmse, mae,
@@ -649,21 +650,27 @@ def df_phase_mag_add_x1_y1(df):
     df['x2'] = df['magnitude'] * np.sin(df['phase'] * np.pi / 12)
 
 
-def gen_mean_precip_rmses(inputs, outputs, hb_names):
+def gen_mean_precip_rmses_corrs(inputs, outputs, hb_names):
+    """Generate RMSEs and correlations for mean precip for all datasets against CMORPH."""
+
     all_rmses = {}
     for dataset in DATASETS[:-1]:
         mean_precip_rmses = []
         mean_precip_maes = []
+        mean_precip_corrs = []
         for hb_name in hb_names:
             cmorph_mean_precip = pd.read_hdf(inputs[('cmorph', hb_name)])
             dataset_mean_precip = pd.read_hdf(inputs[(dataset, hb_name)])
 
-            mean_precip_rmses.append(rmse(cmorph_mean_precip.basin_weighted_mean_precip_mm_per_hr,
-                                          dataset_mean_precip.basin_weighted_mean_precip_mm_per_hr))
-            mean_precip_maes.append(mae(cmorph_mean_precip.basin_weighted_mean_precip_mm_per_hr,
-                                        dataset_mean_precip.basin_weighted_mean_precip_mm_per_hr))
+            mean_precip_rmses.append(rmse(cmorph_mean_precip.basin_weighted_mean_precip_mm_per_hr.values,
+                                          dataset_mean_precip.basin_weighted_mean_precip_mm_per_hr.values))
+            mean_precip_maes.append(mae(cmorph_mean_precip.basin_weighted_mean_precip_mm_per_hr.values,
+                                        dataset_mean_precip.basin_weighted_mean_precip_mm_per_hr.values))
+            mean_regress = linregress(cmorph_mean_precip.basin_weighted_mean_precip_mm_per_hr.values,
+                                      dataset_mean_precip.basin_weighted_mean_precip_mm_per_hr.values)
+            mean_precip_corrs.append(mean_regress)
 
-        all_rmses[dataset] = mean_precip_rmses, mean_precip_maes
+        all_rmses[dataset] = mean_precip_rmses, mean_precip_maes, mean_precip_corrs
 
     with outputs[0].open('wb') as f:
         pickle.dump(all_rmses, f)
@@ -735,13 +742,13 @@ def plot_cmorph_vs_all_datasets_mean_precip(inputs, outputs):
     with inputs[0].open('rb') as f:
         all_rmses = pickle.load(f)
 
-    all_rmse_filename = outputs[0]
+    all_rmse_filename, all_corr_filename = outputs
 
     plt.clf()
     fig, ax = plt.subplots(1, 1, sharex=True, num=str(all_rmse_filename), figsize=(12, 8))
 
     # ax1.set_ylim((0, 5))
-    for dataset, (rmses, maes) in list(all_rmses.items())[::-1]:
+    for dataset, (rmses, maes, _) in list(all_rmses.items())[::-1]:
         p = ax.plot(np.array(rmses) * 24, label=STANDARD_NAMES[dataset])
         colour = p[0].get_color()
         ax.plot(np.array(maes) * 24, linestyle='--', color=colour)
@@ -758,6 +765,33 @@ def plot_cmorph_vs_all_datasets_mean_precip(inputs, outputs):
     ax.legend()
     plt.tight_layout()
     plt.savefig(all_rmse_filename)
+
+    plt.clf()
+    fig, ax = plt.subplots(1, 1, sharex=True, num=str(all_corr_filename), figsize=(12, 8))
+
+    # ax1.set_ylim((0, 5))
+    for dataset, (_, _, corrs) in list(all_rmses.items())[::-1]:
+
+        r2 = [c.rvalue**2 for c in corrs]
+        slope = [c.slope for c in corrs]
+
+        p = ax.plot(r2, label=STANDARD_NAMES[dataset])
+        colour = p[0].get_color()
+        ax.plot(slope, linestyle='--', color=colour)
+
+    if len(rmses) == 3:
+        ax.set_xticks([0, 1, 2])
+    elif len(rmses) == 11:
+        ax.set_xticks([0, 5, 10])
+        ax.set_xticks(range(11), minor=True)
+    # ax.set_xticklabels(['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
+    ax.set_xticklabels(['small', 'medium', 'large'])
+
+    ax.set_ylabel('correlations ($r^2$ - solid, slope - dashed)')
+    ax.set_xlabel('basin size')
+    ax.legend()
+    plt.tight_layout()
+    plt.savefig(all_corr_filename)
 
 
 def plot_cmorph_vs_all_datasets_phase_mag(inputs, outputs):
@@ -897,7 +931,7 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
             (ds, hb_name): PATHS['output_datadir'] / weighted_mean_precip_tpl.format(dataset=ds, hb_name=hb_name)
             for ds, hb_name in itertools.product(DATASETS, hb_names)
         }
-        task_ctrl.add(Task(gen_mean_precip_rmses,
+        task_ctrl.add(Task(gen_mean_precip_rmses_corrs,
                            inputs=gen_mean_precip_rmses_inputs,
                            outputs=[mean_precip_rmse_data_filename],
                            func_kwargs={'hb_names': hb_names}
@@ -906,7 +940,7 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
         task_ctrl.add(Task(plot_cmorph_vs_all_datasets_mean_precip,
                            inputs=[mean_precip_rmse_data_filename],
                            outputs=[PATHS['figsdir'] / 'basin_weighted_analysis' / 'cmorph_vs' / 'mean_precip' /
-                                    f'cmorph_vs_all_datasets.all_rmse.{basin_scales}.pdf'],
+                                    f'cmorph_vs_all_datasets.all_{f}.{basin_scales}.pdf' for f in ['rmse', 'corr']]
                            ))
 
         if basin_scales == 'small_medium_large':
