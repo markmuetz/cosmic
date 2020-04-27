@@ -777,7 +777,7 @@ def plot_cmorph_vs_all_datasets_mean_precip(inputs, outputs):
 
         p = ax.plot(r2, label=STANDARD_NAMES[dataset])
         colour = p[0].get_color()
-        ax.plot(slope, linestyle='--', color=colour)
+        # ax.plot(slope, linestyle='--', color=colour)
 
     if len(rmses) == 3:
         ax.set_xticks([0, 1, 2])
@@ -787,7 +787,8 @@ def plot_cmorph_vs_all_datasets_mean_precip(inputs, outputs):
     # ax.set_xticklabels(['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
     ax.set_xticklabels(['small', 'medium', 'large'])
 
-    ax.set_ylabel('correlations ($r^2$ - solid, slope - dashed)')
+    # ax.set_ylabel('correlations ($r^2$ - solid, slope - dashed)')
+    ax.set_ylabel('correlations ($r^2$)')
     ax.set_xlabel('basin size')
     ax.legend()
     plt.tight_layout()
