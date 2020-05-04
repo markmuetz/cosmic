@@ -62,10 +62,10 @@ def all_seasonal_analysis_gen():
         seasons = ['jja']
         resolution = None
         if cmorph == 'cmorph_8km':
-            if daterange == '199801-201812':
-                args = (PATHS['datadir'], PATHS['hydrosheds_dir'], PATHS['figsdir'],
-                        cmorph, daterange, seasons, resolution, [0.1])
-                yield do_plot, args, {}
+            # if daterange == '199801-201812':
+            #     args = (PATHS['datadir'], PATHS['hydrosheds_dir'], PATHS['figsdir'],
+            #             cmorph, daterange, seasons, resolution, [0.1])
+            #     yield do_plot, args, {}
 
             resolution = 'N1280'
             args = (PATHS['datadir'], PATHS['hydrosheds_dir'], PATHS['figsdir'],

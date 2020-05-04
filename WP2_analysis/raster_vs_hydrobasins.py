@@ -15,7 +15,7 @@ from cosmic import util
 # from cosmic.task import Task, TaskControl
 from config import PATHS
 
-FILENAME_TPL = '/home/markmuetz/mirrors/jasmin/gw_cosmic/mmuetz/data/PRIMAVERA_HighResMIP_MOHC/{model}/' \
+FILENAME_TPL = str(PATHS['datadir']) + '/PRIMAVERA_HighResMIP_MOHC/{model}/' \
                'highresSST-present/r1i1p1f1/E1hr/pr/gn/{timestamp}/' \
                'pr_E1hr_{model}_highresSST-present_r1i1p1f1_gn_{daterange}.nc'
 

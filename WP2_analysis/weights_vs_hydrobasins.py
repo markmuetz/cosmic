@@ -168,10 +168,10 @@ def gen_task_ctrl():
         # TODO: Has not necessarily been created (if e.g. just querying task_ctrl).
         # TODO: Also, creating loads of output files creates loads of metadata, which takes up space.
         # TODO: Perhaps zip all the pngs together?
-        hb = gpd.read_file(str(input_filenames['hb_name']))
-        output_filenames = {i: PATHS['figsdir'] / 'weights_vs_hydrobasins' / f'{model}_{hb_name}' / f'basin_{i}.png'
-                            for i in range(len(hb))}
-        task_ctrl.add(Task(plot_weights_cube, input_filenames, output_filenames))
+        # hb = gpd.read_file(str(input_filenames['hb_name']))
+        # output_filenames = {i: PATHS['figsdir'] / 'weights_vs_hydrobasins' / f'{model}_{hb_name}' / f'basin_{i}.png'
+        #                     for i in range(len(hb))}
+        # task_ctrl.add(Task(plot_weights_cube, input_filenames, output_filenames))
 
     input_filenames = {(model, hb_name): (PATHS['output_datadir'] /
                                           f'weights_vs_hydrobasins/weights_{model}_{hb_name}.nc')
