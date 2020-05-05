@@ -43,6 +43,10 @@ class AfiTask(Task):
         self.runids = ['cmorph_8km', 'ak543', 'al508']
         thresh_text = fmt_thresh_text(precip_thresh)
 
+        # N.B. applies to nc file that is read in.
+        domain = region
+        if domain == 'china':
+            domain = 'asia'
         inputs = {}
 
         for runid in self.runids:
@@ -52,7 +56,7 @@ class AfiTask(Task):
                 elif duration == 'long':
                     daterange = '199801-201812'
                 rel_path = 'cmorph_data/8km-30min'
-                filename = f'cmorph_8km_N1280.{daterange}.{season}.{region}_precip_afi.ppt_thresh_{thresh_text}.nc'
+                filename = f'cmorph_8km_N1280.{daterange}.{season}.{domain}_precip_afi.ppt_thresh_{thresh_text}.nc'
                 # filename = f'cmorph_ppt_{season}.{daterange}.{region}_precip.ppt_thresh_{thresh_text}.N1280.nc'
             else:
                 if duration == 'short':
@@ -62,7 +66,7 @@ class AfiTask(Task):
 
                 rel_path = f'u-{runid}/ap9.pp'
                 # filename = f'{runid}a.p9{season}.{daterange}.{region}_precip.ppt_thresh_{thresh_text}.nc'
-                filename = f'{runid}.{daterange}.{season}.{region}_precip_afi.ppt_thresh_{thresh_text}.nc'
+                filename = f'{runid}.{daterange}.{season}.{domain}_precip_afi.ppt_thresh_{thresh_text}.nc'
 
             for mode in MODES:
                 inputs[(runid, f'{mode}_of_precip_{season}')] = datadir / rel_path / filename
