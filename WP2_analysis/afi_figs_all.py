@@ -80,8 +80,7 @@ def gen_task_ctrl():
     durations = ['long']
     precip_threshes = [0.1]
     methods = ['peak', 'harmonic']
-    # regions = ['china', 'asia', 'europe']
-    regions = ['asia', 'europe']
+    regions = ['china', 'asia', 'europe']
     for duration, precip_thresh, region in itertools.product(durations, precip_threshes, regions):
         task = AfiTask(fig_afi_mean, PATHS['datadir'], PATHS['figsdir'],
                        duration, precip_thresh, season, region)
