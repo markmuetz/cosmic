@@ -1,10 +1,9 @@
-import headless_matplotlib
 import matplotlib.pyplot as plt
 
 from remake import TaskControl, Task, remake_required, remake_task_control
 from cosmic.WP2 import plot_gauge_data
 
-from config import PATHS
+from cosmic.config import PATHS
 
 
 @remake_required(depends_on=[plot_gauge_data.plot_li2018_fig2a_reproduction])

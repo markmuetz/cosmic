@@ -27,7 +27,7 @@ from cosmic.fourier_series import FourierSeries
 from remake import Task, TaskControl, remake_required, remake_task_control
 from remake.util import tmp_to_actual_path
 
-from config import PATHS, STANDARD_NAMES
+from cosmic.config import PATHS, STANDARD_NAMES, CONSTRAINT_ASIA
 from util import get_extent_from_cube
 
 logger = getLogger('remake.basin_weighted_analysis')
@@ -71,6 +71,7 @@ DATASET_RESOLUTION = {
     'u-ak543': 'N1280',
     'u-al508': 'N1280',
     'cmorph': 'N1280',
+    'aphrodite': '0.25deg'
 }
 HB_NAMES = ['small', 'med', 'large']
 PRECIP_MODES = ['amount', 'freq', 'intensity']
@@ -84,9 +85,6 @@ SLIDING_LOWER = np.exp(np.linspace(np.log(2_000), np.log(200_000), N_SLIDING_SCA
 SLIDING_UPPER = np.exp(np.linspace(np.log(20_000), np.log(2_000_000), N_SLIDING_SCALES))
 
 SLIDING_SCALES = dict([(f'S{i}', (SLIDING_LOWER[i], SLIDING_UPPER[i])) for i in range(N_SLIDING_SCALES)])
-
-CONSTRAINT_ASIA = (iris.Constraint(coord_values={'latitude': lambda cell: 0.9 < cell < 56.1})
-                   & iris.Constraint(coord_values={'longitude': lambda cell: 56.9 < cell < 151.1}))
 
 
 def _configure_ax_asia(ax, extent=None, tight_layout=True):
@@ -874,7 +872,7 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
 
         # N.B. Need to do this once for one dataset at each resolution.
         # I.e. only need one N1280 res dataset -- u-ak543.
-        for dataset, hb_name in itertools.product(DATASETS[:4], hb_names):
+        for dataset, hb_name in itertools.product(DATASETS[:4] + ['aphrodite'], hb_names):
             if dataset == 'u-ak543':
                 dataset_cube_path = PATHS['datadir'] / 'u-ak543/ap9.pp/precip_200601/ak543a.p9200601.asia_precip.nc'
             elif dataset[:7] == 'HadGEM3':
@@ -891,7 +889,7 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
                                    '{dataset}.{hb_name}.area_weighted.mean_precip.hdf'
 
         weighted_mean_precip_filenames = defaultdict(list)
-        for dataset, hb_name in itertools.product(DATASETS, hb_names):
+        for dataset, hb_name in itertools.product(DATASETS + ['aphrodite'], hb_names):
             fmt_kwargs = {'dataset': dataset, 'hb_name': hb_name}
             dataset_path = get_dataset_path(dataset)
             resolution = DATASET_RESOLUTION[dataset]

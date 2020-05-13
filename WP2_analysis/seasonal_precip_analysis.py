@@ -5,7 +5,7 @@ from iris.experimental.equalise_cubes import equalise_attributes
 import cosmic.WP2.seasonal_precip_analysis as spa
 from remake import Task, TaskControl, remake_task_control
 
-from config import PATHS
+from cosmic.config import PATHS
 
 BSUB_KWARGS = {
     'queue': 'short-serial',

@@ -1,8 +1,6 @@
 # coding: utf-8
 from collections import Counter
-from pathlib import Path
 
-import headless_matplotlib
 import geopandas as gpd
 import iris
 import matplotlib.pyplot as plt
@@ -13,7 +11,7 @@ from basmati.hydrosheds import load_hydrobasins_geodataframe
 from remake import Task, TaskControl, remake_task_control
 from cosmic import util
 # from cosmic.task import Task, TaskControl
-from config import PATHS
+from cosmic.config import PATHS, CONSTRAINT_ASIA
 
 FILENAME_TPL = str(PATHS['datadir']) + '/PRIMAVERA_HighResMIP_MOHC/{model}/' \
                'highresSST-present/r1i1p1f1/E1hr/pr/gn/{timestamp}/' \
@@ -31,9 +29,6 @@ FILENAMES = {
     model: FILENAME_TPL.format(model=model, timestamp=timestamp, daterange=daterange)
     for model, timestamp, daterange in zip(MODELS, TIMESTAMPS, DATERANGES)
 }
-
-CONSTRAINT_ASIA = (iris.Constraint(coord_values={'latitude': lambda cell: 0.9 < cell < 56.1})
-                   & iris.Constraint(coord_values={'longitude': lambda cell: 56.9 < cell < 151.1}))
 
 
 def gen_raster_cube(inputs, outputs, hb_name, method):

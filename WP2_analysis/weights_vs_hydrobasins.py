@@ -2,7 +2,6 @@ import sys
 import string
 import itertools
 import iris
-import headless_matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -10,7 +9,7 @@ import geopandas as gpd
 
 from remake import Task, TaskControl, remake_task_control
 import cosmic.util as util
-from config import PATHS
+from cosmic.config import PATHS, CONSTRAINT_ASIA
 
 FILENAME_TPL = 'PRIMAVERA_HighResMIP_MOHC/{model}/' \
                'highresSST-present/r1i1p1f1/E1hr/pr/gn/{timestamp}/' \
@@ -34,10 +33,6 @@ FILENAMES['u-ak543'] = PATHS['datadir'] / 'u-ak543/ap9.pp/precip_200601/ak543a.p
 
 
 HB_NAMES = ['large', 'medium', 'small']
-
-CONSTRAINT_ASIA = (iris.Constraint(coord_values={'latitude': lambda cell: 0.9 < cell < 56.1})
-                   & iris.Constraint(coord_values={'longitude': lambda cell: 56.9 < cell < 151.1}))
-
 
 def gen_weights_cube(inputs, outputs, hb_name):
     cube = iris.load_cube(str(inputs['model']), constraint=CONSTRAINT_ASIA)

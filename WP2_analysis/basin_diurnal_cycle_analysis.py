@@ -4,7 +4,6 @@ from pathlib import Path
 import pickle
 
 import iris
-import headless_matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -16,7 +15,7 @@ from remake import Task, TaskControl, remake_task_control
 from cosmic.fourier_series import FourierSeries
 from cosmic.util import build_raster_cube_from_cube, load_cmap_data, circular_rmse, rmse
 
-from config import PATHS
+from cosmic.config import PATHS
 from util import get_extent_from_cube
 
 SCALES = {

@@ -1,10 +1,9 @@
 import itertools
 
-import headless_matplotlib
 from remake import TaskControl, Task, remake_task_control
 from cosmic.WP2 import plot_seasonal_analysis
 
-from config import PATHS
+from cosmic.config import PATHS
 from util import task_unique_name_from_fn_args_kwargs
 
 RUNIDS = [

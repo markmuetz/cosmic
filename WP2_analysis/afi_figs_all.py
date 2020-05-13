@@ -1,15 +1,14 @@
 import itertools
 
-import headless_matplotlib
 import iris
 
 from cosmic.WP2.afi_base import AFI_basePlotter
 from cosmic.WP2.afi_mean_plot import AFI_meanPlotter
 from cosmic.WP2.afi_diurnal_cycle_plot import AFI_diurnalCyclePlotter
 
-from remake import TaskControl, Task, remake_required, RemakeOn, remake_task_control
+from remake import TaskControl, Task, remake_required, remake_task_control
 
-from config import PATHS
+from cosmic.config import PATHS
 from seasonal_precip_analysis import fmt_thresh_text
 
 

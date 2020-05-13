@@ -1,4 +1,3 @@
-import headless_matplotlib
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
@@ -8,7 +7,7 @@ from basmati.hydrosheds import load_hydrosheds_dem, load_hydrobasins_geodatafram
 from basmati.utils import build_raster_from_geometries
 from remake import TaskControl, Task, remake_required, remake_task_control
 
-from config import PATHS
+from cosmic.config import PATHS
 from basin_weighted_analysis import _configure_ax_asia
 
 

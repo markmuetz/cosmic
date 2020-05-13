@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from remake import Task, TaskControl, remake_task_control
-from config import PATHS
+from cosmic.config import PATHS
 
 
 def gen_vector_basin_stats(inputs, outputs, hb_names):

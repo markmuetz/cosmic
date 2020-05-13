@@ -1,16 +1,13 @@
 import string
 
-import headless_matplotlib
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
-import numpy as np
 
 import iris
 
 from remake import TaskControl, Task, remake_required, remake_task_control
 from cosmic.util import load_cmap_data
-from config import PATHS, STANDARD_NAMES
+from cosmic.config import PATHS, STANDARD_NAMES
 from basin_weighted_analysis import _configure_ax_asia, get_dataset_path
 from util import get_extent_from_cube
 

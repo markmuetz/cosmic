@@ -1,6 +1,6 @@
 from cosmic.WP2.extract_china_jja_2009_mean_precip import extract_dataset, DATASETS
 
-from config import PATHS
+from cosmic.config import PATHS
 
 
 def extract_all_dataset_gen():
