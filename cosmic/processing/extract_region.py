@@ -7,23 +7,12 @@ from pathlib import Path
 import iris
 from iris.experimental import equalise_cubes
 
+from cosmic.config import CONSTRAINT_ASIA, CONSTRAINT_EU
 from cosmic.util import load_module
 
 logging.basicConfig(stream=sys.stdout, level=os.getenv('COSMIC_LOGLEVEL', 'INFO'),
                     format='%(asctime)s %(levelname)8s: %(message)s')
 logger = logging.getLogger(__name__)
-
-# lat/lon constraints come from Asia HydroBASINS level 1 bounds,
-# rounded up or down as appropriate.
-CONSTRAINT_ASIA = (iris.Constraint(coord_values={'latitude': lambda cell: 0.9 < cell < 56.1})
-                   & iris.Constraint(coord_values={'longitude': lambda cell: 56.9 < cell < 151.1}))
-
-# Based on Malcolm Roberts' request and expanded by 2deg.
-CONSTRAINT_EU = (iris.Constraint(coord_values={'latitude': lambda cell: 28 < cell < 67}))
-                 # CANNOT constrain across the GMT boundary (0).
-                 # Use intersection instead.
-                 # & iris.Constraint(coord_values={'longitude': lambda cell: -22 < cell < 37}))
-
 
 def UM_gen_region_precip_filepath(runid, stream, year, month, region, output_dir):
     return (output_dir /

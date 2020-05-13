@@ -6,6 +6,8 @@ import tarfile
 import numpy as np
 import iris
 
+from cosmic.config import CONSTRAINT_ASIA, CONSTRAINT_EU
+
 
 def convert_cmorph_0p25deg_3hrly_to_netcdf4_month(data_dir, output_dir, year, month):
     lat = np.linspace(-59.875, 59.875, 480)
@@ -89,25 +91,21 @@ def convert_cmorph_8km_30min_to_netcdf4_month(data_dir, output_dir, year, month)
 
 
 def extract_asia(data_dir, year):
-    constraint_asia = (iris.Constraint(coord_values={'latitude':lambda cell: 0.9 < cell < 56.1})
-                       & iris.Constraint(coord_values={'longitude':lambda cell: 56.9 < cell < 151.1}))
     # N.B. run in dir for one month: only loads data for one month.
     filenames = sorted(Path(data_dir).glob(f'cmorph_ppt_{year}??.nc'))
 
     for filename in filenames:
-        asia_cmorph_ppt_cube = iris.load_cube(str(filename), constraint_asia)
+        asia_cmorph_ppt_cube = iris.load_cube(str(filename), CONSTRAINT_ASIA)
         output_filename = filename.parent / (filename.stem + '.asia.nc')
         iris.save(asia_cmorph_ppt_cube, str(output_filename), zlib=False)
 
 
 def extract_asia_8km_30min(data_dir, year, month):
-    constraint_asia = (iris.Constraint(coord_values={'latitude':lambda cell: 0.9 < cell < 56.1})
-                       & iris.Constraint(coord_values={'longitude':lambda cell: 56.9 < cell < 151.1}))
     # Different from above.
     # N.B. run in dir for one month: only loads data for one month.
     filenames = sorted(Path(data_dir).glob(f'cmorph_ppt_{year}????.nc'))
 
-    asia_cmorph_ppt_cube = iris.load([str(f) for f in filenames], constraint_asia).concatenate_cube()
+    asia_cmorph_ppt_cube = iris.load([str(f) for f in filenames], CONSTRAINT_ASIA).concatenate_cube()
     output_filename = data_dir / (f'cmorph_ppt_{year}{month:02}.asia.nc')
     # Compression saves A LOT of space: 5.0G -> 67M.
     iris.save(asia_cmorph_ppt_cube, str(output_filename), zlib=True)
@@ -115,14 +113,11 @@ def extract_asia_8km_30min(data_dir, year, month):
 
 def extract_europe_8km_30min(data_dir, year, month):
     # N.B. Max. lat of CMORPH is 60 N.
-    constraint_eu = (iris.Constraint(coord_values={'latitude': lambda cell: 28 < cell < 67}))
-                     # Cannot constrain on longitude across a boundary!
-                     # & iris.Constraint(coord_values={'longitude': lambda cell: -22 < cell < 37}))
     # Different from above.
     # N.B. run in dir for one month: only loads data for one month.
     filenames = sorted(Path(data_dir).glob(f'cmorph_ppt_{year}????.nc'))
 
-    eu_cmorph_ppt_cube = iris.load([str(f) for f in filenames], constraint_eu).concatenate_cube()
+    eu_cmorph_ppt_cube = iris.load([str(f) for f in filenames], CONSTRAINT_EU).concatenate_cube()
     output_filename = data_dir / (f'cmorph_ppt_{year}{month:02}.europe.nc')
     iris.save(eu_cmorph_ppt_cube.intersection(longitude=(-22, 37)), str(output_filename), zlib=True)
 

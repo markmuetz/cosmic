@@ -7,6 +7,8 @@ import numpy as np
 
 from .plot_gauge_data import load_jja_gauge_data
 
+from cosmic.config import CONSTRAINT_CHINA
+
 
 def fmt_daterange_jja_year(year):
     return f'{year}06-{year}08'
@@ -24,23 +26,20 @@ DATASETS = {
 
 
 def extract_dataset(datadir, dataset, daterange):
-    constraint_china = (iris.Constraint(coord_values={'latitude': lambda cell: 18 < cell < 41})
-                        & iris.Constraint(coord_values={'longitude': lambda cell: 97.5 < cell < 125}))
-
     if dataset == 'cmorph_0p25':
         datadir = Path(f'{datadir}/cmorph_data/0.25deg-3HLY')
         season = 'jja'
         filename = f'cmorph_ppt_{season}.{daterange}.asia_precip.ppt_thresh_0p1.nc'
         amount_jja = iris.load_cube(f'{datadir}/{filename}',
                                     f'amount_of_precip_{season}')
-        amount_jja_china = amount_jja.collapsed('time', iris.analysis.MEAN).extract(constraint_china)
+        amount_jja_china = amount_jja.collapsed('time', iris.analysis.MEAN).extract(CONSTRAINT_CHINA)
     elif dataset == 'cmorph_8km_N1280':
         datadir = Path(f'{datadir}/cmorph_data/8km-30min')
         season = 'jja'
         filename = f'cmorph_ppt_{season}.{daterange}.asia_precip.ppt_thresh_0p1.N1280.nc'
         amount_jja = iris.load_cube(f'{datadir}/{filename}',
                                     f'amount_of_precip_{season}')
-        amount_jja_china = amount_jja.collapsed('time', iris.analysis.MEAN).extract(constraint_china)
+        amount_jja_china = amount_jja.collapsed('time', iris.analysis.MEAN).extract(CONSTRAINT_CHINA)
     elif dataset == 'aphrodite':
         datadir = Path(f'{datadir}/aphrodite_data/025deg')
         amount = iris.load_cube(str(datadir / 'APHRO_MA_025deg_V1901.2009.nc'),
@@ -50,7 +49,7 @@ def extract_dataset(datadir, dataset, daterange):
         jja = ((time_index >= dt.datetime(2009, 6, 1)) & (time_index < dt.datetime(2009, 9, 1)))
         amount_jja = amount[jja]
         amount_jja_mean = amount_jja.collapsed('time', iris.analysis.MEAN)
-        amount_jja_china = amount_jja_mean.extract(constraint_china)
+        amount_jja_china = amount_jja_mean.extract(CONSTRAINT_CHINA)
     elif dataset == 'gauge_china_2419':
         df_station_info, df_precip, df_precip_jja, df_precip_station_jja = load_jja_gauge_data(datadir)
         if False:
@@ -74,7 +73,7 @@ def extract_dataset(datadir, dataset, daterange):
         amount_jja_mean = iris.cube.Cube(griddata,
                                          long_name='precipitation', units='mm hr-1',
                                          dim_coords_and_dims=coords)
-        amount_jja_china = amount_jja_mean.extract(constraint_china)
+        amount_jja_china = amount_jja_mean.extract(CONSTRAINT_CHINA)
     elif dataset[:2] == 'u-':
         # UM run:
         runid = dataset[2:7]
@@ -83,6 +82,6 @@ def extract_dataset(datadir, dataset, daterange):
         filename = f'{runid}a.p9{season}.{daterange}.asia_precip.ppt_thresh_0p1.nc'
         amount_jja = iris.load_cube(f'{datadir / filename}',
                                     f'amount_of_precip_{season}')
-        amount_jja_china = amount_jja.collapsed('time', iris.analysis.MEAN).extract(constraint_china)
+        amount_jja_china = amount_jja.collapsed('time', iris.analysis.MEAN).extract(CONSTRAINT_CHINA)
 
     iris.save(amount_jja_china, f'data/{dataset}_china_amount.{daterange}.nc')
