@@ -18,6 +18,36 @@ from basmati.utils import build_raster_from_geometries
 from cosmic.cosmic_errors import CosmicError
 
 
+def rmse_mask_out_nan(a1, a2):
+    nan_mask = np.isnan(a1)
+    nan_mask |= np.isnan(a2)
+    return rmse(a1[~nan_mask], a2[~nan_mask])
+
+
+def mae_mask_out_nan(a1, a2):
+    nan_mask = np.isnan(a1)
+    nan_mask |= np.isnan(a2)
+    return mae(a1[~nan_mask], a2[~nan_mask])
+
+
+def circular_rmse_mask_out_nan(a1, a2):
+    nan_mask = np.isnan(a1)
+    nan_mask |= np.isnan(a2)
+    return circular_rmse(a1[~nan_mask], a2[~nan_mask])
+
+
+def vrmse_mask_out_nan(a1, a2):
+    nan_mask = np.isnan(a1)
+    nan_mask |= np.isnan(a2)
+    # Need a 1D mask, otherwise choosing values will drop a1/a2 to a 1D array.
+    nan_mask = nan_mask.sum(axis=1).astype(bool)
+    return vrmse(a1[~nan_mask], a2[~nan_mask])
+
+
+def mae(a1, a2):
+    return np.abs(a1 - a2).mean()
+
+
 def rmse(a1, a2):
     return np.sqrt(((a1 - a2)**2).mean())
 
@@ -36,7 +66,7 @@ def vrmse(a1: np.ndarray, a2: np.ndarray) -> float:
     """Vector RMSE: See https://stats.stackexchange.com/questions/449317/calculation-of-vector-rmse
 
     :param a1: First array, final dimension is dimension of each vector
-    :param a2: Seconda array, shape the same as first
+    :param a2: Second array, shape the same as first
     :return: Vector RMSE of arrays
     """
     assert a1.shape == a2.shape, 'Shapes do not match'
