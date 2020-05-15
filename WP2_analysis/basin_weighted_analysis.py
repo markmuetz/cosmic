@@ -20,7 +20,8 @@ import pandas as pd
 from scipy.stats import linregress
 
 from basmati.hydrosheds import load_hydrobasins_geodataframe
-from cosmic.util import (load_cmap_data, vrmse, circular_rmse, rmse, mae,
+from cosmic.util import (load_cmap_data, rmse_mask_out_nan, mae_mask_out_nan, circular_rmse_mask_out_nan,
+                         vrmse,
                          build_raster_cube_from_cube, build_weights_cube_from_cube)
 from cosmic.mid_point_norm import MidPointNorm
 from cosmic.fourier_series import FourierSeries
@@ -436,17 +437,19 @@ def plot_mean_precip_asia_combined(inputs, outputs, datasets, hb_names):
 
 
 @remake_required(depends_on=[_configure_ax_asia])
-def plot_cmorph_mean_precip_diff(inputs, outputs, dataset, hb_name):
+def plot_obs_mean_precip_diff(inputs, outputs, dataset, hb_name):
     weighted_basin_mean_precip_filename = inputs['dataset_weighted']
-    cmorph_weighted_basin_mean_precip_filename = inputs['cmorph_weighted']
+    obs_weighted_basin_mean_precip_filename = inputs['obs_weighted']
 
     df_mean_precip = pd.read_hdf(weighted_basin_mean_precip_filename)
-    df_cmorph_mean_precip = pd.read_hdf(cmorph_weighted_basin_mean_precip_filename)
+    df_obs_mean_precip = pd.read_hdf(obs_weighted_basin_mean_precip_filename)
 
-    cmorph_rmse = rmse(df_mean_precip.basin_weighted_mean_precip_mm_per_hr,
-                       df_cmorph_mean_precip.basin_weighted_mean_precip_mm_per_hr)
-    cmorph_mae = mae(df_mean_precip.basin_weighted_mean_precip_mm_per_hr,
-                     df_cmorph_mean_precip.basin_weighted_mean_precip_mm_per_hr)
+    # There can be NaNs in the datasets, as in e.g. APHRODITE at some fine-scale basins.
+    # Use version of RMSE and MAE that mask these out.
+    obs_rmse = rmse_mask_out_nan(df_mean_precip.basin_weighted_mean_precip_mm_per_hr.values.astype(float),
+                                    df_obs_mean_precip.basin_weighted_mean_precip_mm_per_hr.values.astype(float))
+    obs_mae = mae_mask_out_nan(df_mean_precip.basin_weighted_mean_precip_mm_per_hr.values.astype(float),
+                                  df_obs_mean_precip.basin_weighted_mean_precip_mm_per_hr.values.astype(float))
 
     raster_hb_name = hb_name
     raster_cube = iris.load_cube(str(inputs['raster_cubes']), f'hydrobasins_raster_{raster_hb_name}')
@@ -456,20 +459,20 @@ def plot_cmorph_mean_precip_diff(inputs, outputs, dataset, hb_name):
     for i in range(1, raster.max() + 1):
         mean_precip_map[raster == i] = df_mean_precip.values[i - 1]
 
-    cmorph_mean_precip_map = np.zeros_like(raster, dtype=float)
+    obs_mean_precip_map = np.zeros_like(raster, dtype=float)
     for i in range(1, raster.max() + 1):
-        cmorph_mean_precip_map[raster == i] = df_cmorph_mean_precip.values[i - 1]
+        obs_mean_precip_map[raster == i] = df_obs_mean_precip.values[i - 1]
 
     extent = get_extent_from_cube(raster_cube)
 
     plt.figure(figsize=(10, 8))
     ax = plt.subplot(projection=ccrs.PlateCarree())
-    plt.title(f'{dataset} mean_precip. RMSE: {cmorph_rmse:.3f} mm hr$^{{-1}}$; MAE: {cmorph_mae:.3f} mm hr$^{{-1}}$')
+    plt.title(f'{dataset} mean_precip. RMSE: {obs_rmse:.3f} mm hr$^{{-1}}$; MAE: {obs_mae:.3f} mm hr$^{{-1}}$')
     grey_fill = np.zeros((mean_precip_map.shape[0], mean_precip_map.shape[1], 3), dtype=int)
     grey_fill[raster_cube.data == 0] = (200, 200, 200)
     ax.imshow(grey_fill, extent=extent)
 
-    masked_mean_precip_map = np.ma.masked_array(mean_precip_map - cmorph_mean_precip_map, raster_cube.data == 0)
+    masked_mean_precip_map = np.ma.masked_array(mean_precip_map - obs_mean_precip_map, raster_cube.data == 0)
 
     im = ax.imshow(masked_mean_precip_map,
                    cmap='bwr',
@@ -651,8 +654,8 @@ def df_phase_mag_add_x1_y1(df):
     df['x2'] = df['magnitude'] * np.sin(df['phase'] * np.pi / 12)
 
 
-def gen_mean_precip_rmses_corrs(inputs, outputs, hb_names):
-    """Generate RMSEs and correlations for mean precip for all datasets against CMORPH."""
+def gen_mean_precip_rmses_corrs(inputs, outputs, hb_names, obs):
+    """Generate RMSEs and correlations for mean precip for all datasets against observations."""
 
     all_rmses = {}
     for dataset in DATASETS[:-1]:
@@ -660,15 +663,19 @@ def gen_mean_precip_rmses_corrs(inputs, outputs, hb_names):
         mean_precip_maes = []
         mean_precip_corrs = []
         for hb_name in hb_names:
-            cmorph_mean_precip = pd.read_hdf(inputs[('cmorph', hb_name)])
+            cmorph_mean_precip = pd.read_hdf(inputs[(obs, hb_name)])
             dataset_mean_precip = pd.read_hdf(inputs[(dataset, hb_name)])
 
-            mean_precip_rmses.append(rmse(cmorph_mean_precip.basin_weighted_mean_precip_mm_per_hr.values,
-                                          dataset_mean_precip.basin_weighted_mean_precip_mm_per_hr.values))
-            mean_precip_maes.append(mae(cmorph_mean_precip.basin_weighted_mean_precip_mm_per_hr.values,
-                                        dataset_mean_precip.basin_weighted_mean_precip_mm_per_hr.values))
-            mean_regress = linregress(cmorph_mean_precip.basin_weighted_mean_precip_mm_per_hr.values,
-                                      dataset_mean_precip.basin_weighted_mean_precip_mm_per_hr.values)
+            mean_precip_rmses.append(rmse_mask_out_nan(cmorph_mean_precip.basin_weighted_mean_precip_mm_per_hr.values
+                                                       .astype(float),
+                                                       dataset_mean_precip.basin_weighted_mean_precip_mm_per_hr.values
+                                                       .astype(float)))
+            mean_precip_maes.append(mae_mask_out_nan(cmorph_mean_precip.basin_weighted_mean_precip_mm_per_hr.values
+                                                     .astype(float),
+                                                     dataset_mean_precip.basin_weighted_mean_precip_mm_per_hr.values
+                                                     .astype(float)))
+            mean_regress = linregress(cmorph_mean_precip.basin_weighted_mean_precip_mm_per_hr.values.astype(float),
+                                      dataset_mean_precip.basin_weighted_mean_precip_mm_per_hr.values.astype(float))
             mean_precip_corrs.append(mean_regress)
 
         all_rmses[dataset] = mean_precip_rmses, mean_precip_maes, mean_precip_corrs
@@ -694,10 +701,10 @@ def gen_phase_mag_rmses(inputs, outputs, area_weighted, hb_names):
                 df_phase_mag_add_x1_y1(dataset_phase_mag)
 
                 if not area_weighted:
-                    phase_rmses.append(circular_rmse(cmorph_phase_mag.phase,
-                                                     dataset_phase_mag.phase))
-                    mag_rmses.append(rmse(cmorph_phase_mag.magnitude,
-                                          dataset_phase_mag.magnitude))
+                    phase_rmses.append(circular_rmse_mask_out_nan(cmorph_phase_mag.phase,
+                                                                  dataset_phase_mag.phase))
+                    mag_rmses.append(rmse_mask_out_nan(cmorph_phase_mag.magnitude,
+                                                       dataset_phase_mag.magnitude))
                     vrmses.append(vrmse(cmorph_phase_mag[['x1', 'x2']].values,
                                         dataset_phase_mag[['x1', 'x2']].values))
                 else:
@@ -716,10 +723,10 @@ def gen_phase_mag_rmses(inputs, outputs, area_weighted, hb_names):
                     dataset_x1x2[:, :, 0] = dataset_mag_map * np.cos(dataset_phase_map * np.pi / 12)
                     dataset_x1x2[:, :, 1] = dataset_mag_map * np.sin(dataset_phase_map * np.pi / 12)
 
-                    phase_rmses.append(circular_rmse(cmorph_phase_map[raster != 0],
-                                                     dataset_phase_map[raster != 0]))
-                    mag_rmses.append(rmse(cmorph_mag_map[raster != 0],
-                                          dataset_mag_map[raster != 0]))
+                    phase_rmses.append(circular_rmse_mask_out_nan(cmorph_phase_map[raster != 0],
+                                                                  dataset_phase_map[raster != 0]))
+                    mag_rmses.append(rmse_mask_out_nan(cmorph_mag_map[raster != 0],
+                                                       dataset_mag_map[raster != 0]))
                     vrmses.append(vrmse(cmorph_x1x2,
                                         dataset_x1x2))
 
@@ -739,7 +746,7 @@ def gen_map_from_basin_values(cmorph_phase_mag, raster):
     return phase_map, mag_map
 
 
-def plot_cmorph_vs_all_datasets_mean_precip(inputs, outputs):
+def plot_obs_vs_all_datasets_mean_precip(inputs, outputs):
     with inputs[0].open('rb') as f:
         all_rmses = pickle.load(f)
 
@@ -919,33 +926,48 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
 
             if dataset != 'cmorph':
                 fmt_kwargs = {'dataset': 'cmorph', 'hb_name': hb_name}
-                cmorph_weighted_mean_precip_filename = PATHS['output_datadir'] / weighted_mean_precip_tpl.format(**fmt_kwargs)
-                task_ctrl.add(Task(plot_cmorph_mean_precip_diff,
+                cmorph_weighted_mean_precip_filename = (PATHS['output_datadir']
+                                                        / weighted_mean_precip_tpl.format(**fmt_kwargs))
+                task_ctrl.add(Task(plot_obs_mean_precip_diff,
                                    {'dataset_weighted': weighted_mean_precip_filename,
-                                    'cmorph_weighted': cmorph_weighted_mean_precip_filename,
+                                    'obs_weighted': cmorph_weighted_mean_precip_filename,
                                     'raster_cubes': hb_raster_cubes_fn,
                                     'mean_precip_max_min': max_min_path},
                                    [PATHS['figsdir'] / 'basin_weighted_analysis' / 'map' /
                                     'cmorph_mean_precip_diff' / f'map_{dataset}.{hb_name}.area_weighted.png'],
                                    func_args=[dataset, hb_name]))
 
-        mean_precip_rmse_data_filename = (PATHS['output_datadir'] /
-                                          f'basin_weighted_analysis/mean_precip_all_rmses.{basin_scales}.pkl')
-        gen_mean_precip_rmses_inputs = {
-            (ds, hb_name): PATHS['output_datadir'] / weighted_mean_precip_tpl.format(dataset=ds, hb_name=hb_name)
-            for ds, hb_name in itertools.product(DATASETS, hb_names)
-        }
-        task_ctrl.add(Task(gen_mean_precip_rmses_corrs,
-                           inputs=gen_mean_precip_rmses_inputs,
-                           outputs=[mean_precip_rmse_data_filename],
-                           func_kwargs={'hb_names': hb_names}
-                           ))
+            if dataset not in ['cmorph', 'aphrodite']:
+                fmt_kwargs = {'dataset': 'aphrodite', 'hb_name': hb_name}
+                obs_weighted_mean_precip_filename = (PATHS['output_datadir']
+                                                     / weighted_mean_precip_tpl.format(**fmt_kwargs))
+                task_ctrl.add(Task(plot_obs_mean_precip_diff,
+                                   {'dataset_weighted': weighted_mean_precip_filename,
+                                    'obs_weighted': obs_weighted_mean_precip_filename,
+                                    'raster_cubes': hb_raster_cubes_fn,
+                                    'mean_precip_max_min': max_min_path},
+                                   [PATHS['figsdir'] / 'basin_weighted_analysis' / 'map' / 'cmorph_mean_precip_diff' /
+                                    f'map_aphrodite_vs_{dataset}.{hb_name}.area_weighted.png'],
+                                   func_args=[dataset, hb_name]))
 
-        task_ctrl.add(Task(plot_cmorph_vs_all_datasets_mean_precip,
-                           inputs=[mean_precip_rmse_data_filename],
-                           outputs=[PATHS['figsdir'] / 'basin_weighted_analysis' / 'cmorph_vs' / 'mean_precip' /
-                                    f'cmorph_vs_all_datasets.all_{f}.{basin_scales}.pdf' for f in ['rmse', 'corr']]
-                           ))
+        for obs in ['cmorph', 'aphrodite']:
+            mean_precip_rmse_data_filename = (PATHS['output_datadir'] /
+                                              f'basin_weighted_analysis/{obs}.mean_precip_all_rmses.{basin_scales}.pkl')
+            gen_mean_precip_rmses_inputs = {
+                (ds, hb_name): PATHS['output_datadir'] / weighted_mean_precip_tpl.format(dataset=ds, hb_name=hb_name)
+                for ds, hb_name in itertools.product(DATASETS + ['aphrodite'], hb_names)
+            }
+            task_ctrl.add(Task(gen_mean_precip_rmses_corrs,
+                               inputs=gen_mean_precip_rmses_inputs,
+                               outputs=[mean_precip_rmse_data_filename],
+                               func_kwargs={'hb_names': hb_names, 'obs': obs}
+                               ))
+
+            task_ctrl.add(Task(plot_obs_vs_all_datasets_mean_precip,
+                               inputs=[mean_precip_rmse_data_filename],
+                               outputs=[PATHS['figsdir'] / 'basin_weighted_analysis' / 'cmorph_vs' / 'mean_precip' /
+                                        f'{obs}_vs_all_datasets.all_{f}.{basin_scales}.pdf' for f in ['rmse', 'corr']]
+                               ))
 
         if basin_scales == 'small_medium_large':
             input_paths = {'raster_cubes': hb_raster_cubes_fn}
