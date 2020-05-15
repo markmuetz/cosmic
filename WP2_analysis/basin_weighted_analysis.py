@@ -161,7 +161,7 @@ def native_weighted_basin_mean_precip_analysis(inputs, outputs):
     cubes_filename = inputs['dataset_path']
     weights_filename = inputs['weights']
 
-    # In kg m-2 s-1
+    # In mm hr-1
     precip_flux_mean_cube = iris.load_cube(str(cubes_filename), 'precip_flux_mean')
     weights = iris.load_cube(str(weights_filename))
 
@@ -633,6 +633,9 @@ def get_dataset_path(dataset):
     if dataset == 'cmorph':
         path = (PATHS['datadir'] /
                 'cmorph_data/8km-30min/cmorph_ppt_jja.199801-201812.asia_precip.ppt_thresh_0p1.N1280.nc')
+    elif dataset == 'aphrodite':
+        path = (PATHS['datadir'] /
+                'aphrodite_data/025deg/aphrodite_combined_jja.nc')
     elif dataset[:2] == 'u-':
         path = (PATHS['datadir'] /
                 f'{dataset}/ap9.pp/{dataset[2:]}a.p9jja.200506-200808.asia_precip.ppt_thresh_0p1.nc')
@@ -877,6 +880,8 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
                 dataset_cube_path = PATHS['datadir'] / 'u-ak543/ap9.pp/precip_200601/ak543a.p9200601.asia_precip.nc'
             elif dataset[:7] == 'HadGEM3':
                 dataset_cube_path = HADGEM_FILENAMES[dataset]
+            elif dataset == 'aphrodite':
+                dataset_cube_path = PATHS['datadir'] / 'aphrodite_data/025deg/aphrodite_combined_all.nc'
             input_filenames = {dataset: dataset_cube_path,
                                hb_name: PATHS['output_datadir'] / shp_path_tpl.format(hb_name=hb_name, ext='shp')}
 
