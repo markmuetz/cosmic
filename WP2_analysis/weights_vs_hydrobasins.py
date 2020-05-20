@@ -7,6 +7,7 @@ import numpy as np
 
 import geopandas as gpd
 
+import basmati.utils
 from remake import Task, TaskControl, remake_task_control
 import cosmic.util as util
 from cosmic.config import PATHS, CONSTRAINT_ASIA
@@ -37,7 +38,7 @@ HB_NAMES = ['large', 'medium', 'small']
 def gen_weights_cube(inputs, outputs, hb_name):
     cube = iris.load_cube(str(inputs['model']), constraint=CONSTRAINT_ASIA)
     hb = gpd.read_file(str(inputs['hb_name_shp']))
-    weights_cube = util.build_weights_cube_from_cube(cube, hb, f'weights_{hb_name}')
+    weights_cube = basmati.utils.build_weights_cube_from_cube(hb.geometry, cube, f'weights_{hb_name}')
     # Cubes are very sparse. You can get a 800x improvement in file size using zlib!
     # BUT I think it takes a lot longer to read them. Leave uncompressed.
     # iris.save(weights_cube, str(outputs[0]), zlib=True)
@@ -48,7 +49,7 @@ def plot_weights_cube(inputs, outputs):
     model, hb_name = inputs.keys()
     hb = gpd.read_file(str(inputs[hb_name]))
     weights_cube = iris.load_cube(str(inputs[model]))
-    lat_max, lat_min, lon_max, lon_min, nlat, nlon = util.get_latlon_from_cube(weights_cube)
+    lat_max, lat_min, lon_max, lon_min, nlat, nlon = basmati.utils.get_latlon_from_cube(weights_cube)
     dlat = (lat_max - lat_min) / nlat
     dlon = (lon_max - lon_min) / nlon
 
@@ -101,7 +102,7 @@ def plot_weights_cube_table(inputs, outputs, rows, cols):
             basin = hb.loc[basin_index]
             w = weights_cube[basin_index]
 
-            lat_max, lat_min, lon_max, lon_min, nlat, nlon = util.get_latlon_from_cube(weights_cube)
+            lat_max, lat_min, lon_max, lon_min, nlat, nlon = basmati.utils.get_latlon_from_cube(weights_cube)
             extent = (lon_min, lon_max, lat_min, lat_max)
 
             im = ax.imshow(w.data, origin='lower', extent=extent, vmin=0, vmax=1)
