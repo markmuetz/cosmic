@@ -7,7 +7,7 @@ from matplotlib.colors import LogNorm
 import numpy as np
 from scipy.stats import linregress
 
-from cosmic.util import build_raster_from_cube
+from basmati.utils import build_raster_from_cube
 
 from basmati.hydrosheds import load_hydrobasins_geodataframe
 
@@ -64,7 +64,7 @@ def compare_mean_precip(hydrosheds_dir, figsdir, dataset1, dataset2, dataset1dat
     full_mask |= np.isnan(raw_data2)
     if land_only:
         hb = load_hydrobasins_geodataframe(hydrosheds_dir, 'as', [1])
-        raster = build_raster_from_cube(cube1, hb)
+        raster = build_raster_from_cube(hb.geometry, cube1)
         full_mask |= raster == 0
 
     title = f'{dataset1} ({dataset1daterange}) vs {dataset2} ({dataset1daterange})'

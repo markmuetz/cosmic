@@ -8,7 +8,8 @@ import numpy as np
 import pandas as pd
 
 from basmati.hydrosheds import load_hydrobasins_geodataframe
-from cosmic.util import load_cmap_data, build_raster_from_lon_lat
+from cosmic.util import load_cmap_data
+from basmati.utils import build_raster_from_lon_lat
 
 
 def load_jja_gauge_data(basedir):
@@ -55,8 +56,7 @@ def plot_precip_station_jja_cressman(ax, hydrosheds_dir, df_precip_station_jja, 
 
     # Use to mask out ocean.
     hb = load_hydrobasins_geodataframe(hydrosheds_dir, 'as', [1])
-    raster = build_raster_from_lon_lat(lon_min, lon_max, lat_min, lat_max, 
-                                       griddata.shape[1], griddata.shape[0], hb)
+    raster = build_raster_from_lon_lat(hb.geometry, lon_min, lon_max, lat_min, lat_max, griddata.shape[1], griddata.shape[0])
 
     griddata = np.ma.masked_array(griddata, raster == 0)
     im = ax.imshow(griddata, origin='lower', 

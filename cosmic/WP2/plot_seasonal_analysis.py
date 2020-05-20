@@ -11,7 +11,8 @@ import cartopy.crs as ccrs
 from scipy.ndimage.filters import gaussian_filter
 
 from cosmic.util import (sysrun, load_cmap_data,
-                         daily_circular_mean, build_raster_from_cube)
+                         daily_circular_mean)
+from basmati.utils import build_raster_from_cube
 from cosmic.WP2.diurnal_cycle_analysis import calc_diurnal_cycle_phase_amp_harmonic, calc_diurnal_cycle_phase_amp_peak
 
 from basmati.hydrosheds import load_hydrobasins_geodataframe
@@ -452,7 +453,7 @@ class SeasonAnalysisPlotter:
             if raster_cache_key in self.raster_cache:
                 raster = self.raster_cache[raster_cache_key]
             else:
-                raster = build_raster_from_cube(cube, hb_filtered)
+                raster = build_raster_from_cube(hb_filtered.geometry, cube)
                 self.raster_cache[raster_cache_key] = raster
 
             lon_min, lon_max = cube.coord('longitude').points[[0, -1]]

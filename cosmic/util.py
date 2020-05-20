@@ -10,10 +10,7 @@ import iris
 import iris.coords
 import matplotlib as mpl
 import numpy as np
-import rasterio
 from scipy import stats
-
-from basmati.utils import build_raster_from_geometries
 
 from cosmic.cosmic_errors import CosmicError
 
@@ -125,77 +122,6 @@ def daily_circular_mean(arr, axis=None):
     arr_y = np.cos(theta)
     theta_mean = np.arctan2(arr_x.mean(axis=axis), arr_y.mean(axis=axis))
     return (theta_mean / (2 * np.pi) * 24) % 24
-
-
-def build_raster_from_lon_lat(lon_min, lon_max, lat_min, lat_max, nlon, nlat, hb):
-    scale_lon = (lon_max - lon_min) / nlon
-    scale_lat = (lat_max - lat_min) / nlat
-
-    affine_tx = rasterio.transform.Affine(scale_lon, 0, lon_min,
-                                          0, scale_lat, lat_min)
-    raster = build_raster_from_geometries(hb.geometry,
-                                          (nlat, nlon),
-                                          affine_tx)
-    return raster
-
-
-def build_weights_from_lon_lat(lon_min, lon_max, lat_min, lat_max, nlon, nlat, hb,
-                               oversample_factor=10):
-    raster_highres = build_raster_from_lon_lat(lon_min, lon_max, lat_min, lat_max,
-                                               nlon * oversample_factor, nlat * oversample_factor, hb)
-    raster_highres_reshaped = raster_highres.reshape(nlat, oversample_factor, nlon, oversample_factor)
-    weights = np.zeros((len(hb), nlat, nlon))
-    for i in range(weights.shape[0]):
-        weights[i] = (raster_highres_reshaped == (i + 1)).sum(axis=(1, 3)) / (oversample_factor**2)
-
-    return weights
-
-
-def build_weights_cube_from_cube(cube, hb, name,
-                                 oversample_factor=10):
-    lat_max, lat_min, lon_max, lon_min, nlat, nlon = get_latlon_from_cube(cube)
-
-    weights = build_weights_from_lon_lat(lon_min, lon_max, lat_min, lat_max, nlon, nlat, hb, oversample_factor)
-
-    basin_index_coord = iris.coords.DimCoord(np.arange(len(hb)), long_name='basin_index')
-    longitude = cube.coord('longitude')
-    latitude = cube.coord('latitude')
-
-    weights_cube = iris.cube.Cube(weights, long_name=f'{name}', units='-',
-                                  dim_coords_and_dims=[(basin_index_coord, 0),
-                                                       (latitude, 1),
-                                                       (longitude, 2)])
-
-    return weights_cube
-
-
-def get_latlon_from_cube(cube):
-    nlat = cube.shape[-2]
-    nlon = cube.shape[-1]
-    for latlon in ['latitude', 'longitude']:
-        if not cube.coord(latlon).has_bounds():
-            cube.coord(latlon).guess_bounds()
-    longitude = cube.coord('longitude')
-    latitude = cube.coord('latitude')
-    lon_min, lon_max = longitude.bounds[0, 0], longitude.bounds[-1, 1]
-    lat_min, lat_max = latitude.bounds[0, 0], latitude.bounds[-1, 1]
-    return lat_max, lat_min, lon_max, lon_min, nlat, nlon
-
-
-def build_raster_from_cube(cube, hb):
-    lat_max, lat_min, lon_max, lon_min, nlat, nlon = get_latlon_from_cube(cube)
-    return build_raster_from_lon_lat(lon_min, lon_max, lat_min, lat_max, nlon, nlat, hb)
-
-
-def build_raster_cube_from_cube(cube, hb, name):
-    raster = build_raster_from_cube(cube, hb)
-    longitude = cube.coord('longitude')
-    latitude = cube.coord('latitude')
-
-    raster_cube = iris.cube.Cube(raster, long_name=f'{name}', units='-',
-                                 dim_coords_and_dims=[(latitude, 0),
-                                                      (longitude, 1)])
-    return raster_cube
 
 
 def load_cmap_data(cmap_data_filename):
