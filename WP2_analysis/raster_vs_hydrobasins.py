@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+import basmati.utils
 from basmati.hydrosheds import load_hydrobasins_geodataframe
 from remake import Task, TaskControl, remake_task_control
 from cosmic import util
@@ -36,12 +37,12 @@ def gen_raster_cube(inputs, outputs, hb_name, method):
     cube = iris.load_cube(str(inputs['cube']))
     if method == 'global':
         # Build global raster, then extract Asia.
-        raster_cube = util.build_raster_cube_from_cube(cube, hb, hb_name)
+        raster_cube = basmati.utils.build_raster_cube_from_cube(hb.geometry, cube, hb_name)
         raster_cube_asia = raster_cube.extract(CONSTRAINT_ASIA)
     elif method == 'local':
         # extract asia from cube, then build local raster (uses affine_tx under the hood).
         cube_asia = cube.extract(CONSTRAINT_ASIA)
-        raster_cube_asia = util.build_raster_cube_from_cube(cube_asia, hb, hb_name)
+        raster_cube_asia = basmati.utils.build_raster_cube_from_cube(hb.geometry, cube_asia, hb_name)
     iris.save(raster_cube_asia, str(outputs[0]))
 
 

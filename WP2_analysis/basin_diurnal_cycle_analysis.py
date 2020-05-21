@@ -14,7 +14,8 @@ import cosmic.WP2.diurnal_cycle_analysis as dca
 from basmati.hydrosheds import load_hydrobasins_geodataframe
 from remake import Task, TaskControl, remake_task_control
 from cosmic.fourier_series import FourierSeries
-from cosmic.util import build_raster_cube_from_cube, load_cmap_data, circular_rmse, rmse
+from cosmic.util import load_cmap_data, circular_rmse, rmse
+from basmati.utils import build_raster_cube_from_cube
 
 from cosmic.config import PATHS
 from util import get_extent_from_cube
@@ -64,7 +65,9 @@ def gen_hydrobasins_raster_cubes(inputs, outputs, scales=SCALES):
     raster_cubes = []
     for scale, (min_area, max_area) in scales.items():
         hb_filtered = hb.area_select(min_area, max_area)
-        raster_cube = build_raster_cube_from_cube(diurnal_cycle_cube, hb_filtered, f'hydrobasins_raster_{scale}')
+        raster_cube = build_raster_cube_from_cube(hb_filtered.geometry,
+                                                  diurnal_cycle_cube,
+                                                  f'hydrobasins_raster_{scale}')
         raster_cubes.append(raster_cube)
     raster_cubes = iris.cube.CubeList(raster_cubes)
     iris.save(raster_cubes, str(outputs[0]))

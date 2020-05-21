@@ -1,4 +1,5 @@
 # coding: utf-8
+import basmati.utils
 import cosmic.util as util
 from importlib import reload
 import iris
@@ -10,15 +11,15 @@ hb_large = hb.area_select(200000, 2000000)
 cube = iris.load_cube('/home/markmuetz/mirrors/jasmin/gw_cosmic/mmuetz/data/PRIMAVERA_HighResMIP_MOHC/HadGEM3-GC31-HM/highresSST-present/r1i1p1f1/E1hr/pr/gn/v20170831/pr_E1hr_HadGEM3-GC31-HM_highresSST-present_r1i1p1f1_gn_201404010030-201406302330.nc')
 cube = iris.load_cube('/home/markmuetz/mirrors/jasmin/gw_cosmic/mmuetz/data/PRIMAVERA_HighResMIP_MOHC/HadGEM3-GC31-LM/highresSST-present/r1i1p1f1/E1hr/pr/gn/v20170906/pr_E1hr_HadGEM3-GC31-LM_highresSST-present_r1i1p1f1_gn_201401010030-201412302330.nc')
 cube
-util.build_weights_cube_from_cube(cube, hb_large, 'weights_large')
+basmati.utils.build_weights_cube_from_cube(hb_large, cube, 'weights_large')
 reload(util)
-util.build_weights_cube_from_cube(cube, hb_large, 'weights_large')
+basmati.utils.build_weights_cube_from_cube(hb_large, cube, 'weights_large')
 reload(util)
-util.build_weights_cube_from_cube(cube, hb_large, 'weights_large')
+basmati.utils.build_weights_cube_from_cube(hb_large, cube, 'weights_large')
 get_ipython().run_line_magic('debug', '')
 reload(util)
-util.build_weights_cube_from_cube(cube, hb_large, 'weights_large')
-weights = util.build_weights_cube_from_cube(cube, hb_large, 'weights_large')
+basmati.utils.build_weights_cube_from_cube(hb_large, cube, 'weights_large')
+weights = basmati.utils.build_weights_cube_from_cube(hb_large, cube, 'weights_large')
 weights.data[0].sum()
 weights.data.sum(axis=(1, 2))
 len(hb_large)
@@ -35,7 +36,7 @@ for w, basin in zip(weights.slices_over('basin_index'), [r for i, r in hb_large.
     
 import matplotlib.pyplot as plt
 lat_max, lat_min, lon_max, lon_min, nlat, nlon = get_latlon_from_cube(cube)
-lat_max, lat_min, lon_max, lon_min, nlat, nlon = util.get_latlon_from_cube(cube)
+lat_max, lat_min, lon_max, lon_min, nlat, nlon = basmati.utils.get_latlon_from_cube(cube)
 for w, basin in zip(weights.slices_over('basin_index'), [r for i, r in hb_large.iterrows()]):
     plt.imshow(w.data, origin='lower', extent=(lon_min, lon_max, lat_min, lat_max))
     ax = plt.gca()

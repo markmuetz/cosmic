@@ -21,8 +21,8 @@ from scipy.stats import linregress
 
 from basmati.hydrosheds import load_hydrobasins_geodataframe
 from cosmic.util import (load_cmap_data, rmse_mask_out_nan, mae_mask_out_nan, circular_rmse_mask_out_nan,
-                         vrmse,
-                         build_raster_cube_from_cube, build_weights_cube_from_cube)
+                         vrmse)
+from basmati.utils import build_weights_cube_from_cube, build_raster_cube_from_cube
 from cosmic.mid_point_norm import MidPointNorm
 from cosmic.fourier_series import FourierSeries
 from remake import Task, TaskControl, remake_required, remake_task_control
@@ -141,7 +141,9 @@ def gen_hydrobasins_raster_cubes(inputs, outputs, scales=SCALES):
     raster_cubes = []
     for scale, (min_area, max_area) in scales.items():
         hb_filtered = hb.area_select(min_area, max_area)
-        raster_cube = build_raster_cube_from_cube(diurnal_cycle_cube, hb_filtered, f'hydrobasins_raster_{scale}')
+        raster_cube = build_raster_cube_from_cube(hb_filtered.geometry,
+                                                  diurnal_cycle_cube,
+                                                  f'hydrobasins_raster_{scale}')
         raster_cubes.append(raster_cube)
     raster_cubes = iris.cube.CubeList(raster_cubes)
     iris.save(raster_cubes, str(outputs[0]))
@@ -151,7 +153,7 @@ def gen_weights_cube(inputs, outputs):
     dataset, hb_name = inputs.keys()
     cube = iris.load_cube(str(inputs[dataset]), constraint=CONSTRAINT_ASIA)
     hb = gpd.read_file(str(inputs[hb_name]))
-    weights_cube = build_weights_cube_from_cube(cube, hb, f'weights_{hb_name}')
+    weights_cube = build_weights_cube_from_cube(hb.geometry, cube, f'weights_{hb_name}')
     # Cubes are very sparse. You can get a 800x improvement in file size using zlib!
     # BUT I think it takes a lot longer to read them. Leave uncompressed.
     # iris.save(weights_cube, str(outputs[0]), zlib=True)
