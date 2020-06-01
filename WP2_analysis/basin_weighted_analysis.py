@@ -388,7 +388,15 @@ def plot_mean_precip_asia_combined(inputs, outputs, datasets, hb_names):
     bwr = mpl.cm.get_cmap('bwr')
     cmap_scale = [0., .5 / 3, 1 / 3, .5, .6, .7, .8, 1.]  # 8 -- colours from bwr to use.
     diff_bounds = [-27, -9, -3, -1, 1, 3, 9, 27, 81]  # 9 -- bounds to use.
-    diff_cmap = colors.LinearSegmentedColormap.from_list('diff_cmap', [bwr(x) for x in cmap_scale], bwr.N)
+
+    # https://matplotlib.org/3.1.0/tutorials/colors/colormap-manipulation.html
+    top = mpl.cm.get_cmap('Oranges_r', 128)
+    bottom = mpl.cm.get_cmap('Blues', 128)
+
+    newcolors = np.vstack((top(np.linspace(0, 1, 128)),
+                           bottom(np.linspace(0, 1, 128))))
+    newcmp = colors.ListedColormap(newcolors, name='OrangeBlue')
+    diff_cmap = colors.LinearSegmentedColormap.from_list('diff_cmap', [newcmp(x) for x in cmap_scale], newcmp.N)
     diff_norm = colors.BoundaryNorm(diff_bounds, diff_cmap.N)
 
     # Fills masked values.
