@@ -75,7 +75,24 @@ def calc_extended_orog_mask(inputs, outputs):
     iris.save(r_extended_orog_mask, str(outputs[0]))
 
 
-def plot_masks_combined(inputs, outputs):
+def calc_JJA_clim(inputs, outputs):
+    r_clim = iris.load_cube(str(inputs[0]))
+    r_clim_JJA = r_clim[5:8].collapsed('t', iris.analysis.MEAN)
+    iris.save(r_clim_JJA, str(outputs[0]))
+
+
+def calc_extended_orog_mask_JJA(inputs, outputs):
+    r_clim = iris.load_cube(str(inputs[0]))
+    r_orog_mask = r_clim.copy()
+    r_orog_mask.data = (r_clim.data > 0.5).astype(float)
+    r_extended_orog_mask = r_orog_mask[5: 8].copy()
+    for i in range(5, 8):
+        print(i)
+        r_extended_orog_mask[i - 5].data = distance_orography(r_orog_mask[i], 100, 1)[0]
+    iris.save(r_extended_orog_mask, str(outputs[0]))
+
+
+def plot_masks_combined(inputs, outputs, months):
     """Borrow code from B. Vanniere to get plots looking very similar."""
     r_clim = iris.load_cube(str(inputs[0]))
     clevs = list(np.array([0.0, 1., 2., 4., 6., 8., 10., 15., 20., 30.]) / 20.)
@@ -83,7 +100,8 @@ def plot_masks_combined(inputs, outputs):
     cmaplist = [cmap(i) for i in range(0, cmap.N, cmap.N // 10)]
     cmap = cmap.from_list('Custom cmap', cmaplist, cmap.N)
 
-    iplt.contourf(r_clim.collapsed('t', iris.analysis.MEAN), clevs,
+    plt.clf()
+    iplt.contourf(r_clim[months].collapsed('t', iris.analysis.MEAN), clevs,
                   cmap=cmap,
                   extent=(0, 360, -90, 90))
     cb = plt.colorbar(orientation='vertical')
@@ -123,11 +141,27 @@ def gen_task_ctrl():
                 [f'{BASEDIR}/R_clim.nc'],
                 [PATHS['figsdir'] / 'experimental' / 'extended_orog_mask.nc']))
 
+    tc.add(Task(calc_extended_orog_mask_JJA,
+                [f'{BASEDIR}/R_clim.nc'],
+                [PATHS['figsdir'] / 'experimental' / 'extended_orog_mask_JJA.nc']))
+
+    tc.add(Task(calc_JJA_clim,
+                [f'{BASEDIR}/R_clim.nc'],
+                [PATHS['figsdir'] / 'experimental' / 'R_clim_JJA.nc']))
+
     tc.add(Task(plot_masks_combined,
                 [f'{BASEDIR}/R_clim.nc',
                  PATHS['figsdir'] / 'experimental' / 'extended_orog_mask.nc'],
                 [PATHS['figsdir'] / 'experimental' / 'sinclair_orog_data_combined.png',
-                 PATHS['figsdir'] / 'experimental' / 'sinclair_orog_masks_combined.png']))
+                 PATHS['figsdir'] / 'experimental' / 'sinclair_orog_masks_combined.png'],
+                func_args=(slice(None), )))
+
+    tc.add(Task(plot_masks_combined,
+                [f'{BASEDIR}/R_clim.nc',
+                 PATHS['figsdir'] / 'experimental' / 'extended_orog_mask_JJA.nc'],
+                [PATHS['figsdir'] / 'experimental' / 'sinclair_orog_data_combined_JJA.png',
+                 PATHS['figsdir'] / 'experimental' / 'sinclair_orog_masks_combined_JJA.png'],
+                func_args=(slice(5, 8), )))
     return tc
 
 
