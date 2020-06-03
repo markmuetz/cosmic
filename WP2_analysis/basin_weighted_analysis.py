@@ -20,9 +20,9 @@ import pandas as pd
 from scipy.stats import linregress
 
 from basmati.hydrosheds import load_hydrobasins_geodataframe
+from basmati.utils import build_weights_cube_from_cube, build_raster_cube_from_cube
 from cosmic.util import (load_cmap_data, rmse_mask_out_nan, mae_mask_out_nan, circular_rmse_mask_out_nan,
                          vrmse)
-from basmati.utils import build_weights_cube_from_cube, build_raster_cube_from_cube
 from cosmic.mid_point_norm import MidPointNorm
 from cosmic.fourier_series import FourierSeries
 from remake import Task, TaskControl, remake_required, remake_task_control
