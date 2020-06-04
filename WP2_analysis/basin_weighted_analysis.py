@@ -960,7 +960,7 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
                                     f'map_aphrodite_vs_{dataset}.{hb_name}.area_weighted.png'],
                                    func_args=[dataset, hb_name]))
 
-        for obs in ['cmorph', 'aphrodite']:
+        for obs in ['cmorph', 'aphrodite', 'u-al508', 'u-ak543']:
             mean_precip_rmse_data_filename = (PATHS['output_datadir'] /
                                               f'basin_weighted_analysis/{obs}.mean_precip_all_rmses.{basin_scales}.pkl')
             gen_mean_precip_rmses_inputs = {
