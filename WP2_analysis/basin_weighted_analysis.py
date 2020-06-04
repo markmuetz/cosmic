@@ -694,6 +694,31 @@ def gen_mean_precip_rmses_corrs(inputs, outputs, hb_names, obs):
         pickle.dump(all_rmses, f)
 
 
+def gen_mean_precip_highest_percentage_bias(inputs, outputs, hb_names, obs):
+    """Generate highest/lowest percentage bias for mean precip for all datasets against observations."""
+
+    all_biases = {}
+    for dataset in DATASETS[:-1]:
+        mean_precip_max_biases = []
+        # mean_precip_min_biases = []
+        for hb_name in hb_names:
+            obs_mean_precip = pd.read_hdf(inputs[(obs, hb_name)])
+            dataset_mean_precip = pd.read_hdf(inputs[(dataset, hb_name)])
+            obs_vals = obs_mean_precip.basin_weighted_mean_precip_mm_per_hr.values.astype(float)
+            dataset_vals = dataset_mean_precip.basin_weighted_mean_precip_mm_per_hr.values.astype(float)
+            index_dataset_max = np.argmax(dataset_vals)
+
+            mean_precip_max_biases.append(dataset_vals[index_dataset_max] / obs_vals[index_dataset_max])
+            # mean_precip_max_biases.append(min(dataset_vals / obs_vals))
+        # all_biases[dataset] = mean_precip_max_biases, mean_precip_min_biases
+        all_biases[dataset] = mean_precip_max_biases
+
+    df = pd.DataFrame(all_biases)
+    df.to_csv(outputs[0])
+    # with outputs[0].open('wb') as f:
+    #    pickle.dump(all_biases, f)
+
+
 def gen_phase_mag_rmses(inputs, outputs, area_weighted, hb_names):
     all_rmses = {}
     raster_cubes = iris.load(str(inputs['raster_cubes']))
@@ -970,6 +995,14 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
             task_ctrl.add(Task(gen_mean_precip_rmses_corrs,
                                inputs=gen_mean_precip_rmses_inputs,
                                outputs=[mean_precip_rmse_data_filename],
+                               func_kwargs={'hb_names': hb_names, 'obs': obs}
+                               ))
+
+            mean_precip_bias_data_filename = (PATHS['output_datadir'] /
+                                              f'basin_weighted_analysis/{obs}.mean_precip_all_bias.{basin_scales}.csv')
+            task_ctrl.add(Task(gen_mean_precip_highest_percentage_bias,
+                               inputs=gen_mean_precip_rmses_inputs,
+                               outputs=[mean_precip_bias_data_filename],
                                func_kwargs={'hb_names': hb_names, 'obs': obs}
                                ))
 
