@@ -7,6 +7,7 @@ import numpy as np
 
 from remake import Task, TaskControl, remake_task_control
 from cosmic.config import PATHS
+from cosmic.util import filepath_regrid
 
 BASEDIR = '/home/markmuetz/mirrors/jasmin/gw_primavera/cache/bvanniere/' \
           'primavera/Orographic_precipitation/ERA_interim_orographic_precipitation_daily'
@@ -132,6 +133,13 @@ def plot_masks_combined(inputs, outputs, months):
     plt.savefig(outputs[1])
 
 
+def regrid_to_N1280(inputs, outputs):
+    target_filepath = PATHS['datadir'] / 'u-al508/ap9.pp/precip_200501/al508a.p920050101.precip.nc'
+
+    coarse_cube = filepath_regrid(inputs[0], target_filepath)
+    iris.save(coarse_cube, str(outputs[0]), zlib=True)
+
+
 @remake_task_control
 def gen_task_ctrl():
     tc = TaskControl(__file__)
@@ -163,6 +171,11 @@ def gen_task_ctrl():
                 [PATHS['figsdir'] / 'experimental' / 'sinclair_orog_data_combined_JJA.png',
                  PATHS['figsdir'] / 'experimental' / 'sinclair_orog_masks_combined_JJA.png'],
                 func_args=(slice(5, 8), )))
+
+    tc.add(Task(regrid_to_N1280,
+                [f'{BASEDIR}/R_clim.nc'],
+                [PATHS['figsdir'] / 'experimental' / 'R_clim.N1280.nc']))
+
     return tc
 
 
