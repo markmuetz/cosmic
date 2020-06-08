@@ -25,6 +25,7 @@ def plot_masks(inputs, outputs):
 
 def distance(lon1, lon2, lat1, lat2):
     """Taken from B. Vanniere."""
+    # Only valid for small differences.
     R = 6371.
     dlon = (lon2 - lon1)
     dlon = (dlon + 180.) % 360. - 180.
