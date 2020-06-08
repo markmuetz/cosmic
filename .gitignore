@@ -16,3 +16,4 @@ bsub_scripts/
 figs/
 data/
 /aphrodite/.remake/
+.remake/
