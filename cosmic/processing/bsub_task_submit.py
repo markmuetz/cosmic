@@ -11,7 +11,7 @@ from cosmic.util import load_module, sysrun
 import cosmic.processing.bsub_task_run as bsub_task_run
 
 from remake.setup_logging import add_file_logging
-
+from remake.util import load_task_ctrls
 
 BSUB_SCRIPT_TPL = """#!/bin/bash
 #BSUB -J {job_name}
@@ -103,28 +103,29 @@ class TaskSubmitter:
 def main():
     parser = ArgumentParser()
     parser.add_argument('--config-filename', '-C')
+    parser.add_argument('--queue', '-q', default='short-serial')
+    parser.add_argument('--max-runtime', '-W', default='04:00')
+    parser.add_argument('--mem', '-M', default=16000)
     parser.add_argument('--ntasks', '-N', type=int, default=int(1e9))
     args = parser.parse_args()
+
+    bsub_kwargs = {'queue': args.queue,
+                   'max_runtime': args.max_runtime,
+                   'mem': args.mem}
 
     output_dir = Path('processing_output')
     output_dir.mkdir(exist_ok=True)
     add_file_logging(output_dir / 'bsub_task_submit.log')
 
-    config = load_module(args.config_filename)
-    logger.debug(config)
+    config_path = Path(args.config_filename).absolute()
+    task_ctrl = load_task_ctrls(config_path)[0]
 
     bsub_dir = Path('bsub_scripts')
     bsub_dir.mkdir(exist_ok=True)
 
-    config_path = Path(args.config_filename).absolute()
-    logger.debug(config_path)
+    task_ctrl.finalize()
 
-    task_ctrl = config.gen_task_ctrl()
-
-    if not task_ctrl.finalized:
-        task_ctrl.finalize()
-
-    submitter = TaskSubmitter(bsub_dir, config_path, task_ctrl, config.BSUB_KWARGS)
+    submitter = TaskSubmitter(bsub_dir, config_path, task_ctrl, bsub_kwargs)
 
     tasks_to_submit = []
     for task in task_ctrl.sorted_tasks:
