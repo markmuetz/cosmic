@@ -11,7 +11,7 @@ from cosmic.util import sysrun
 import cosmic.processing.bsub_task_run as bsub_task_run
 
 from remake.setup_logging import add_file_logging
-from remake.util import load_task_ctrls
+from remake.task_control import load_task_ctrls
 
 BSUB_SCRIPT_TPL = """#!/bin/bash
 #BSUB -J {job_name}
