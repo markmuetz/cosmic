@@ -7,7 +7,7 @@ import logging
 import subprocess as sp
 from pathlib import Path
 
-from cosmic.util import load_module, sysrun
+from cosmic.util import sysrun
 import cosmic.processing.bsub_task_run as bsub_task_run
 
 from remake.setup_logging import add_file_logging
