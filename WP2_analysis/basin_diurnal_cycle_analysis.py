@@ -14,11 +14,10 @@ import cosmic.WP2.diurnal_cycle_analysis as dca
 from basmati.hydrosheds import load_hydrobasins_geodataframe
 from remake import Task, TaskControl, remake_task_control
 from cosmic.fourier_series import FourierSeries
-from cosmic.util import load_cmap_data, circular_rmse, rmse
+from cosmic.util import load_cmap_data, circular_rmse, rmse, get_extent_from_cube
 from basmati.utils import build_raster_cube_from_cube
 
 from cosmic.config import PATHS
-from util import get_extent_from_cube
 
 SCALES = {
     'small': (2_000, 20_000),

@@ -1,2 +1,3 @@
 task_demo*.out
 .remake/
+.cache_mask.*
