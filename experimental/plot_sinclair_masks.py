@@ -1,4 +1,7 @@
 # coding: utf-8
+import matplotlib
+matplotlib.use('agg')
+
 import iris
 from iris import plot as iplt
 import matplotlib as mpl
@@ -7,10 +10,12 @@ import numpy as np
 
 from remake import Task, TaskControl, remake_task_control
 from cosmic.config import PATHS
-from cosmic.util import filepath_regrid
+from cosmic.util import regrid
 
-BASEDIR = '/home/markmuetz/mirrors/jasmin/gw_primavera/cache/bvanniere/' \
-          'primavera/Orographic_precipitation/ERA_interim_orographic_precipitation_daily'
+# BASEDIR = '/home/markmuetz/mirrors/jasmin/gw_primavera/cache/bvanniere/' \
+#           'primavera/Orographic_precipitation/ERA_interim_orographic_precipitation_daily'
+# BASEDIR = '/gws/nopw/j04/primavera1/cache/bvanniere/' \
+#           'primavera/Orographic_precipitation/ERA_interim_orographic_precipitation_daily'
 
 
 def plot_masks(inputs, outputs):
@@ -134,47 +139,49 @@ def plot_masks_combined(inputs, outputs, months):
 
 
 def regrid_to_N1280(inputs, outputs):
-    target_filepath = PATHS['datadir'] / 'u-al508/ap9.pp/precip_200501/al508a.p920050101.precip.nc'
+    target_filepath = PATHS['datadir'] / 'u-al508/ap9.pp/precip_200601/al508a.p920060101.precip.nc'
+    input_cube = iris.load_cube(str(inputs[0]))
+    target_cube = iris.load(str(target_filepath))[0][0]
 
-    coarse_cube = filepath_regrid(inputs[0], target_filepath)
-    iris.save(coarse_cube, str(outputs[0]), zlib=True)
+    regridded_cube = regrid(input_cube, target_cube)
+    iris.save(regridded_cube, str(outputs[0]), zlib=True)
 
 
 @remake_task_control
 def gen_task_ctrl():
     tc = TaskControl(__file__)
     tc.add(Task(plot_masks,
-                [f'{BASEDIR}/R_clim.nc'],
+                [PATHS['datadir'] / 'era_interim_orog_precip' / 'R_clim.nc'],
                 [PATHS['figsdir'] / 'experimental' / 'sinclair_orog_masks.png']))
     tc.add(Task(calc_extended_orog_mask,
-                [f'{BASEDIR}/R_clim.nc'],
-                [PATHS['figsdir'] / 'experimental' / 'extended_orog_mask.nc']))
+                [PATHS['datadir'] / 'era_interim_orog_precip' / 'R_clim.nc'],
+                [PATHS['datadir'] / 'experimental' / 'extended_orog_mask.nc']))
 
     tc.add(Task(calc_extended_orog_mask_JJA,
-                [f'{BASEDIR}/R_clim.nc'],
-                [PATHS['figsdir'] / 'experimental' / 'extended_orog_mask_JJA.nc']))
+                [PATHS['datadir'] / 'era_interim_orog_precip' / 'R_clim.nc'],
+                [PATHS['datadir'] / 'experimental' / 'extended_orog_mask_JJA.nc']))
 
     tc.add(Task(calc_JJA_clim,
-                [f'{BASEDIR}/R_clim.nc'],
-                [PATHS['figsdir'] / 'experimental' / 'R_clim_JJA.nc']))
+                [PATHS['datadir'] / 'era_interim_orog_precip' / 'R_clim.nc'],
+                [PATHS['datadir'] / 'experimental' / 'R_clim_JJA.nc']))
 
     tc.add(Task(plot_masks_combined,
-                [f'{BASEDIR}/R_clim.nc',
-                 PATHS['figsdir'] / 'experimental' / 'extended_orog_mask.nc'],
+                [PATHS['datadir'] / 'era_interim_orog_precip' / 'R_clim.nc',
+                 PATHS['datadir'] / 'experimental' / 'extended_orog_mask.nc'],
                 [PATHS['figsdir'] / 'experimental' / 'sinclair_orog_data_combined.png',
                  PATHS['figsdir'] / 'experimental' / 'sinclair_orog_masks_combined.png'],
                 func_args=(slice(None), )))
 
     tc.add(Task(plot_masks_combined,
-                [f'{BASEDIR}/R_clim.nc',
-                 PATHS['figsdir'] / 'experimental' / 'extended_orog_mask_JJA.nc'],
+                [PATHS['datadir'] / 'era_interim_orog_precip' / 'R_clim.nc',
+                 PATHS['datadir'] / 'experimental' / 'extended_orog_mask_JJA.nc'],
                 [PATHS['figsdir'] / 'experimental' / 'sinclair_orog_data_combined_JJA.png',
                  PATHS['figsdir'] / 'experimental' / 'sinclair_orog_masks_combined_JJA.png'],
                 func_args=(slice(5, 8), )))
 
     tc.add(Task(regrid_to_N1280,
-                [f'{BASEDIR}/R_clim.nc'],
-                [PATHS['figsdir'] / 'experimental' / 'R_clim.N1280.nc']))
+                [PATHS['datadir'] / 'era_interim_orog_precip' / 'R_clim.nc'],
+                [PATHS['datadir'] / 'experimental' / 'R_clim.N1280.nc']))
 
     return tc
 
