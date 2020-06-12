@@ -5,6 +5,9 @@ BASE_OUTPUT_DIRPATH = Path('/gws/nopw/j04/cosmic/mmuetz/data')
 LOWLEVEL_U = '0002'
 LOWLEVEL_V = '0003'
 
+SURF_U = '3209'
+SURF_V = '3210'
+
 LS_RAINFALL = 4203
 LS_SNOWFALL = 4204
 
@@ -16,6 +19,12 @@ AP8_LOWLEVEL_WIND = {
     'stashcodes': [LOWLEVEL_U, LOWLEVEL_V],
     'extra_elements': {},
     'output_name': 'lowlevel_wind',
+}
+
+AP9_SURF_WIND = {
+    'stashcodes': [SURF_U, SURF_V],
+    'extra_elements': {},
+    'output_name': 'surface_wind',
 }
 
 AP9_LS_RAIN_SNOW_ONLY = {
