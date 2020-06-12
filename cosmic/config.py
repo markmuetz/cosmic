@@ -7,18 +7,21 @@ import iris
 ALL_PATHS = {
     'mistakenot': {
         'datadir': Path('/home/markmuetz/mirrors/jasmin/gw_cosmic/mmuetz/data'),
+        'gcosmic': Path('/home/markmuetz/mirrors/jasmin/gw_cosmic'),
         'output_datadir': Path('/home/markmuetz/cosmic_WP2_analysis/data'),
         'hydrosheds_dir': Path('/home/markmuetz/HydroSHEDS'),
         'figsdir': Path('/home/markmuetz/cosmic_WP2_analysis/figs/mistakenot'),
     },
     'zerogravitas': {
         'datadir': Path('/home/markmuetz/mirrors/jasmin/gw_cosmic/mmuetz/data'),
+        'gcosmic': Path('/home/markmuetz/mirrors/jasmin/gw_cosmic'),
         'output_datadir': Path('/home/markmuetz/cosmic_WP2_analysis/data'),
         'hydrosheds_dir': Path('/home/markmuetz/HydroSHEDS'),
         'figsdir': Path('/home/markmuetz/cosmic_WP2_analysis/figs/zerogravitas'),
     },
     'jasmin': {
         'datadir': Path('/gws/nopw/j04/cosmic/mmuetz/data'),
+        'gcosmic': Path('/gws/nopw/j04/cosmic'),
         'output_datadir': Path('/gws/nopw/j04/cosmic/mmuetz/data/cosmic_WP2_analysis/new_data'),
         'hydrosheds_dir': Path('/gws/nopw/j04/cosmic/mmuetz/HydroSHEDS'),
         'figsdir': Path('/gws/nopw/j04/cosmic/mmuetz/data/cosmic_WP2_analysis/new_figs'),
