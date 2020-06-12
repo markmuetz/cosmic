@@ -348,6 +348,16 @@ class CalcLatLonDistanceMask:
         print(f'Completed in {timer() - start:.1f}s')
         return close_to_mask
 
+    def calc_close_to_mask_3d(self, mask: iris.cube.Cube) -> iris.cube.Cube:
+        start = timer()
+        close_to_mask = mask.copy()
+        for tindex in range(mask.shape[0]):
+            print(tindex)
+            close_to_mask.data[tindex] = self.calc_close_to_mask(mask[tindex]).data
+
+        print(f'Completed 3D in {timer() - start:.1f}s')
+        return close_to_mask
+
 
 def calc_latlon_distance(lat1, lat2, lon1, lon2):
     """Accurate lat lon distance in km.

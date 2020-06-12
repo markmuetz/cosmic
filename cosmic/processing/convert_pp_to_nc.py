@@ -24,7 +24,7 @@ MONTH_MAP = {
     'dec': 12,
 }
 
-logging.basicConfig(stream=sys.stdout, level=os.getenv('COSMIC_LOGLEVEL', 'INFO'), 
+logging.basicConfig(stream=sys.stdout, level=os.getenv('COSMIC_LOGLEVEL', 'INFO'),
                     format='%(asctime)s %(levelname)8s: %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ def convert_pp_to_nc(pp_filepath, nc_filepath, attrs={}):
         for cube in pp:
             cube.attributes.update(attrs)
 
-    iris.save(pp, str(nc_filepath))
+    iris.save(pp, str(nc_filepath), zlib=True)
     end = timer()
     logger.info(f'  converted in: {end - start:.02f}s')
 
