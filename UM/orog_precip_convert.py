@@ -17,7 +17,12 @@ def convert_wrapper(inputs, outputs):
 @remake_task_control
 def gen_task_ctrl():
     tc = TaskControl(__file__)
-    pp_files = list((PATHS['datadir'] / 'u-al508' / 'ap8.pp' / 'lowlevel_wind_200901').glob('al508a.p8200901??.pp'))
+    # pp_files = list((PATHS['datadir'] / 'u-al508' / 'ap8.pp' / 'lowlevel_wind_200901').glob('al508a.p8200901??.pp'))
+    # for pp_file in pp_files:
+    #     tc.add(Task(convert_wrapper, [pp_file], [pp_file.with_suffix('.nc')]))
+
+    pp_files = list((PATHS['datadir'] / 'u-al508' / 'ap9.pp')
+                    .glob('surface_wind_2006??/al508a.p9????????.pp'))
     for pp_file in pp_files:
         tc.add(Task(convert_wrapper, [pp_file], [pp_file.with_suffix('.nc')]))
     return tc
