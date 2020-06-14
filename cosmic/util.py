@@ -283,39 +283,51 @@ class CalcLatLonDistanceMask:
     once for each latitude. Caches this result in memory, and rolls this as necessary based
     on the longitude to produce the given mask for a lat/lon index.
     Also, caches the result to a file for quicker subsequent use."""
+
+    @staticmethod
+    def gen_cache_mask(Lat, Lon, dist_thresh):
+        cache_mask = np.zeros((Lat.shape[0], Lat.shape[0], Lat.shape[1]), dtype=bool)
+        R = 6371.  # Earth radius in km.
+        # Convert to radians.
+        phi2, theta2 = [np.pi / 180 * v for v in (Lat, Lon)]
+        for ilat, lat in enumerate(Lat[:, 0]):
+            print(ilat)
+            phi1 = np.pi / 180 * lat
+            theta1 = np.pi / 180 * Lon[0, Lon.shape[1] // 2]
+            # Accurate great-circle distance:
+            # https://en.wikipedia.org/wiki/Great-circle_distance#Formulae
+            cache_mask[ilat] = (R * np.arccos(np.cos(phi1) * np.cos(phi2) * np.cos(theta2 - theta1) +
+                                              np.sin(phi1) * np.sin(phi2))) < dist_thresh
+        return cache_mask
+
+    @staticmethod
+    def save_cache_mask(cache_key, cache_mask):
+        np.save(cache_key, cache_mask)
+
     def __init__(self, Lat: np.ndarray, Lon: np.ndarray,
-                 dist_thresh: int = 100, circular_lon: bool = True, cache_dir: str = '.'):
+                 dist_thresh: int = 100, circular_lon: bool = True, cache_key: str = None):
         self.Lat = Lat
         self.Lon = Lon
         self.dist_thresh = dist_thresh
         self.circular_lon = circular_lon
+        cache_key = Path(cache_key)
 
-        # Calculate a cache key based on the hash of all the arguments.
-        sha1hash = sha1()
-        sha1hash.update(Lat.tobytes())
-        sha1hash.update(Lon.tobytes())
-        sha1hash.update(bytes(dist_thresh.to_bytes(8, byteorder='big')))
-        sha1hash.update(bytes([circular_lon]))
-        cache_key = Path(cache_dir) / Path(f'.cache_mask.{sha1hash.hexdigest()}.npy')
+        if not cache_key:
+            # Calculate a unique cache key based on the hash of all the arguments.
+            sha1hash = sha1()
+            sha1hash.update(Lat.tobytes())
+            sha1hash.update(Lon.tobytes())
+            sha1hash.update(bytes(dist_thresh.to_bytes(8, byteorder='big')))
+            sha1hash.update(bytes([circular_lon]))
+            cache_key = Path(f'.cache_mask.{sha1hash.hexdigest()}.npy')
 
         if cache_key.exists():
             print(f'loading cache_mask from file {cache_key}')
             self.cache_mask = np.load(cache_key)
         else:
             print(f'generating cache_mask and saving to {cache_key}')
-            self.cache_mask = np.zeros((Lat.shape[0], Lat.shape[0], Lat.shape[1]), dtype=bool)
-            R = 6371.  # Earth radius in km.
-            # Convert to radians.
-            phi2, theta2 = [np.pi / 180 * v for v in (Lat, Lon)]
-            for ilat, lat in enumerate(Lat[:, 0]):
-                print(ilat)
-                phi1 = np.pi / 180 * lat
-                theta1 = np.pi / 180 * Lon[0, Lon.shape[1] // 2]
-                # Accurate great-circle distance:
-                # https://en.wikipedia.org/wiki/Great-circle_distance#Formulae
-                self.cache_mask[ilat] = (R * np.arccos(np.cos(phi1) * np.cos(phi2) * np.cos(theta2 - theta1) +
-                                                       np.sin(phi1) * np.sin(phi2))) < dist_thresh
-            np.save(cache_key, self.cache_mask)
+            self.cache_mask = CalcLatLonDistanceMask.gen_cache_mask(Lat, Lon, dist_thresh)
+            CalcLatLonDistanceMask.save_cache_mask(cache_key, self.cache_mask)
 
     def calc_mask(self, ilat, ilon):
         # TODO: the + 1 means that this method exactly matches fn calc_close_to_mask
