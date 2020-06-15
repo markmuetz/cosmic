@@ -14,7 +14,7 @@ def plot_mean_orog_precip(inputs, outputs):
     orog_precip_cubes = iris.load([str(p) for p in inputs]).concatenate()
     orog_precip = orog_precip_cubes.extract_strict('orog_precipitation_flux')
     nonorog_precip = orog_precip_cubes.extract_strict('non_orog_precipitation_flux')
-    ocean_precip = orog_precip_cubes.extract_strict('oceang_precipitation_flux')
+    ocean_precip = orog_precip_cubes.extract_strict('ocean_precipitation_flux')
 
     assert orog_precip.units == 'kg m-2 s-1'
     assert nonorog_precip.units == 'kg m-2 s-1'

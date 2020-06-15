@@ -25,7 +25,7 @@ def calc_orog_precip(inputs, outputs, index_month):
     nonorog_precip_asia = precip_asia_mean_coarse.copy()
     nonorog_precip_asia.rename('non_orog_' + precip_asia_mean_coarse.name())
     ocean_precip_asia = precip_asia_mean_coarse.copy()
-    ocean_precip_asia.rename('oceang_' + precip_asia_mean_coarse.name())
+    ocean_precip_asia.rename('ocean_' + precip_asia_mean_coarse.name())
 
     orog_precip_asia.data = (precip_asia_mean_coarse.data *
                              lsm_asia_coarse.data *
