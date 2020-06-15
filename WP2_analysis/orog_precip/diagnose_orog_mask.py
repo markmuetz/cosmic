@@ -55,7 +55,7 @@ def gen_task_ctrl():
             'land_sea_mask': land_sea_mask,
             'precip': precip_path
         }
-        diag_orog_precip_path = diag_orog_precip_path_tpl.format(year=year, month=month)
+        diag_orog_precip_path = fmtp(diag_orog_precip_path_tpl, year=year, month=month)
         tc.add(Task(calc_orog_precip,
                     orog_precip_inputs,
                     [diag_orog_precip_path],
