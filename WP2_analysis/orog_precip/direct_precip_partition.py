@@ -1,13 +1,11 @@
-import sys
-
 import iris
-import iris.quickplot as qplt
-import matplotlib.pyplot as plt
 import numpy as np
 
 from remake import Task, TaskControl, remake_task_control
 from cosmic import util
-from cosmic.config import CONSTRAINT_ASIA, PATHS
+from cosmic.config import CONSTRAINT_ASIA
+from orog_precip_paths import (orog_path, land_sea_mask, cache_key_tpl, surf_wind_path_tpl,
+                               orog_mask_path_tpl, precip_path_tpl, orog_precip_path_tpl, fmtp)
 
 
 def gen_dist_cache(inputs, outputs, dist_thresh):
@@ -92,42 +90,32 @@ def calc_orog_precip(inputs, outputs):
 @remake_task_control
 def gen_task_ctrl():
     tc = TaskControl(__file__)
-    orog_path = PATHS['gcosmic'] / 'share' / 'ancils' / 'N1280' / 'qrparm.orog'
-    land_sea_mask = PATHS['gcosmic'] / 'share' / 'ancils' / 'N1280' / 'qrparm.landfrac'
     dotprod_thresh = 0.1
     dist_thresh = 100
+    cache_key = fmtp(cache_key_tpl, dist_thresh=dist_thresh)
 
-    cache_key = (PATHS['datadir'] / 'orog_precip' / 'experiments' / 'cache' /
-                  f'cache_mask.N1280.dist_{dist_thresh}.circ_True.npy')
     tc.add(Task(gen_dist_cache,
                 {'orog': orog_path},
                 [cache_key],
                 func_args=(dist_thresh, )))
     year = 2006
     for month in [6, 7, 8]:
-        surf_wind_path = (PATHS['datadir'] / 'u-al508' / 'ap9.pp' /
-                          f'surface_wind_{year}{month:02}' /
-                          f'al508a.p9{year}{month:02}.asia.nc')
+        surf_wind_path = fmtp(surf_wind_path_tpl, year=year, month=month)
+        orog_mask_path = fmtp(orog_mask_path_tpl, year=year, month=month,
+                              dotprod_thresh=dotprod_thresh, dist_thresh=dist_thresh)
         inputs = {'orog': orog_path, 'cache_key': cache_key, 'surf_wind': surf_wind_path}
 
-        orog_mask_path = (PATHS['datadir'] / 'orog_precip' / 'experiments' /
-                          f'u-al508_direct_orog_mask.dp_{dotprod_thresh}' \
-                          f'.dist_{dist_thresh}.{year}{month:02}.asia.nc')
         tc.add(Task(gen_orog_mask, inputs, [orog_mask_path],
                     func_args=(dotprod_thresh, dist_thresh)))
 
-        # al508a.p9200606.asia_precip.nc
-        precip_path = (PATHS['datadir'] / 'u-al508' / 'ap9.pp' /
-                       f'precip_{year}{month:02}' /
-                       f'al508a.p9{year}{month:02}.asia_precip.nc')
+        precip_path = fmtp(precip_path_tpl, year=year, month=month)
+        orog_precip_path = fmtp(orog_precip_path_tpl, year=year, month=month,
+                                dotprod_thresh=dotprod_thresh, dist_thresh=dist_thresh)
         orog_precip_inputs = {
             'orog_mask': orog_mask_path,
             'land_sea_mask': land_sea_mask,
             'precip': precip_path
         }
-        orog_precip_path = (PATHS['datadir'] / 'orog_precip' / 'experiments' /
-                            f'u-al508_direct_orog.dp_{dotprod_thresh}' \
-                            f'.dist_{dist_thresh}.{year}{month:02}.asia.nc')
         tc.add(Task(calc_orog_precip, orog_precip_inputs, [orog_precip_path]))
 
     return tc
