@@ -311,7 +311,6 @@ class CalcLatLonDistanceMask:
         self.Lon = Lon
         self.dist_thresh = dist_thresh
         self.circular_lon = circular_lon
-        cache_key = Path(cache_key)
 
         if not cache_key:
             # Calculate a unique cache key based on the hash of all the arguments.
@@ -321,6 +320,8 @@ class CalcLatLonDistanceMask:
             sha1hash.update(bytes(dist_thresh.to_bytes(8, byteorder='big')))
             sha1hash.update(bytes([circular_lon]))
             cache_key = Path(f'.cache_mask.{sha1hash.hexdigest()}.npy')
+        else:
+            cache_key = Path(cache_key)
 
         if cache_key.exists():
             print(f'loading cache_mask from file {cache_key}')
