@@ -22,7 +22,7 @@ precip_path_tpl = (PATHS['datadir'] / 'u-al508' / 'ap9.pp' /
 orog_precip_path_tpl = (PATHS['datadir'] / 'orog_precip' / 'experiments' /
                         'u-al508_direct_orog.dp_{dotprod_thresh}.dist_{dist_thresh}.{year}{month:02}.asia.nc')
 
-orog_precip_fig_tpl = (PATHS['datadir'] / 'orog_precip' / 'experiments' / 'figs' /
+orog_precip_fig_tpl = (PATHS['figsdir'] / 'orog_precip' / 'experiments' /
                        'u-al508_direct_orog.dp_{dotprod_thresh}.dist_{dist_thresh}'
                        '.{year}{season}.asia.{precip_type}.png')
 
@@ -31,9 +31,8 @@ extended_rclim_mask = PATHS['datadir'] / 'experimental' / 'extended_orog_mask.nc
 diag_orog_precip_path_tpl = (PATHS['datadir'] / 'orog_precip' / 'experiments' /
                              'u-al508_diagnose_orog.mean.{year}{month:02}.asia.nc')
 
-diag_orog_precip_fig_tpl = (PATHS['datadir'] / 'orog_precip' / 'experiments' / 'figs' /
+diag_orog_precip_fig_tpl = (PATHS['figsdir'] / 'orog_precip' / 'experiments' /
                             'u-al508_diagnose_orog.{year}{season}.asia.{precip_type}.png')
-
 
 
 def fmtp(path: Path, *args, **kwargs) -> Path:
