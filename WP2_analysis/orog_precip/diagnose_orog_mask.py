@@ -33,8 +33,7 @@ def calc_orog_precip(inputs, outputs, index_month):
                                 lsm_asia_coarse.data *
                                 (1 - extended_rclim_mask[index_month].data))
     ocean_precip_asia.data = (precip_asia_mean_coarse.data *
-                              (1 - lsm_asia_coarse.data) *
-                              extended_rclim_mask[index_month].data)
+                              (1 - lsm_asia_coarse.data))
 
     iris.save(iris.cube.CubeList([orog_precip_asia,
                                   nonorog_precip_asia,
