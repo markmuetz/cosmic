@@ -1,11 +1,13 @@
 import sys
 
+import cartopy.crs as ccrs
 import iris
 import iris.quickplot as qplt
 import matplotlib.pyplot as plt
 import numpy as np
 
 from cosmic import util
+from cosmic.util import configure_ax_asia
 from cosmic.config import CONSTRAINT_ASIA, PATHS
 
 
@@ -86,26 +88,31 @@ if __name__ == '__main__':
         plt.imshow(mask_asia_acc.data.astype(int) - mask_asia.data.astype(int), origin='lower')
 
     if sys.argv[1] == 'plot_masks':
-        fig, axes = plt.subplots(2, 5, sharex=True, sharey=True)
+        fig, axes = plt.subplots(2, 4, subplot_kw={'projection': ccrs.PlateCarree()})
         for axrow, dot, dot_thresh_asia in zip(axes,
                                                [dotplus, dotminus],
                                                [dotplus_thresh_asia, dotminus_thresh_asia]):
 
             extent = util.get_extent_from_cube(dot_thresh_asia)
-            ax0, ax1, ax2, ax3, ax4 = axrow
+            for ax in axrow:
+                configure_ax_asia(ax, tight_layout=False)
+            ax0, ax1, ax2, ax3 = axrow
             ax0.imshow(dot.extract(CONSTRAINT_ASIA).data, origin='lower', extent=extent)
             ax1.imshow(dot_thresh_asia.data, origin='lower', extent=extent)
-            for ax, dist in zip([ax2, ax3, ax4], [20, 50, 100]):
+            for ax, dist in zip([ax2, ax3], [50, 100]):
                 dist_asia = util.CalcLatLonDistanceMask(Lat_asia, Lon_asia, dist, False)
                 mask_asia = dist_asia.calc_close_to_mask(dot_thresh_asia)
                 ax.imshow(mask_asia.data, origin='lower', extent=extent)
 
-        axes[0, 0].set_title('(u, v) x $\\Delta$z')
-        axes[0, 1].set_title('mask on > 0.1')
-        axes[0, 2].set_title('expand by 20 km')
-        axes[0, 3].set_title('expand by 50 km')
-        axes[0, 4].set_title('expand by 100 km')
+        axes[0, 0].set_title('(u, v) x $\\nabla$z')
+        axes[0, 1].set_title('mask on > 0.1 (m s$^{-1}$)')
+        axes[0, 2].set_title('expand by 50 km')
+        axes[0, 3].set_title('expand by 100 km')
 
         axes[0, 0].set_ylabel('u, v = 5 m s$^{-1}$')
         axes[1, 0].set_ylabel('u, v = -5 m s$^{-1}$')
+        for ax in axes[0, :].flatten():
+            ax.get_xaxis().set_ticks([])
+        for ax in axes[:, 1:].flatten():
+            ax.get_yaxis().set_ticks([])
 
