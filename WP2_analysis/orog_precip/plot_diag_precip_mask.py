@@ -6,15 +6,15 @@ import matplotlib.pyplot as plt
 from cosmic import util
 from cosmic.util import configure_ax_asia
 from remake import Task, TaskControl, remake_task_control, remake_required
-from orog_precip_paths import (orog_precip_path_tpl, orog_precip_fig_tpl, fmtp)
+from orog_precip_paths import (diag_orog_precip_path_tpl, diag_orog_precip_fig_tpl, fmtp)
 
 
 @remake_required(depends_on=[configure_ax_asia])
 def plot_mean_orog_precip(inputs, outputs):
     orog_precip_cubes = iris.load([str(p) for p in inputs]).concatenate()
-    orog_precip = orog_precip_cubes.extract_strict('orog precipitation_flux')
-    nonorog_precip = orog_precip_cubes.extract_strict('non orog precipitation_flux')
-    ocean_precip = orog_precip_cubes.extract_strict('ocean precipitation_flux')
+    orog_precip = orog_precip_cubes.extract_strict('orog_precipitation_flux')
+    nonorog_precip = orog_precip_cubes.extract_strict('non_orog_precipitation_flux')
+    ocean_precip = orog_precip_cubes.extract_strict('oceang_precipitation_flux')
 
     assert orog_precip.units == 'kg m-2 s-1'
     assert nonorog_precip.units == 'kg m-2 s-1'
@@ -48,19 +48,14 @@ def plot_mean_orog_precip(inputs, outputs):
 def gen_task_ctrl():
     tc = TaskControl(__file__)
 
-    dotprod_thresh = 0.1
-    dist_thresh = 100
-
     year = 2006
-    orog_precip_paths = [fmtp(orog_precip_path_tpl, year=year, month=month,
-                              dotprod_thresh=dotprod_thresh, dist_thresh=dist_thresh)
-                         for month in [6, 7, 8]]
+    diag_orog_precip_paths = [fmtp(diag_orog_precip_path_tpl, year=year, month=month)
+                              for month in [6, 7, 8]]
 
-    orog_precip_figs = [fmtp(orog_precip_fig_tpl, year=year, season='jja',
-                             dotprod_thresh=dotprod_thresh, dist_thresh=dist_thresh,
-                             precip_type=precip_type)
-                        for precip_type in ['orog', 'non_orog', 'ocean', 'orog_frac']]
-    tc.add(Task(plot_mean_orog_precip, orog_precip_paths, orog_precip_figs))
+    diag_orog_precip_figs = [fmtp(diag_orog_precip_fig_tpl, year=year, season='jja',
+                                  precip_type=precip_type)
+                             for precip_type in ['orog', 'non_orog', 'ocean', 'orog_frac']]
+    tc.add(Task(plot_mean_orog_precip, diag_orog_precip_paths, diag_orog_precip_figs))
 
     return tc
 

@@ -8,6 +8,7 @@ import numpy as np
 from remake import Task, TaskControl, remake_task_control
 from cosmic import util
 from cosmic.config import CONSTRAINT_ASIA, PATHS
+from orog_precip_paths import land_sea_mask, extended_rclim_mask, precip_path_tpl, diag_orog_precip_path_tpl, fmtp
 
 
 def calc_orog_precip(inputs, outputs, index_month):
@@ -44,26 +45,21 @@ def calc_orog_precip(inputs, outputs, index_month):
 @remake_task_control
 def gen_task_ctrl():
     tc = TaskControl(__file__)
-    land_sea_mask = PATHS['gcosmic'] / 'share' / 'ancils' / 'N1280' / 'qrparm.landfrac'
-    extended_rclim_mask = PATHS['datadir'] / 'experimental' / 'extended_orog_mask.nc'
     # /gws/nopw/j04/cosmic/mmuetz/data/era_interim_orog_precip
 
     year = 2006
     for month in [6, 7, 8]:
         # al508a.p9200606.asia_precip.nc
-        precip_path = (PATHS['datadir'] / 'u-al508' / 'ap9.pp' /
-                       f'precip_{year}{month:02}' /
-                       f'al508a.p9{year}{month:02}.asia_precip.nc')
+        precip_path = fmtp(precip_path_tpl, year=year, month=month)
         orog_precip_inputs = {
             'extended_rclim_mask': extended_rclim_mask,
             'land_sea_mask': land_sea_mask,
             'precip': precip_path
         }
-        orog_precip_path = (PATHS['datadir'] / 'orog_precip' / 'experiments' /
-                            f'u-al508_diagnose_orog.mean.{year}{month:02}.asia.nc')
+        diag_orog_precip_path = diag_orog_precip_path_tpl.format(year=year, month=month)
         tc.add(Task(calc_orog_precip,
                     orog_precip_inputs,
-                    [orog_precip_path],
+                    [diag_orog_precip_path],
                     func_args=(month - 1, )))
 
     return tc
