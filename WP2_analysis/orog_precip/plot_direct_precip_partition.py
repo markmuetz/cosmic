@@ -1,3 +1,4 @@
+import headless_matplotlib  # uses 'agg' backend if HEADLESS env var set.
 import cartopy.crs as ccrs
 import iris
 import matplotlib as mpl
@@ -48,19 +49,19 @@ def plot_mean_orog_precip(inputs, outputs):
 def gen_task_ctrl():
     tc = TaskControl(__file__)
 
-    dotprod_thresh = 0.1
-    dist_thresh = 100
+    for dotprod_thresh in [0.01, 0.1]:
+        dist_thresh = 100
 
-    year = 2006
-    orog_precip_paths = [fmtp(orog_precip_path_tpl, year=year, month=month,
-                              dotprod_thresh=dotprod_thresh, dist_thresh=dist_thresh)
-                         for month in [6, 7, 8]]
+        year = 2006
+        orog_precip_paths = [fmtp(orog_precip_path_tpl, year=year, month=month,
+                                  dotprod_thresh=dotprod_thresh, dist_thresh=dist_thresh)
+                             for month in [6, 7, 8]]
 
-    orog_precip_figs = [fmtp(orog_precip_fig_tpl, year=year, season='jja',
-                             dotprod_thresh=dotprod_thresh, dist_thresh=dist_thresh,
-                             precip_type=precip_type)
-                        for precip_type in ['orog', 'non_orog', 'ocean', 'orog_frac']]
-    tc.add(Task(plot_mean_orog_precip, orog_precip_paths, orog_precip_figs))
+        orog_precip_figs = [fmtp(orog_precip_fig_tpl, year=year, season='jja',
+                                 dotprod_thresh=dotprod_thresh, dist_thresh=dist_thresh,
+                                 precip_type=precip_type)
+                            for precip_type in ['orog', 'non_orog', 'ocean', 'orog_frac']]
+        tc.add(Task(plot_mean_orog_precip, orog_precip_paths, orog_precip_figs))
 
     return tc
 

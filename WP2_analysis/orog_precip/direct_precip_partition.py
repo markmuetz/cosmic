@@ -90,7 +90,6 @@ def calc_orog_precip(inputs, outputs):
 @remake_task_control
 def gen_task_ctrl():
     tc = TaskControl(__file__)
-    dotprod_thresh = 0.1
     dist_thresh = 100
     cache_key = fmtp(cache_key_tpl, dist_thresh=dist_thresh)
 
@@ -98,24 +97,25 @@ def gen_task_ctrl():
                 {'orog': orog_path},
                 [cache_key],
                 func_args=(dist_thresh, )))
-    year = 2006
-    for month in [6, 7, 8]:
-        surf_wind_path = fmtp(surf_wind_path_tpl, year=year, month=month)
-        orog_mask_path = fmtp(orog_mask_path_tpl, year=year, month=month,
-                              dotprod_thresh=dotprod_thresh, dist_thresh=dist_thresh)
-        inputs = {'orog': orog_path, 'cache_key': cache_key, 'surf_wind': surf_wind_path}
+    for dotprod_thresh in [0.01, 0.1]:
+        year = 2006
+        for month in [6, 7, 8]:
+            surf_wind_path = fmtp(surf_wind_path_tpl, year=year, month=month)
+            orog_mask_path = fmtp(orog_mask_path_tpl, year=year, month=month,
+                                  dotprod_thresh=dotprod_thresh, dist_thresh=dist_thresh)
+            inputs = {'orog': orog_path, 'cache_key': cache_key, 'surf_wind': surf_wind_path}
 
-        tc.add(Task(gen_orog_mask, inputs, [orog_mask_path],
-                    func_args=(dotprod_thresh, dist_thresh)))
+            tc.add(Task(gen_orog_mask, inputs, [orog_mask_path],
+                        func_args=(dotprod_thresh, dist_thresh)))
 
-        precip_path = fmtp(precip_path_tpl, year=year, month=month)
-        orog_precip_path = fmtp(orog_precip_path_tpl, year=year, month=month,
-                                dotprod_thresh=dotprod_thresh, dist_thresh=dist_thresh)
-        orog_precip_inputs = {
-            'orog_mask': orog_mask_path,
-            'land_sea_mask': land_sea_mask,
-            'precip': precip_path
-        }
-        tc.add(Task(calc_orog_precip, orog_precip_inputs, [orog_precip_path]))
+            precip_path = fmtp(precip_path_tpl, year=year, month=month)
+            orog_precip_path = fmtp(orog_precip_path_tpl, year=year, month=month,
+                                    dotprod_thresh=dotprod_thresh, dist_thresh=dist_thresh)
+            orog_precip_inputs = {
+                'orog_mask': orog_mask_path,
+                'land_sea_mask': land_sea_mask,
+                'precip': precip_path
+            }
+            tc.add(Task(calc_orog_precip, orog_precip_inputs, [orog_precip_path]))
 
     return tc
