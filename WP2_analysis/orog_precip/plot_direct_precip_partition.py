@@ -1,3 +1,5 @@
+from itertools import product
+
 import headless_matplotlib  # uses 'agg' backend if HEADLESS env var set.
 import cartopy.crs as ccrs
 import iris
@@ -5,7 +7,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from cosmic import util
-from cosmic.util import configure_ax_asia
+from cosmic.plotting_util import configure_ax_asia
 from remake import Task, TaskControl, remake_task_control, remake_required
 from orog_precip_paths import (orog_precip_path_tpl, orog_precip_fig_tpl, fmtp)
 
@@ -32,7 +34,8 @@ def plot_mean_orog_precip(inputs, outputs):
         plt.figure(figsize=(10, 7.5))
         ax = plt.axes(projection=ccrs.PlateCarree())
         configure_ax_asia(ax)
-        im = ax.imshow(precip, origin='lower', extent=extent, norm=mpl.colors.LogNorm())
+        im = ax.imshow(precip, origin='lower', extent=extent, norm=mpl.colors.LogNorm(),
+                       vmin=1e-2, vmax=1e2)
         plt.colorbar(im, orientation='horizontal', label=f'{name} (mm day$^{{-1}}$)', pad=0.1)
         plt.savefig(outputs[i])
 
@@ -48,10 +51,10 @@ def plot_mean_orog_precip(inputs, outputs):
 @remake_task_control
 def gen_task_ctrl():
     tc = TaskControl(__file__)
+    dotprod_threshs = [0.05, 0.1]
+    dist_threshs = [20, 100]
 
-    for dotprod_thresh in [0.01, 0.1]:
-        dist_thresh = 100
-
+    for dotprod_thresh, dist_thresh in product(dotprod_threshs, dist_threshs):
         year = 2006
         orog_precip_paths = [fmtp(orog_precip_path_tpl, year=year, month=month,
                                   dotprod_thresh=dotprod_thresh, dist_thresh=dist_thresh)
