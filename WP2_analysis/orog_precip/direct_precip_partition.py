@@ -1,3 +1,5 @@
+from itertools import product
+
 import iris
 import numpy as np
 
@@ -90,14 +92,18 @@ def calc_orog_precip(inputs, outputs):
 @remake_task_control
 def gen_task_ctrl():
     tc = TaskControl(__file__)
-    dist_thresh = 100
-    cache_key = fmtp(cache_key_tpl, dist_thresh=dist_thresh)
 
-    tc.add(Task(gen_dist_cache,
-                {'orog': orog_path},
-                [cache_key],
-                func_args=(dist_thresh, )))
-    for dotprod_thresh in [0.01, 0.1]:
+    dist_threshs = [20, 100]
+    for dist_thresh in dist_threshs:
+        cache_key = fmtp(cache_key_tpl, dist_thresh=dist_thresh)
+        tc.add(Task(gen_dist_cache,
+                    {'orog': orog_path},
+                    [cache_key],
+                    func_args=(dist_thresh, )))
+
+    dotprod_threshs = [0.05, 0.1]
+    for dotprod_thresh, dist_thresh in product(dotprod_threshs, dist_threshs):
+        cache_key = fmtp(cache_key_tpl, dist_thresh=dist_thresh)
         year = 2006
         for month in [6, 7, 8]:
             surf_wind_path = fmtp(surf_wind_path_tpl, year=year, month=month)
