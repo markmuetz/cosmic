@@ -52,13 +52,16 @@ def gen_task_ctrl():
     tc = TaskControl(__file__)
 
     year = 2006
-    diag_orog_precip_paths = [fmtp(diag_orog_precip_path_tpl, year=year, month=month)
-                              for month in [6, 7, 8]]
+    models = ['al508', 'ak543']
 
-    diag_orog_precip_figs = [fmtp(diag_orog_precip_fig_tpl, year=year, season='jja',
-                                  precip_type=precip_type)
-                             for precip_type in ['orog', 'non_orog', 'ocean', 'orog_frac']]
-    tc.add(Task(plot_mean_orog_precip, diag_orog_precip_paths, diag_orog_precip_figs))
+    for model in models:
+        diag_orog_precip_paths = [fmtp(diag_orog_precip_path_tpl, model=model, year=year, month=month)
+                                  for month in [6, 7, 8]]
+
+        diag_orog_precip_figs = [fmtp(diag_orog_precip_fig_tpl, model=model, year=year, season='jja',
+                                      precip_type=precip_type)
+                                 for precip_type in ['orog', 'non_orog', 'ocean', 'orog_frac']]
+        tc.add(Task(plot_mean_orog_precip, diag_orog_precip_paths, diag_orog_precip_figs))
 
     return tc
 

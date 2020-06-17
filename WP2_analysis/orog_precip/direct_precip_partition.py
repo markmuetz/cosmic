@@ -93,7 +93,12 @@ def calc_orog_precip(inputs, outputs):
 def gen_task_ctrl():
     tc = TaskControl(__file__)
 
-    dist_threshs = [20, 100]
+    models = ['al508', 'ak543']
+    dist_threshs = [50]
+    dotprod_threshs = [0.05]
+    # dist_threshs = [20, 100]
+    # dotprod_threshs = [0.05, 0.1]
+
     for dist_thresh in dist_threshs:
         cache_key = fmtp(cache_key_tpl, dist_thresh=dist_thresh)
         tc.add(Task(gen_dist_cache,
@@ -101,21 +106,20 @@ def gen_task_ctrl():
                     [cache_key],
                     func_args=(dist_thresh, )))
 
-    dotprod_threshs = [0.05, 0.1]
-    for dotprod_thresh, dist_thresh in product(dotprod_threshs, dist_threshs):
+    for model, dotprod_thresh, dist_thresh in product(models, dotprod_threshs, dist_threshs):
         cache_key = fmtp(cache_key_tpl, dist_thresh=dist_thresh)
         year = 2006
         for month in [6, 7, 8]:
-            surf_wind_path = fmtp(surf_wind_path_tpl, year=year, month=month)
-            orog_mask_path = fmtp(orog_mask_path_tpl, year=year, month=month,
+            surf_wind_path = fmtp(surf_wind_path_tpl, model=model, year=year, month=month)
+            orog_mask_path = fmtp(orog_mask_path_tpl, model=model, year=year, month=month,
                                   dotprod_thresh=dotprod_thresh, dist_thresh=dist_thresh)
             inputs = {'orog': orog_path, 'cache_key': cache_key, 'surf_wind': surf_wind_path}
 
             tc.add(Task(gen_orog_mask, inputs, [orog_mask_path],
                         func_args=(dotprod_thresh, dist_thresh)))
 
-            precip_path = fmtp(precip_path_tpl, year=year, month=month)
-            orog_precip_path = fmtp(orog_precip_path_tpl, year=year, month=month,
+            precip_path = fmtp(precip_path_tpl, model=model, year=year, month=month)
+            orog_precip_path = fmtp(orog_precip_path_tpl, model=model, year=year, month=month,
                                     dotprod_thresh=dotprod_thresh, dist_thresh=dist_thresh)
             orog_precip_inputs = {
                 'orog_mask': orog_mask_path,

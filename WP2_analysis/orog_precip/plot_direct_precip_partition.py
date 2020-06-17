@@ -51,16 +51,19 @@ def plot_mean_orog_precip(inputs, outputs):
 @remake_task_control
 def gen_task_ctrl():
     tc = TaskControl(__file__)
-    dotprod_threshs = [0.05, 0.1]
-    dist_threshs = [20, 100]
+    models = ['al508', 'ak543']
+    dist_threshs = [50]
+    dotprod_threshs = [0.05]
+    # dist_threshs = [20, 100]
+    # dotprod_threshs = [0.05, 0.1]
 
-    for dotprod_thresh, dist_thresh in product(dotprod_threshs, dist_threshs):
+    for model, dotprod_thresh, dist_thresh in product(models, dotprod_threshs, dist_threshs):
         year = 2006
-        orog_precip_paths = [fmtp(orog_precip_path_tpl, year=year, month=month,
+        orog_precip_paths = [fmtp(orog_precip_path_tpl, model=model, year=year, month=month,
                                   dotprod_thresh=dotprod_thresh, dist_thresh=dist_thresh)
                              for month in [6, 7, 8]]
 
-        orog_precip_figs = [fmtp(orog_precip_fig_tpl, year=year, season='jja',
+        orog_precip_figs = [fmtp(orog_precip_fig_tpl, model=model, year=year, season='jja',
                                  dotprod_thresh=dotprod_thresh, dist_thresh=dist_thresh,
                                  precip_type=precip_type)
                             for precip_type in ['orog', 'non_orog', 'ocean', 'orog_frac']]

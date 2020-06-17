@@ -61,19 +61,17 @@ def regrid_extract_asia(inputs, outputs):
 @remake_task_control
 def gen_task_ctrl():
     tc = TaskControl(__file__)
-    # nc_files = sorted((PATHS['datadir'] / 'u-al508' / 'ap8.pp' / 'lowlevel_wind_200901').glob('al508a.p8200901??.nc'))
-    # outpath = PATHS['datadir'] / 'u-al508' / 'ap8.pp' / 'lowlevel_wind_200901' / 'al508a.p8200901.asia.nc'
-    # tc.add(Task(extract_asia, nc_files, [outpath]))
 
-    year = 2006
-    for month in [6, 7, 8]:
-        nc_files = [PATHS['gcosmic'] / 'share' / 'ancils' / 'N1280' / 'qrparm.orog']
-        nc_files.extend(sorted((PATHS['datadir'] / 'u-al508' / 'ap9.pp' /
-                                f'surface_wind_{year}{month:02}')
-                                .glob('al508a.p9????????.nc')))
-        outpath = (PATHS['datadir'] / 'u-al508' / 'ap9.pp' /
-                   f'surface_wind_{year}{month:02}' / f'al508a.p9{year}{month:02}.asia.nc')
-        tc.add(Task(regrid_extract_asia, nc_files, [outpath]))
+    for model in ['u-al508', 'u-ak543']:
+        year = 2006
+        for month in [6, 7, 8]:
+            nc_files = [PATHS['gcosmic'] / 'share' / 'ancils' / 'N1280' / 'qrparm.orog']
+            nc_files.extend(sorted((PATHS['datadir'] / model / 'ap9.pp' /
+                                    f'surface_wind_{year}{month:02}')
+                                    .glob(f'{model[2:]}a.p9????????.nc')))
+            outpath = (PATHS['datadir'] / model / 'ap9.pp' /
+                       f'surface_wind_{year}{month:02}' / f'{model[2:]}a.p9{year}{month:02}.asia.nc')
+            tc.add(Task(regrid_extract_asia, nc_files, [outpath]))
 
     return tc
 
