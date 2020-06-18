@@ -1,10 +1,12 @@
+import headless_matplotlib  # uses 'agg' backend if HEADLESS env var set.
+
 import cartopy.crs as ccrs
 import iris
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from cosmic import util
-from cosmic.util import configure_ax_asia
+from cosmic.plotting_util import configure_ax_asia
 from remake import Task, TaskControl, remake_task_control, remake_required
 from orog_precip_paths import (diag_orog_precip_path_tpl, diag_orog_precip_fig_tpl, fmtp)
 
@@ -31,7 +33,8 @@ def plot_mean_orog_precip(inputs, outputs):
         plt.figure(figsize=(10, 7.5))
         ax = plt.axes(projection=ccrs.PlateCarree())
         configure_ax_asia(ax)
-        im = ax.imshow(precip, origin='lower', extent=extent, norm=mpl.colors.LogNorm())
+        im = ax.imshow(precip, origin='lower', extent=extent, norm=mpl.colors.LogNorm(),
+                       vmin=1e-2, vmax=1e2)
         plt.colorbar(im, orientation='horizontal', label=f'{name} (mm day$^{{-1}}$)', pad=0.1)
         plt.savefig(outputs[i])
 
@@ -49,13 +52,16 @@ def gen_task_ctrl():
     tc = TaskControl(__file__)
 
     year = 2006
-    diag_orog_precip_paths = [fmtp(diag_orog_precip_path_tpl, year=year, month=month)
-                              for month in [6, 7, 8]]
+    models = ['al508', 'ak543']
 
-    diag_orog_precip_figs = [fmtp(diag_orog_precip_fig_tpl, year=year, season='jja',
-                                  precip_type=precip_type)
-                             for precip_type in ['orog', 'non_orog', 'ocean', 'orog_frac']]
-    tc.add(Task(plot_mean_orog_precip, diag_orog_precip_paths, diag_orog_precip_figs))
+    for model in models:
+        diag_orog_precip_paths = [fmtp(diag_orog_precip_path_tpl, model=model, year=year, month=month)
+                                  for month in [6, 7, 8]]
+
+        diag_orog_precip_figs = [fmtp(diag_orog_precip_fig_tpl, model=model, year=year, season='jja',
+                                      precip_type=precip_type)
+                                 for precip_type in ['orog', 'non_orog', 'ocean', 'orog_frac']]
+        tc.add(Task(plot_mean_orog_precip, diag_orog_precip_paths, diag_orog_precip_figs))
 
     return tc
 

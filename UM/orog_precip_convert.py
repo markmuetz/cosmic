@@ -23,6 +23,8 @@ def gen_task_ctrl():
 
     pp_files = list((PATHS['datadir'] / 'u-al508' / 'ap9.pp')
                     .glob('surface_wind_2006??/al508a.p9????????.pp'))
+    pp_files += list((PATHS['datadir'] / 'u-ak543' / 'ap9.pp')
+                     .glob('surface_wind_2006??/ak543a.p9????????.pp'))
     for pp_file in pp_files:
         tc.add(Task(convert_wrapper, [pp_file], [pp_file.with_suffix('.nc')]))
     return tc

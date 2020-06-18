@@ -1,4 +1,5 @@
 import sys
+from itertools import product
 
 import iris
 import iris.quickplot as qplt
@@ -47,15 +48,17 @@ def gen_task_ctrl():
     # /gws/nopw/j04/cosmic/mmuetz/data/era_interim_orog_precip
 
     year = 2006
-    for month in [6, 7, 8]:
+    models = ['al508', 'ak543']
+
+    for model, month in product(models, [6, 7, 8]):
         # al508a.p9200606.asia_precip.nc
-        precip_path = fmtp(precip_path_tpl, year=year, month=month)
+        precip_path = fmtp(precip_path_tpl, model=model, year=year, month=month)
         orog_precip_inputs = {
             'extended_rclim_mask': extended_rclim_mask,
             'land_sea_mask': land_sea_mask,
             'precip': precip_path
         }
-        diag_orog_precip_path = fmtp(diag_orog_precip_path_tpl, year=year, month=month)
+        diag_orog_precip_path = fmtp(diag_orog_precip_path_tpl, model=model, year=year, month=month)
         tc.add(Task(calc_orog_precip,
                     orog_precip_inputs,
                     [diag_orog_precip_path],
