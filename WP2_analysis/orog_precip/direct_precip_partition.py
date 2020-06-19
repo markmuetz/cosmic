@@ -2,12 +2,15 @@ from itertools import product
 
 import iris
 import numpy as np
+import pandas as pd
 
 from remake import Task, TaskControl, remake_task_control
 from cosmic import util
 from cosmic.config import CONSTRAINT_ASIA
 from orog_precip_paths import (orog_path, land_sea_mask, cache_key_tpl, surf_wind_path_tpl,
-                               orog_mask_path_tpl, precip_path_tpl, orog_precip_path_tpl, fmtp)
+                               orog_mask_path_tpl, precip_path_tpl, orog_precip_path_tpl,
+                               orog_precip_frac_path_tpl, combine_frac_path,
+                               fmtp)
 
 
 def gen_dist_cache(inputs, outputs, dist_thresh):
@@ -89,13 +92,53 @@ def calc_orog_precip(inputs, outputs):
                                   ocean_precip_asia]), str(outputs[0]))
 
 
+def calc_orog_precip_fracs(inputs, outputs):
+    lsm_asia = iris.load_cube(str(inputs['land_sea_mask']), CONSTRAINT_ASIA)
+
+    mask_asia = iris.load_cube(str(inputs['orog_mask']), f'expanded surf_wind x del orog > thresh')
+    orog_precip_asia_cubes = iris.load(str(inputs['orog_precip']))
+
+    orog_frac = (mask_asia.data.mean(axis=0) * lsm_asia.data).sum() / lsm_asia.data.sum()
+    non_orog_frac = ((1 - mask_asia.data.mean(axis=0)) * lsm_asia.data).sum() / lsm_asia.data.sum()
+
+    orog_precip = orog_precip_asia_cubes.extract_strict('orog_precipitation_flux')
+    non_orog_precip = orog_precip_asia_cubes.extract_strict('non_orog_precipitation_flux')
+    land_precip = orog_precip + non_orog_precip
+
+    orog_precip_frac = orog_precip.data.sum() / land_precip.data.sum()
+    non_orog_precip_frac = non_orog_precip.data.sum() / land_precip.data.sum()
+
+    # print(f'orog_frac,non_orog_frac: {orog_frac},{non_orog_frac}')
+    # print(f'orog_precip_frac,non_orog_precip_frac: {orog_precip_frac},{non_orog_precip_frac}')
+    df = pd.DataFrame({
+        'orog_frac': [orog_frac],
+        'non_orog_frac': [non_orog_frac],
+        'orog_precip_frac': [orog_precip_frac],
+        'non_orog_precip_frac': [non_orog_precip_frac],
+    })
+    df.to_hdf(str(outputs[0]), 'orog_fracs')
+
+
+def combine_orog_precip_fracs(inputs, outputs, variables, columns):
+    dfs = []
+    for input_path in inputs:
+        df = pd.read_hdf(str(input_path))
+        dfs.append(df)
+    df_combined = pd.concat(dfs, ignore_index=True)
+    df_combined['dataset'] = [str(p) for p in inputs]
+    df_combined = pd.concat([df_combined, pd.DataFrame(variables, columns=columns)], axis=1)
+    df_combined.to_hdf(str(outputs[0]), 'combined_orog_fracs')
+
+
 @remake_task_control
 def gen_task_ctrl():
     tc = TaskControl(__file__)
 
+    year = 2006
     models = ['al508', 'ak543']
-    dist_threshs = [50]
+    dist_threshs = [50, 100]
     dotprod_threshs = [0.05]
+    months = [6, 7, 8]
     # dist_threshs = [20, 100]
     # dotprod_threshs = [0.05, 0.1]
 
@@ -108,8 +151,7 @@ def gen_task_ctrl():
 
     for model, dotprod_thresh, dist_thresh in product(models, dotprod_threshs, dist_threshs):
         cache_key = fmtp(cache_key_tpl, dist_thresh=dist_thresh)
-        year = 2006
-        for month in [6, 7, 8]:
+        for month in months:
             surf_wind_path = fmtp(surf_wind_path_tpl, model=model, year=year, month=month)
             orog_mask_path = fmtp(orog_mask_path_tpl, model=model, year=year, month=month,
                                   dotprod_thresh=dotprod_thresh, dist_thresh=dist_thresh)
@@ -127,5 +169,29 @@ def gen_task_ctrl():
                 'precip': precip_path
             }
             tc.add(Task(calc_orog_precip, orog_precip_inputs, [orog_precip_path]))
+
+            orog_precip_frac_inputs = {
+                'orog_mask': orog_mask_path,
+                'land_sea_mask': land_sea_mask,
+                'orog_precip': orog_precip_path
+            }
+            orog_precip_frac_path = fmtp(orog_precip_frac_path_tpl, model=model, year=year, month=month,
+                                         dotprod_thresh=dotprod_thresh, dist_thresh=dist_thresh)
+
+            tc.add(Task(calc_orog_precip_fracs, orog_precip_frac_inputs, [orog_precip_frac_path]))
+
+    variables = list(product(models, dotprod_threshs, dist_threshs, months))
+    columns = ['model', 'dotprod_thresh', 'dist_thresh', 'month']
+    combine_inputs = [fmtp(orog_precip_frac_path_tpl, model=model, year=year, month=month,
+                      dotprod_thresh=dotprod_thresh, dist_thresh=dist_thresh)
+                      for model, dotprod_thresh, dist_thresh, month in variables]
+    combine_fracs_output = [combine_frac_path]
+    tc.add(Task(combine_orog_precip_fracs,
+                combine_inputs,
+                combine_fracs_output,
+                func_args=(variables, columns)
+               ))
+
+
 
     return tc

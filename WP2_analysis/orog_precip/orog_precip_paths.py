@@ -34,6 +34,12 @@ diag_orog_precip_path_tpl = (PATHS['datadir'] / 'orog_precip' / 'experiments' /
 diag_orog_precip_fig_tpl = (PATHS['figsdir'] / 'orog_precip' / 'experiments' /
                             'u-{model}_diagnose_orog.{year}{season}.asia.{precip_type}.png')
 
+orog_precip_frac_path_tpl = (PATHS['datadir'] / 'orog_precip' / 'experiments' /
+                             'u-{model}_direct_orog_fracs.dp_{dotprod_thresh}.dist_{dist_thresh}.{year}{month:02}.asia.hdf')
+
+combine_frac_path = (PATHS['datadir'] / 'orog_precip' / 'experiments' /
+                     'combine_fracs.asia.hdf')
+
 
 def fmtp(path: Path, *args, **kwargs) -> Path:
     return Path(str(path).format(*args, **kwargs))
