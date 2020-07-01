@@ -40,6 +40,12 @@ orog_precip_frac_path_tpl = (PATHS['datadir'] / 'orog_precip' / 'experiments' /
 combine_frac_path = (PATHS['datadir'] / 'orog_precip' / 'experiments' /
                      'combine_fracs.asia.hdf')
 
+diag_orog_precip_frac_path_tpl = (PATHS['datadir'] / 'orog_precip' / 'experiments' /
+                                  'u-{model}_diag_orog_fracs.{year}{month:02}.asia.hdf')
+diag_combine_frac_path = (PATHS['datadir'] / 'orog_precip' / 'experiments' /
+                          'diag_combine_fracs.asia.hdf')
+
+
 raw_data_fig_tpl = (PATHS['figsdir'] / 'orog_precip' / 'experiments' / 'raw_data' / 'precip_surf_wind' /
                     'u-{model}_raw_data.{year}.{month:02}.{day:02}.{hour:02}.{region}.png')
 raw_data_dc_fig_tpl = (PATHS['figsdir'] / 'orog_precip' / 'experiments' / 'raw_data' / 'diurnal_cycle' /
