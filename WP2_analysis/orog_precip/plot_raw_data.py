@@ -66,7 +66,7 @@ def get_region_data(inputs, region):
 
 
 @remake_required(depends_on=[get_region_data, get_region_constraint, configure_ax_asia])
-def plot_precip_wind_region(inputs, outputs, region):
+def plot_precip_wind_region(inputs, outputs, region, month):
     (lon, lat, extent, lst_offset,
      orog_region, precip_region, u_region, v_region) = get_region_data(inputs, region)
 
@@ -84,10 +84,11 @@ def plot_precip_wind_region(inputs, outputs, region):
     for i, output in enumerate(outputs):
         print(i)
         h = i % 24
+        dom = i // 24 + 1
         fig, axes = plt.subplots(2, 2, subplot_kw={'projection': ccrs.PlateCarree()})
         fig.set_size_inches(10, 8.5)
         lst = (h + lst_offset) % 24
-        fig.suptitle(f'LST: {lst:0.1f}')
+        fig.suptitle(f'{month} {dom} LST: {lst:0.1f}')
 
         for ax in axes.flatten():
             configure_ax_asia(ax, extent=extent)
@@ -143,7 +144,8 @@ def plot_dc_region(inputs, outputs, region, num_per_day):
                        cmap='terrain')
 
         im = axes[0, 0].imshow(dc_precip[h],
-                               origin='lower', extent=extent, vmax=precip_vmax)
+                               origin='lower', extent=extent, vmax=precip_vmax,
+                               norm=mpl.colors.LogNorm())
         im = axes[0, 1].quiver(lon[::3], lat[::3], dc_u[h][::3, ::3], dc_v[h][::3, ::3])
         im = axes[1, 0].imshow(dc_dotprod[h],
                                origin='lower', extent=extent,
@@ -190,7 +192,7 @@ def gen_task_ctrl(test=False):
                         'orog_mask': orog_mask_path,
                     },
                     raw_data_fig_paths,
-                    func_args=(region, )))
+                    func_args=(region, month)))
 
         raw_data_dc_fig_paths = [fmtp(raw_data_dc_fig_tpl, model=model, year=year, month=month,
                                       hour=h, region=region)

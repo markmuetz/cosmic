@@ -93,6 +93,7 @@ def calc_orog_precip(inputs, outputs):
 
 
 def calc_orog_precip_fracs(inputs, outputs):
+    # TODO: area weighting.
     lsm_asia = iris.load_cube(str(inputs['land_sea_mask']), CONSTRAINT_ASIA)
 
     mask_asia = iris.load_cube(str(inputs['orog_mask']), f'expanded surf_wind x del orog > thresh')
@@ -101,18 +102,30 @@ def calc_orog_precip_fracs(inputs, outputs):
     orog_frac = (mask_asia.data.mean(axis=0) * lsm_asia.data).sum() / lsm_asia.data.sum()
     non_orog_frac = ((1 - mask_asia.data.mean(axis=0)) * lsm_asia.data).sum() / lsm_asia.data.sum()
 
+    ocean_precip = orog_precip_asia_cubes.extract_strict('ocean_precipitation_flux')
     orog_precip = orog_precip_asia_cubes.extract_strict('orog_precipitation_flux')
     non_orog_precip = orog_precip_asia_cubes.extract_strict('non_orog_precipitation_flux')
     land_precip = orog_precip + non_orog_precip
 
-    orog_precip_frac = orog_precip.data.sum() / land_precip.data.sum()
-    non_orog_precip_frac = non_orog_precip.data.sum() / land_precip.data.sum()
+    ocean_precip_total = ocean_precip.data.sum()
+    land_precip_total = land_precip.data.sum()
+    orog_precip_total = orog_precip.data.sum()
+    non_orog_precip_total = non_orog_precip.data.sum()
+
+    land_precip_frac = land_precip_total / (land_precip_total + ocean_precip_total)
+    orog_precip_frac = orog_precip_total / land_precip_total
+    non_orog_precip_frac = non_orog_precip_total / land_precip_total
 
     # print(f'orog_frac,non_orog_frac: {orog_frac},{non_orog_frac}')
     # print(f'orog_precip_frac,non_orog_precip_frac: {orog_precip_frac},{non_orog_precip_frac}')
     df = pd.DataFrame({
         'orog_frac': [orog_frac],
         'non_orog_frac': [non_orog_frac],
+        'land_total': [land_precip_total],
+        'ocean_total': [ocean_precip_total],
+        'land_frac': [land_precip_frac],
+        'orog_total': [orog_precip_total],
+        'non_orog_total': [non_orog_precip_total],
         'orog_precip_frac': [orog_precip_frac],
         'non_orog_precip_frac': [non_orog_precip_frac],
     })
