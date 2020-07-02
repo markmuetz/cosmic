@@ -1,7 +1,7 @@
 import sys
 
 from cosmic.util import load_module
-from cosmic.processing.extract_asia import HadGEM3_extract_asia_precip
+from cosmic.processing.extract_region import HadGEM3_extract_asia_precip
 
 
 def main(models_settings, model, year, season):
