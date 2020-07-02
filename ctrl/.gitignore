@@ -1,0 +1,19 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# vim
+.*.sw?
+
+# PyCharm
+.idea
+
+# Ignore some COSMIC ctrl dirs.
+queries/
+processing_output/
+bsub_scripts/
+figs/
+data/
+/aphrodite/.remake/
+.remake/
