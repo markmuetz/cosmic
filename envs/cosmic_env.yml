@@ -16,10 +16,10 @@ dependencies:
   - bokeh=1.4.0=py38_0
   - boost-cpp=1.70.0=h8e57a91_2
   - bzip2=1.0.8=h516909a_2
-  - ca-certificates=2020.4.5.2=hecda079_0
+  - ca-certificates=2020.6.20=hecda079_0
   - cairo=1.16.0=hfb77d84_1002
   - cartopy=0.17.0=py38hc5b2455_1008
-  - certifi=2020.4.5.2=py38h32f6830_0
+  - certifi=2020.6.20=py38h32f6830_0
   - cf-units=2.1.3=py38hc1659b7_0
   - cffi=1.13.2=py38h8022711_0
   - cfitsio=3.470=hb60a0a2_2
