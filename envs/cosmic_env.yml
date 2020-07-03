@@ -74,6 +74,7 @@ dependencies:
   - kealib=1.4.10=h58c409b_1005
   - kiwisolver=1.1.0=py38hc9558a2_0
   - krb5=1.16.4=h2fd8d38_0
+  - latexcodec=2.0.0=py_0
   - ld_impl_linux-64=2.33.1=h53a641e_7
   - libblas=3.8.0=14_openblas
   - libcblas=3.8.0=14_openblas
@@ -109,6 +110,7 @@ dependencies:
   - locket=0.2.0=py_2
   - lz4-c=1.8.3=he1b5a44_1001
   - lzo=2.10=h14c3975_1000
+  - markdown=3.2.1=py_0
   - markupsafe=1.1.1=py38h516909a_0
   - matplotlib=2.2.4=py38_2
   - matplotlib-base=2.2.4=py38h250f245_2
@@ -155,6 +157,7 @@ dependencies:
   - psutil=5.6.7=py38h516909a_0
   - pthread-stubs=0.4=h14c3975_1001
   - ptyprocess=0.6.0=py_1001
+  - pybtex=0.22.2=py38_0
   - pycparser=2.19=py38_1
   - pyepsg=0.4.0=py_0
   - pygments=2.5.2=py_0
