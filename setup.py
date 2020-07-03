@@ -16,7 +16,7 @@ def read(fname):
 
 setup(
     name='cosmic',
-    version='0.2',
+    version='0.3.0',
     description='COSMIC package containing tools and analysis',
     long_description=read('README.md'),
     author='Mark Muetzelfeldt',
@@ -35,7 +35,17 @@ setup(
         'bin/cosmic-bsub-task-submit',
         ],
     python_requires='>=3.6',
+    # These should all be met if you use the conda_env in envs.
     install_requires=[
+        'basmati',
+        'remake',
+        'cartopy',
+        'geopandas',
+        'iris',
+        'numpy',
+        'matplotlib',
+        'pandas',
+        'scipy',
         ],
     # url='https://github.com/markmuetz/cosmic',
     classifiers=[
