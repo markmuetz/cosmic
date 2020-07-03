@@ -14,6 +14,7 @@ logging.basicConfig(stream=sys.stdout, level=os.getenv('COSMIC_LOGLEVEL', 'INFO'
                     format='%(asctime)s %(levelname)8s: %(message)s')
 logger = logging.getLogger(__name__)
 
+
 def UM_gen_region_precip_filepath(runid, stream, year, month, region, output_dir):
     return (output_dir /
             f'{runid[2:]}{stream[0]}.{stream[1:]}{year}{month:02}.{region}_precip.nc')
