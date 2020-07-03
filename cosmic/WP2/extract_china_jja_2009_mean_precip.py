@@ -75,7 +75,7 @@ def extract_dataset(datadir, dataset, daterange):
                                          dim_coords_and_dims=coords)
         amount_jja_china = amount_jja_mean.extract(CONSTRAINT_CHINA)
     elif dataset[:2] == 'u-':
-        # UM run:
+        # UM_N1280 run:
         runid = dataset[2:7]
         datadir = Path(f'{datadir}/u-{runid}/ap9.pp')
         season = 'jja'

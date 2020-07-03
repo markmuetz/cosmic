@@ -2,7 +2,7 @@ import sys
 import datetime as dt
 
 from cosmic.util import load_module
-from cosmic.datasets.cmorph.cmorph_convert import convert_to_netcdf4_month
+from cosmic.datasets.cmorph.cmorph_convert import convert_cmorph_0p25deg_3hrly_to_netcdf4_month
 
 
 def main(basedir, year):
@@ -15,7 +15,7 @@ def main(basedir, year):
         if end_month == 13:
             end_year += 1
             end_month = 1
-        convert_to_netcdf4_month(data_dir, output_dir, year, month)
+        convert_cmorph_0p25deg_3hrly_to_netcdf4_month(data_dir, output_dir, year, month)
 
 
 if __name__ == '__main__':

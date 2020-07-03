@@ -24,7 +24,7 @@ setup(
     maintainer='Mark Muetzelfeldt',
     maintainer_email='mark.muetzelfeldt@reading.ac.uk',
     packages=[
-        'cosmic.datasets.UM',
+        'cosmic.datasets.UM_N1280',
         'cosmic.datasets.cmorph',
         'cosmic.processing',
         ],
