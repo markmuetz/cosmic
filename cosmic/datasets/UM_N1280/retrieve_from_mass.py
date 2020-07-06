@@ -8,13 +8,13 @@ from timeit import default_timer as timer
 
 from cosmic.util import load_module, sysrun
 
-logging.basicConfig(stream=sys.stdout, level=os.getenv('COSMIC_LOGLEVEL', 'INFO'), 
+logging.basicConfig(stream=sys.stdout, level=os.getenv('COSMIC_LOGLEVEL', 'INFO'),
                     format='%(asctime)s %(levelname)8s: %(message)s')
 logger = logging.getLogger(__name__)
 
 
 def resolve_output_dir(config, runid, stream, year, month, output_name):
-    return (config.BASE_OUTPUT_DIRPATH / runid / 
+    return (config.BASE_OUTPUT_DIRPATH / runid /
             f'{stream}.pp' / f'{output_name}_{year}{month:02}')
 
 
@@ -37,7 +37,7 @@ def check_access(runid):
 def write_stream_query(queries_dir, runid, stream, year, month, stashcodes, stream_info):
     if len(stashcodes) == 1:
         # No brackets surrounding one stashcode.
-        stashcode_str = str(stashcode_str[0])
+        stashcode_str = str(stashcodes[0])
     else:
         # Brackets surrounding comma separated list of stashcodes.
         stashcode_str = '(' + ', '.join([str(s) for s in stashcodes]) + ')'
@@ -79,7 +79,7 @@ def run_moo_select(config, runid, stream, year, month, stream_info, query_filepa
 
 def retrieve_from_MASS(config, queries_dir, runid, stream,
                        year, month, stashcodes, stream_info):
-    query_filepath = write_stream_query(queries_dir, runid, stream, 
+    query_filepath = write_stream_query(queries_dir, runid, stream,
                                         year, month, stashcodes, stream_info)
     run_moo_select(config, runid, stream, year, month, stream_info, query_filepath)
 
@@ -116,8 +116,11 @@ def main(config_filename):
 
         for stream, stream_info in mass_info['stream'].items():
             stashcodes = stream_info['stashcodes']
-            years_months = gen_years_months(stream_info['start_year_month'], 
-                                            stream_info['end_year_month'])
+            if 'years_months' in stream_info:
+                years_months = stream_info['years_months']
+            else:
+                years_months = gen_years_months(stream_info['start_year_month'],
+                                                stream_info['end_year_month'])
             for i, (year, month) in enumerate(years_months):
                 N = len(years_months)
                 logger.info(f'Retrieving {i+1}/{N} {runid}: {stream} {year}/{month} {stashcodes}')

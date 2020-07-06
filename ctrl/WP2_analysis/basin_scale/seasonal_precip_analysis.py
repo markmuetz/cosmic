@@ -109,8 +109,8 @@ def gen_task_ctrl():
     precip_thresh = 0.1
     season = 'jja'
 
-    # for region in ['asia', 'europe']:
-    for region in ['europe']:
+    for region in ['asia', 'europe']:
+    # for region in ['europe']:
         start_year_month = (1998, 1)
         end_year_month = (2018, 12)
         task_ctrl.add(CmorphSpaTask(start_year_month, end_year_month, precip_thresh, season, region))
