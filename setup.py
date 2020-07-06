@@ -41,7 +41,8 @@ setup(
         'remake',
         'cartopy',
         'geopandas',
-        'iris',
+        # Causes problems with pip -e . installation and running scripts in bin.
+        # 'iris',
         'numpy',
         'matplotlib',
         'pandas',
