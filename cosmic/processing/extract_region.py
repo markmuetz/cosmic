@@ -20,7 +20,8 @@ def UM_gen_region_precip_filepath(runid, stream, year, month, region, output_dir
             f'{runid[2:]}{stream[0]}.{stream[1:]}{year}{month:02}.{region}_precip.nc')
 
 
-def UM_extract_region_precip(runid, stream, year, month, nc_dirpath, region='asia', stratiform=False):
+def UM_extract_region_precip(runid, stream, year, month, nc_dirpath,
+                             region='asia', stratiform=False, combine_rain_snow=True):
     output_filepath = UM_gen_region_precip_filepath(runid, stream, year, month, region, nc_dirpath)
     done_filename = (output_filepath.parent / (output_filepath.name + '.done'))
 
@@ -36,18 +37,22 @@ def UM_extract_region_precip(runid, stream, year, month, nc_dirpath, region='asi
     elif region == 'europe':
         region_precip_cubes = iris.load(str(nc_filename_glob), CONSTRAINT_EU)
 
-    rainfall_flux_name = 'rainfall_flux'
-    snowfall_flux_name = 'snowfall_flux'
-    if stratiform:
-        rainfall_flux_name = 'stratiform_' + rainfall_flux_name
-        snowfall_flux_name = 'stratiform_' + snowfall_flux_name
-    region_rainfall = (region_precip_cubes.extract(iris.Constraint(name=rainfall_flux_name))
-                       .concatenate_cube())
-    region_snowfall = (region_precip_cubes.extract(iris.Constraint(name=snowfall_flux_name))
-                       .concatenate_cube())
+    if combine_rain_snow:
+        rainfall_flux_name = 'rainfall_flux'
+        snowfall_flux_name = 'snowfall_flux'
+        if stratiform:
+            rainfall_flux_name = 'stratiform_' + rainfall_flux_name
+            snowfall_flux_name = 'stratiform_' + snowfall_flux_name
+        region_rainfall = (region_precip_cubes.extract(iris.Constraint(name=rainfall_flux_name))
+                           .concatenate_cube())
+        region_snowfall = (region_precip_cubes.extract(iris.Constraint(name=snowfall_flux_name))
+                           .concatenate_cube())
 
-    region_total_precip = region_rainfall + region_snowfall
-    region_total_precip.rename('precipitation_flux')
+        region_total_precip = region_rainfall + region_snowfall
+        region_total_precip.rename('precipitation_flux')
+    else:
+        region_total_precip = (region_precip_cubes.extract(iris.Constraint(name='precipitation_flux'))
+                               .concatenate_cube())
 
     if region == 'europe':
         iris.save(region_total_precip.intersection(longitude=(-22, 37)), str(output_filepath))
@@ -99,7 +104,9 @@ def main(config, region, nc_dirpath):
     logger.info(nc_dirpath)
     year = int(nc_dirpath.stem[-6:-2])
     month = int(nc_dirpath.stem[-2:])
-    UM_extract_region_precip(config.RUNID, config.STREAM, year, month, nc_dirpath, region, config.STRATIFORM)
+    combine_rain_snow = getattr(config, 'COMBINE_RAIN_SNOW', True)
+    UM_extract_region_precip(config.RUNID, config.STREAM, year, month, nc_dirpath,
+                             region, config.STRATIFORM, combine_rain_snow)
 
 
 if __name__ == '__main__':
