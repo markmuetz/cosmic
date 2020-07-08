@@ -60,7 +60,10 @@ DATASETS = [
     'HadGEM3-GC31-MM',
     'HadGEM3-GC31-HM',
     'u-ak543',
+    'u-am754',
     'u-al508',
+    'u-aj399',
+    'u-az035',
     'cmorph',
 ]
 
@@ -69,7 +72,10 @@ DATASET_RESOLUTION = {
     'HadGEM3-GC31-MM': 'N216',
     'HadGEM3-GC31-HM': 'N512',
     'u-ak543': 'N1280',
+    'u-am754': 'N1280',
     'u-al508': 'N1280',
+    'u-aj399': 'N1280',
+    'u-az035': 'N1280',
     'cmorph': 'N1280',
     'aphrodite': '0.25deg'
 }
@@ -643,14 +649,16 @@ def plot_phase_mag(inputs, outputs, dataset, hb_name, mode):
 
 def get_dataset_path(dataset):
     if dataset == 'cmorph':
+        # OLD: 'cmorph_data/8km-30min/cmorph_ppt_jja.199801-201812.asia_precip.ppt_thresh_0p1.N1280.nc')
         path = (PATHS['datadir'] /
-                'cmorph_data/8km-30min/cmorph_ppt_jja.199801-201812.asia_precip.ppt_thresh_0p1.N1280.nc')
+                'cmorph_data/8km-30min/cmorph_8km_N1280.199801-201812.jja.asia_precip_afi.ppt_thresh_0p1.nc')
     elif dataset == 'aphrodite':
         path = (PATHS['datadir'] /
                 'aphrodite_data/025deg/aphrodite_combined_jja.nc')
     elif dataset[:2] == 'u-':
+        # OLD: f'{dataset}/ap9.pp/{dataset[2:]}a.p9jja.200506-200808.asia_precip.ppt_thresh_0p1.nc')
         path = (PATHS['datadir'] /
-                f'{dataset}/ap9.pp/{dataset[2:]}a.p9jja.200506-200808.asia_precip.ppt_thresh_0p1.nc')
+                f'{dataset}/ap9.pp/{dataset[2:]}.200506-200808.jja.asia_precip_afi.ppt_thresh_0p1.nc')
     elif dataset[:7] == 'HadGEM3':
         path = (PATHS['datadir'] /
                 f'PRIMAVERA_HighResMIP_MOHC/local/{dataset}/{dataset}.highresSST-present.'
@@ -780,7 +788,7 @@ def gen_map_from_basin_values(cmorph_phase_mag, raster):
     return phase_map, mag_map
 
 
-def plot_obs_vs_all_datasets_mean_precip(inputs, outputs):
+def plot_obs_vs_all_datasets_mean_precip(inputs, outputs, disp_mae=False):
     with inputs[0].open('rb') as f:
         all_rmses = pickle.load(f)
 
@@ -791,9 +799,28 @@ def plot_obs_vs_all_datasets_mean_precip(inputs, outputs):
 
     # ax1.set_ylim((0, 5))
     for dataset, (rmses, maes, _) in list(all_rmses.items())[::-1]:
+        # Skip N1280 Ensemble members.
+        if dataset in ['u-aj399', 'u-az035']:
+            continue
         p = ax.plot(np.array(rmses) * 24, label=STANDARD_NAMES[dataset])
         colour = p[0].get_color()
-        ax.plot(np.array(maes) * 24, linestyle='--', color=colour)
+        if dataset == 'u-al508':
+            colour_N1280 = colour
+        if disp_mae:
+            ax.plot(np.array(maes) * 24, linestyle='--', color=colour)
+
+    # Shade all between parametrized N1280 sims.
+    rmses_N1280 = []
+    maes_N1280 = []
+    for dataset in ['u-al508', 'u-aj399', 'u-az035']:
+        rmses_N1280.append(all_rmses[dataset][0])
+        maes_N1280.append(all_rmses[dataset][1])
+    rmses_N1280 = np.array(rmses_N1280) * 24
+    maes_N1280 = np.array(rmses_N1280) * 24
+    ax.fill_between(range(len(rmses)), rmses_N1280.min(axis=0), rmses_N1280.max(axis=0), color=colour_N1280, alpha=0.5)
+    if disp_mae:
+        ax.fill_between(range(len(rmses)), maes_N1280.min(axis=0), maes_N1280.max(axis=0), color=colour_N1280, alpha=0.5)
+
     if len(rmses) == 3:
         ax.set_xticks([0, 1, 2])
     elif len(rmses) == 11:
@@ -802,7 +829,10 @@ def plot_obs_vs_all_datasets_mean_precip(inputs, outputs):
     # ax.set_xticklabels(['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
     ax.set_xticklabels(['small', 'medium', 'large'])
 
-    ax.set_ylabel('mean precip.\nRMSE/MAE (mm day$^{-1}$)')
+    if disp_mae:
+        ax.set_ylabel('mean precip.\nRMSE/MAE (mm day$^{-1}$)')
+    else:
+        ax.set_ylabel('mean precip.\nRMSE (mm day$^{-1}$)')
     ax.set_xlabel('basin size')
     ax.legend()
     plt.tight_layout()
@@ -849,9 +879,36 @@ def plot_cmorph_vs_all_datasets_phase_mag(inputs, outputs):
         # ax1.set_ylim((0, 5))
         rmses_for_mode = all_rmses[mode]
         for dataset, (phase_rmses, mag_rmses, vrmses) in list(rmses_for_mode.items())[::-1]:
-            ax1.plot(phase_rmses, label=STANDARD_NAMES[dataset])
+            if dataset in ['u-aj399', 'u-az035']:
+                continue
+            p = ax1.plot(phase_rmses, label=STANDARD_NAMES[dataset])
             ax2.plot(mag_rmses, label=STANDARD_NAMES[dataset])
             ax3.plot(vrmses, label=STANDARD_NAMES[dataset])
+            colour = p[0].get_color()
+            if dataset == 'u-al508':
+                colour_N1280 = colour
+
+        # Shade all between parametrized N1280 sims.
+        phase_rmses_N1280 = []
+        mag_rmses_N1280 = []
+        vrmses_N1280 = []
+        for dataset in ['u-al508', 'u-aj399', 'u-az035']:
+            phase_rmses_N1280.append(rmses_for_mode[dataset][0])
+            mag_rmses_N1280.append(rmses_for_mode[dataset][1])
+            vrmses_N1280.append(rmses_for_mode[dataset][2])
+        phase_rmses_N1280 = np.array(phase_rmses_N1280)
+        mag_rmses_N1280 = np.array(mag_rmses_N1280)
+        vrmses_N1280 = np.array(vrmses_N1280)
+        ax1.fill_between(range(len(phase_rmses)),
+                         phase_rmses_N1280.min(axis=0),
+                         phase_rmses_N1280.max(axis=0), color=colour_N1280, alpha=0.5)
+        ax2.fill_between(range(len(phase_rmses)),
+                         mag_rmses_N1280.min(axis=0),
+                         mag_rmses_N1280.max(axis=0), color=colour_N1280, alpha=0.5)
+        ax3.fill_between(range(len(phase_rmses)),
+                         vrmses_N1280.min(axis=0),
+                         vrmses_N1280.max(axis=0), color=colour_N1280, alpha=0.5)
+
         if len(vrmses) == 3:
             ax2.set_xticks([0, 1, 2])
         elif len(vrmses) == 11:
@@ -888,8 +945,9 @@ def gen_task_ctrl(include_basin_dc_analysis_comparison=False):
 
     for basin_scales in ['small_medium_large', 'sliding']:
         hb_raster_cubes_fn = PATHS['output_datadir'] / f'basin_weighted_analysis/hb_N1280_raster_{basin_scales}.nc'
-        cmorph_path = (PATHS['datadir'] /
-                       'cmorph_data/8km-30min/cmorph_ppt_jja.199801-201812.asia_precip.ppt_thresh_0p1.N1280.nc')
+        cmorph_path = get_dataset_path('cmorph')
+        # cmorph_path = (PATHS['datadir'] /
+        #                'cmorph_data/8km-30min/cmorph_ppt_jja.199801-201812.asia_precip.ppt_thresh_0p1.N1280.nc')
         task_ctrl.add(Task(gen_hydrobasins_raster_cubes, [cmorph_path], [hb_raster_cubes_fn],
                            func_args=[SLIDING_SCALES if basin_scales == 'sliding' else SCALES]))
 

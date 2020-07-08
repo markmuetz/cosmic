@@ -3,7 +3,7 @@ import iris
 from iris.experimental.equalise_cubes import equalise_attributes
 
 import cosmic.WP2.seasonal_precip_analysis as spa
-from remake import Task, TaskControl, remake_task_control
+from remake import Task, TaskControl, remake_task_control, remake_required
 
 from cosmic.config import PATHS
 
@@ -29,10 +29,26 @@ def fmt_afi_output_filename(dataset, start_year_month, end_year_month, precip_th
     return output_path
 
 
+@remake_required(depends_on=[spa.calc_precip_amount_freq_intensity])
 def gen_seasonal_precip_analysis(inputs, outputs, season, precip_thresh, num_per_day, convert_kgpm2ps1_to_mmphr):
     season_cubes = iris.load([str(p) for p in inputs])
     # Needed for HadGEM cubes, won't adversely affect others.
     equalise_attributes(season_cubes)
+    # Needed for CMORPH N1280, for which only one has coord_system set.
+    for cube in season_cubes:
+        if cube.coord('latitude').coord_system:
+            coord_system = cube.coord('latitude').coord_system
+            assert cube.coord('longitude').coord_system == coord_system
+            break
+
+    for cube in season_cubes:
+        if cube.coord('latitude').coord_system:
+            assert cube.coord('latitude').coord_system == coord_system
+            assert cube.coord('longitude').coord_system == coord_system
+        else:
+            cube.coord('latitude').coord_system = coord_system
+            cube.coord('longitude').coord_system = coord_system
+
     season_cube = season_cubes.concatenate_cube()
 
     analysis_cubes = spa.calc_precip_amount_freq_intensity(season, season_cube, precip_thresh,
@@ -63,6 +79,9 @@ class UmN1280SpaTask(Task):
     RUNIDS = [
         'ak543',
         'al508',
+        'aj399',
+        'az035',
+        'am754',
     ]
 
     def __init__(self, start_year_month, end_year_month, precip_thresh, season, region, runid):
@@ -108,16 +127,19 @@ def gen_task_ctrl():
     task_ctrl = TaskControl(__file__)
     precip_thresh = 0.1
     season = 'jja'
+    runids = UmN1280SpaTask.RUNIDS
+    # runids = ['aj399']
+    # regions = ['asia', 'europe']
+    regions = ['asia']
 
-    for region in ['asia', 'europe']:
-    # for region in ['europe']:
+    for region in regions:
         start_year_month = (1998, 1)
         end_year_month = (2018, 12)
         task_ctrl.add(CmorphSpaTask(start_year_month, end_year_month, precip_thresh, season, region))
 
         start_year_month = (2005, 6)
         end_year_month = (2008, 8)
-        for runid in UmN1280SpaTask.RUNIDS:
+        for runid in runids:
             task_ctrl.add(UmN1280SpaTask(start_year_month, end_year_month, precip_thresh, season, region, runid))
 
         # Disabled for now.
@@ -135,7 +157,7 @@ def gen_task_ctrl():
     for year in range(2005, 2009):
         start_year_month = (year, 6)
         end_year_month = (year, 8)
-        for runid in UmN1280SpaTask.RUNIDS:
+        for runid in runids:
             task_ctrl.add(UmN1280SpaTask(start_year_month, end_year_month, precip_thresh, season, runid))
 
         for model in UmHadgemSpaTask.MODELS:

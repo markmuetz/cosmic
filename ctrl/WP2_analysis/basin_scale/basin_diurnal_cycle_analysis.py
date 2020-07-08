@@ -18,6 +18,7 @@ from cosmic.util import load_cmap_data, circular_rmse, rmse, get_extent_from_cub
 from basmati.utils import build_raster_cube_from_cube
 
 from cosmic.config import PATHS
+from basin_weighted_analysis import get_dataset_path
 
 SCALES = {
     'small': (2_000, 20_000),
@@ -39,22 +40,6 @@ def savefig(filename):
     filename.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(f'{filename}')
     plt.close('all')
-
-
-def dataset_path(dataset):
-    if dataset == 'cmorph':
-        cmorph_path = (PATHS['datadir'] /
-                       'cmorph_data/8km-30min/cmorph_ppt_jja.199801-201812.asia_precip.ppt_thresh_0p1.N1280.nc')
-        return cmorph_path
-    elif dataset[:2] == 'u-':
-        um_path = (PATHS['datadir'] /
-                   f'{dataset}/ap9.pp/{dataset[2:]}a.p9jja.200506-200808.asia_precip.ppt_thresh_0p1.nc')
-        return um_path
-    elif dataset[:7] == 'HadGEM3':
-        hadgem_path = (PATHS['datadir'] /
-                       f'PRIMAVERA_HighResMIP_MOHC/local/{dataset}/{dataset}.highresSST-present.'
-                       f'r1i1p1f1.2005-2009.JJA.asia_precip.N1280.ppt_thresh_0p1.nc')
-        return hadgem_path
 
 
 def gen_hydrobasins_raster_cubes(inputs, outputs, scales=SCALES):
@@ -352,7 +337,7 @@ class DiurnalCycleAnalysis:
         self.scales = None
 
     def gen_all(self):
-        dataset_paths = [dataset_path(d) for d in DATASETS]
+        dataset_paths = [get_dataset_path(d) for d in DATASETS]
 
         self.task_ctrl.add(Task(verify_lats_lons, dataset_paths, [PATHS['output_datadir'] /
                                                                   'basin_diurnal_cycle_analysis' /
@@ -366,7 +351,7 @@ class DiurnalCycleAnalysis:
 
             self.hb_raster_cubes_fn = (PATHS['output_datadir'] /
                                        f'basin_diurnal_cycle_analysis/hb_N1280_raster_{self.raster_scales}.nc')
-            hb_raster_cubes_task = Task(gen_hydrobasins_raster_cubes, [dataset_path('cmorph')], [self.hb_raster_cubes_fn],
+            hb_raster_cubes_task = Task(gen_hydrobasins_raster_cubes, [get_dataset_path('cmorph')], [self.hb_raster_cubes_fn],
                                         func_args=[self.scales])
             self.task_ctrl.add(hb_raster_cubes_task)
 
@@ -384,7 +369,7 @@ class DiurnalCycleAnalysis:
         self.task_ctrl.run(self.force)
 
     def gen_analysis_tasks(self, dataset, mode):
-        diurnal_cycle_cube_path = dataset_path(dataset)
+        diurnal_cycle_cube_path = get_dataset_path(dataset)
 
         for scale, method in itertools.product(self.scales,
                                                ['peak', 'harmonic']):

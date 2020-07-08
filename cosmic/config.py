@@ -51,6 +51,9 @@ for k, path in PATHS.items():
 STANDARD_NAMES = {
     'cmorph': 'CMORPH',
     'u-al508': 'N1280',
+    'u-aj399': 'N1280-em2',
+    'u-az035': 'N1280-em3',
+    'u-am754': 'N1280-HC',
     'u-ak543': 'N1280-EC',
     'HadGEM3-GC31-HM': 'N512',
     'HadGEM3-GC31-MM': 'N216',
