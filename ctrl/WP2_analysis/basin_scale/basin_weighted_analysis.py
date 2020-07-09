@@ -795,7 +795,7 @@ def plot_obs_vs_all_datasets_mean_precip(inputs, outputs, disp_mae=False):
     all_rmse_filename, all_corr_filename = outputs
 
     plt.clf()
-    fig, ax = plt.subplots(1, 1, sharex=True, num=str(all_rmse_filename), figsize=(12, 8))
+    fig, ax = plt.subplots(1, 1, sharex=True, num=str(all_rmse_filename), figsize=(8, 5))
 
     # ax1.set_ylim((0, 5))
     for dataset, (rmses, maes, _) in list(all_rmses.items())[::-1]:
