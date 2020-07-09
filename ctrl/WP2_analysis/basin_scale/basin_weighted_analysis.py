@@ -827,7 +827,8 @@ def plot_obs_vs_all_datasets_mean_precip(inputs, outputs, disp_mae=False):
         ax.set_xticks([0, 5, 10])
         ax.set_xticks(range(11), minor=True)
     # ax.set_xticklabels(['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
-    ax.set_xticklabels(['small', 'medium', 'large'])
+    # ax.set_xticklabels(['small', 'medium', 'large'])
+    ax.set_xticklabels(['small\n5040 km${^2}$', 'medium\n54600 km${^2}$', 'large\n55300 km${^2}$'])
 
     if disp_mae:
         ax.set_ylabel('mean precip.\nRMSE/MAE (mm day$^{-1}$)')
@@ -836,6 +837,7 @@ def plot_obs_vs_all_datasets_mean_precip(inputs, outputs, disp_mae=False):
     ax.set_xlabel('basin size')
     ax.legend()
     plt.tight_layout()
+    plt.subplots_adjust(bottom=0.12)
     plt.savefig(all_rmse_filename)
 
     plt.clf()
@@ -857,7 +859,9 @@ def plot_obs_vs_all_datasets_mean_precip(inputs, outputs, disp_mae=False):
         ax.set_xticks([0, 5, 10])
         ax.set_xticks(range(11), minor=True)
     # ax.set_xticklabels(['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
-    ax.set_xticklabels(['small', 'medium', 'large'])
+    # 5040 54600 553000
+    # ax.set_xticklabels(['small', 'medium', 'large'])
+    ax.set_xticklabels(['small\n5040 km${^2}$', 'medium\n54600 km${^2}$', 'large\n55300 km${^2}$'])
 
     # ax.set_ylabel('correlations ($r^2$ - solid, slope - dashed)')
     ax.set_ylabel('correlations ($r^2$)')
@@ -915,7 +919,8 @@ def plot_cmorph_vs_all_datasets_phase_mag(inputs, outputs):
             ax2.set_xticks([0, 5, 10])
             ax2.set_xticks(range(11), minor=True)
         # ax2.set_xticklabels(['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
-        ax2.set_xticklabels(['small', 'medium', 'large'])
+        # ax2.set_xticklabels(['small', 'medium', 'large'])
+        ax2.set_xticklabels(['small\n5040 km${^2}$', 'medium\n54600 km${^2}$', 'large\n55300 km${^2}$'])
 
     axes[0, 0].set_title('amount')
     axes[0, 1].set_title('frequency')
@@ -934,7 +939,7 @@ def plot_cmorph_vs_all_datasets_phase_mag(inputs, outputs):
         c = string.ascii_lowercase[i]
         ax.text(0.01, 1.04, f'({c})', size=12, transform=ax.transAxes)
 
-    plt.subplots_adjust(left=0.1, right=0.94, top=0.96, bottom=0.06, wspace=0.2, hspace=0.2)
+    plt.subplots_adjust(left=0.1, right=0.94, top=0.96, bottom=0.12, wspace=0.2, hspace=0.2)
 
     plt.savefig(all_rmse_filename)
 
