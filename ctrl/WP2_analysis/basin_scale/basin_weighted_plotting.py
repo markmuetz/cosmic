@@ -458,6 +458,7 @@ def plot_obs_vs_all_datasets_mean_precip(inputs, outputs, disp_mae=False):
     ax.set_xlabel('basin size')
     ax.legend()
     plt.tight_layout()
+    plt.subplots_adjust(bottom=0.12)
     plt.savefig(all_rmse_filename)
 
     plt.clf()
@@ -487,6 +488,7 @@ def plot_obs_vs_all_datasets_mean_precip(inputs, outputs, disp_mae=False):
     ax.set_xlabel('basin size')
     ax.legend()
     plt.tight_layout()
+    plt.subplots_adjust(bottom=0.12)
     plt.savefig(all_corr_filename)
 
 
@@ -558,7 +560,7 @@ def plot_cmorph_vs_all_datasets_phase_mag(inputs, outputs):
         c = string.ascii_lowercase[i]
         ax.text(0.01, 1.04, f'({c})', size=12, transform=ax.transAxes)
 
-    plt.subplots_adjust(left=0.1, right=0.94, top=0.96, bottom=0.06, wspace=0.2, hspace=0.2)
+    plt.subplots_adjust(left=0.1, right=0.94, top=0.96, bottom=0.12, wspace=0.2, hspace=0.2)
 
     plt.savefig(all_rmse_filename)
 
