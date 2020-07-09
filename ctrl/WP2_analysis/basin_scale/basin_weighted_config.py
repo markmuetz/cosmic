@@ -1,3 +1,7 @@
+import numpy as np
+
+from cosmic.config import PATHS
+
 HADGEM_FILENAME_TPL = 'PRIMAVERA_HighResMIP_MOHC/{model}/' \
                       'highresSST-present/r1i1p1f1/E1hr/pr/gn/{timestamp}/' \
                       'pr_E1hr_{model}_highresSST-present_r1i1p1f1_gn_{daterange}.nc'
