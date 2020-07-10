@@ -32,7 +32,7 @@ logger = getLogger('remake.basin_weighted_analysis')
 
 @remake_required(depends_on=[configure_ax_asia])
 def plot_hydrobasins_files(inputs, outputs, hb_name):
-    hb_size = gpd.read_file(str(inputs[0]))
+    hb_size = gpd.read_file(str(inputs['shp']))
     fig = plt.figure(figsize=(10, 8))
     ax = plt.subplot(projection=ccrs.PlateCarree())
     ax.set_title(f'scale:{hb_name}, #basins:{len(hb_size)}')
@@ -577,8 +577,10 @@ def gen_task_ctrl():
             hb_names = [f'S{i}' for i in range(11)]
         shp_path_tpl = 'basin_weighted_analysis/{hb_name}/hb_{hb_name}.{ext}'
         for hb_name in hb_names:
+            shp_inputs = {ext: PATHS['output_datadir'] / shp_path_tpl.format(hb_name=hb_name, ext=ext)
+                          for ext in ['shp', 'dbf', 'prj', 'cpg', 'shx']}
             task_ctrl.add(Task(plot_hydrobasins_files,
-                               [PATHS['output_datadir'] / shp_path_tpl.format(hb_name=hb_name, ext='shp')],
+                               shp_inputs,
                                [PATHS['figsdir'] / 'basin_weighted_analysis' / 'map' /
                                 'hydrobasins_size' / f'map_{hb_name}.png'],
                                func_args=[hb_name],
