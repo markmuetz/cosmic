@@ -97,7 +97,7 @@ def _configure_hb_name_dataset_map_grid(axes, hb_names, datasets):
         ax.get_yaxis().tick_right()
     for ax in axes[:, :2].flatten():
         ax.get_yaxis().set_ticks([])
-    for ax in axes[:2, :].flatten():
+    for ax in axes[:len(axes) - 1, :].flatten():
         ax.get_xaxis().set_ticks([])
     for i, ax in enumerate(axes.flatten()):
         c = string.ascii_lowercase[i]
@@ -135,8 +135,9 @@ def plot_mean_precip_asia_combined(inputs, outputs, datasets, hb_names):
                                                         raster_cube.data == 0)
             imshow_data[(dataset, hb_name)] = masked_mean_precip_map * 24
 
-    fig, axes = plt.subplots(3, 3,
-                             figsize=(10, 5.5), subplot_kw={'projection': ccrs.PlateCarree()})
+    figsize = (10, 5.5) if len(datasets) == 3 else (10, 8)
+    fig, axes = plt.subplots(len(datasets), 3,
+                             figsize=figsize, subplot_kw={'projection': ccrs.PlateCarree()})
     cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig2_cb1.pkl')
 
     # orig. -- continuous scale.
@@ -303,7 +304,8 @@ def plot_phase_alpha_combined(inputs, outputs, datasets, hb_names, mode):
     cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig3_cb.pkl')
     # Fills masked values.
     cmap.set_bad(color='k', alpha=0.1)
-    fig, axes = plt.subplots(3, 3, figsize=(10, 7), subplot_kw={'projection': ccrs.PlateCarree()})
+    figsize = (10, 7) if len(datasets) == 3 else (10, 9)
+    fig, axes = plt.subplots(len(datasets), 3, figsize=figsize, subplot_kw={'projection': ccrs.PlateCarree()})
     for axrow, dataset in zip(axes, datasets):
         for ax, hb_name in zip(axrow, hb_names):
             masked_phase_map, masked_mag_map = imshow_data[(hb_name, dataset)]
@@ -641,17 +643,18 @@ def gen_task_ctrl():
 
         if basin_scales == 'small_medium_large':
             input_paths = {'raster_cubes': hb_raster_cubes_fn}
-            datasets = ['cmorph', 'u-al508', 'u-ak543']
-            paths = {f'weighted_{hb_name}_{dataset}': (PATHS['output_datadir'] /
-                                                       weighted_mean_precip_tpl.format(hb_name=hb_name,
-                                                                                       dataset=dataset))
-                     for hb_name, dataset in itertools.product(hb_names, datasets)}
-            input_paths.update(paths)
-            task_ctrl.add(Task(plot_mean_precip_asia_combined,
-                               input_paths,
-                               [PATHS['figsdir'] / 'basin_weighted_analysis' / 'map' /
-                                'mean_precip_asia_combined' / f'asia_combined_basin_scales.pdf'],
-                               func_args=[datasets, hb_names]))
+            for name, datasets in zip(['', 'full_'],
+                                      (['cmorph', 'u-al508', 'u-ak543'], ['cmorph', 'u-al508', 'u-am754', 'u-ak543'])):
+                paths = {f'weighted_{hb_name}_{dataset}': (PATHS['output_datadir'] /
+                                                           weighted_mean_precip_tpl.format(hb_name=hb_name,
+                                                                                           dataset=dataset))
+                         for hb_name, dataset in itertools.product(hb_names, datasets)}
+                input_paths.update(paths)
+                task_ctrl.add(Task(plot_mean_precip_asia_combined,
+                                   input_paths,
+                                   [PATHS['figsdir'] / 'basin_weighted_analysis' / 'map' /
+                                    'mean_precip_asia_combined' / f'{name}asia_combined_basin_scales.pdf'],
+                                   func_args=[datasets, hb_names]))
 
         weighted_phase_mag_tpl = 'basin_weighted_analysis/{hb_name}/' \
                                  '{dataset}.{hb_name}.{mode}.area_weighted.phase_mag.hdf'
@@ -668,19 +671,20 @@ def gen_task_ctrl():
                                func_args=[dataset, hb_name, mode]))
 
         if basin_scales == 'small_medium_large':
-            datasets = ['cmorph', 'u-al508', 'u-ak543']
-            for mode in PRECIP_MODES:
-                input_paths = {f'weighted_{hb_name}_{dataset}': (PATHS['output_datadir'] /
-                                                                 weighted_phase_mag_tpl.format(hb_name=hb_name,
-                                                                                               dataset=dataset,
-                                                                                               mode=mode))
-                               for hb_name, dataset in itertools.product(hb_names, datasets)}
-                input_paths.update({'raster_cubes': hb_raster_cubes_fn})
-                task_ctrl.add(Task(plot_phase_alpha_combined,
-                                   input_paths,
-                                   [PATHS['figsdir'] / 'basin_weighted_analysis' / 'map' / 'phase_alpha_combined' /
-                                    f'{mode}_phase_alpha_combined_asia.pdf'],
-                                   func_args=(datasets, hb_names, mode)))
+            for name, datasets in zip(['', 'full_'],
+                                      (['cmorph', 'u-al508', 'u-ak543'], ['cmorph', 'u-al508', 'u-am754', 'u-ak543'])):
+                for mode in PRECIP_MODES:
+                    input_paths = {f'weighted_{hb_name}_{dataset}': (PATHS['output_datadir'] /
+                                                                     weighted_phase_mag_tpl.format(hb_name=hb_name,
+                                                                                                   dataset=dataset,
+                                                                                                   mode=mode))
+                                   for hb_name, dataset in itertools.product(hb_names, datasets)}
+                    input_paths.update({'raster_cubes': hb_raster_cubes_fn})
+                    task_ctrl.add(Task(plot_phase_alpha_combined,
+                                       input_paths,
+                                       [PATHS['figsdir'] / 'basin_weighted_analysis' / 'map' / 'phase_alpha_combined' /
+                                        f'{name}{mode}_phase_alpha_combined_asia.pdf'],
+                                       func_args=(datasets, hb_names, mode)))
 
         for area_weighted in [True, False]:
             weighted = 'area_weighted' if area_weighted else 'not_area_weighted'
