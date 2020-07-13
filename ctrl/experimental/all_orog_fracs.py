@@ -13,6 +13,9 @@ diag_df.orog_frac *= 100
 diag_df.orog_precip_frac *= 100
 diag_df.land_frac *= 100
 
+# Hack units of these -- should be calculated properly in the first place.
+# N.B. can work out the factor 28000 by dividing e.g. direct method ocean_total by diag method.
+# They should be the same!
 diag_df.ocean_total *= 28000
 diag_df.land_total *= 28000
 diag_df.orog_total *= 28000
