@@ -8,7 +8,8 @@ import iris
 from remake import TaskControl, Task, remake_required, remake_task_control
 from cosmic.util import load_cmap_data, get_extent_from_cube
 from cosmic.config import PATHS, STANDARD_NAMES
-from basin_weighted_analysis import _configure_ax_asia, get_dataset_path
+from cosmic.plotting_util import configure_ax_asia
+from basin_weighted_analysis import get_dataset_path
 
 DATASETS = [
     'cmorph',
@@ -17,7 +18,7 @@ DATASETS = [
 ]
 
 
-@remake_required(depends_on=[_configure_ax_asia])
+@remake_required(depends_on=[configure_ax_asia])
 def plot_gridpoint_mean_precip_asia(inputs, outputs):
 
     # TODO: Saturated colour scale.
@@ -35,7 +36,7 @@ def plot_gridpoint_mean_precip_asia(inputs, outputs):
         ax.set_title(STANDARD_NAMES[dataset])
         # Convert from mm hr-1 to mm day-1
         im = ax.imshow(cube.data * 24, extent=extent, norm=norm, cmap=cmap)
-        _configure_ax_asia(ax, tight_layout=False)
+        configure_ax_asia(ax, tight_layout=False)
     axes[1].get_yaxis().set_ticklabels([])
     axes[2].get_yaxis().set_ticklabels([])
 

@@ -8,10 +8,10 @@ from basmati.utils import build_raster_from_geometries
 from remake import TaskControl, Task, remake_required, remake_task_control
 
 from cosmic.config import PATHS
-from basin_weighted_analysis import _configure_ax_asia
+from cosmic.plotting_util import configure_ax_asia
 
 
-@remake_required(depends_on=[_configure_ax_asia])
+@remake_required(depends_on=[configure_ax_asia])
 def plot_dem(inputs, outputs):
     hydrosheds_dir = PATHS['hydrosheds_dir']
     bounds, tx, dem, mask = load_hydrosheds_dem(hydrosheds_dir, 'as')
@@ -28,7 +28,7 @@ def plot_dem(inputs, outputs):
     cmap.set_bad(color='k', alpha=0.1)
     im = ax.imshow(ma_dem[::-1, :], extent=extent, origin='lower', cmap=cmap)
 
-    _configure_ax_asia(ax, tight_layout=False)
+    configure_ax_asia(ax, tight_layout=False)
     rect = Rectangle((97.5, 18), 125 - 97.5, 41 - 18, linewidth=1, edgecolor='k', facecolor='none')
     ax.add_patch(rect)
 
