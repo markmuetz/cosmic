@@ -64,6 +64,8 @@ class AfiTask(Task):
                     daterange = '200806-200808'
                 elif duration == 'long':
                     daterange = '200506-200808'
+                else:
+                    daterange = '200506-200808'
 
                 rel_path = f'u-{runid}/ap9.pp'
                 # filename = f'{runid}a.p9{season}.{daterange}.{region}_precip.ppt_thresh_{thresh_text}.nc'
