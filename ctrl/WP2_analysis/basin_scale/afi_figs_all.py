@@ -2,7 +2,6 @@ import itertools
 
 import iris
 
-import cosmic.headless_matplotlib  # uses 'agg' backend if HEADLESS env var set.
 from cosmic.WP2.afi_base import AFI_basePlotter
 from cosmic.WP2.afi_mean_plot import AFI_meanPlotter
 from cosmic.WP2.afi_diurnal_cycle_plot import AFI_diurnalCyclePlotter

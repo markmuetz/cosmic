@@ -6,8 +6,6 @@ from logging import getLogger
 
 import iris
 import geopandas as gpd
-# noinspection PyUnresolvedReferences
-import cosmic.headless_matplotlib  # uses 'agg' backend if HEADLESS env var set.
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.colorbar as cbar

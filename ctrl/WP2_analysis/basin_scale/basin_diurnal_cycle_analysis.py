@@ -4,7 +4,6 @@ from pathlib import Path
 import pickle
 
 import iris
-import cosmic.headless_matplotlib  # uses 'agg' backend if HEADLESS env var set.
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd

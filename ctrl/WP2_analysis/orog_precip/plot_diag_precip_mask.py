@@ -1,5 +1,3 @@
-import cosmic.headless_matplotlib  # uses 'agg' backend if HEADLESS env var set.
-
 import cartopy.crs as ccrs
 import iris
 import matplotlib as mpl
