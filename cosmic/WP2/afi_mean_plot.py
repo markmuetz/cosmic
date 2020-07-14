@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import cartopy.crs as ccrs
 
-from .afi_base import AFI_basePlotter, load_cmap_data
+from .afi_base import AFI_basePlotter
+from cosmic.util import load_cmap_data
 
 
 class AFI_meanPlotter(AFI_basePlotter):

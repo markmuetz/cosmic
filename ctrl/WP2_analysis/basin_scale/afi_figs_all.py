@@ -16,8 +16,8 @@ MODES = ['amount', 'freq', 'intensity']
 
 
 @remake_required(depends_on=[AFI_meanPlotter, AFI_basePlotter])
-def fig_afi_mean(inputs, outputs, season, region, method):
-    afi_mean = AFI_meanPlotter(season, region, method)
+def fig_afi_mean(inputs, outputs, season, region, method, runids):
+    afi_mean = AFI_meanPlotter(season, region, method, runids)
     cubes = {}
     for (runid, cube_name), cube_path in inputs.items():
         cubes[(runid, cube_name)] = iris.load_cube(str(cube_path), cube_name)
@@ -27,8 +27,8 @@ def fig_afi_mean(inputs, outputs, season, region, method):
 
 
 @remake_required(depends_on=[AFI_diurnalCyclePlotter, AFI_basePlotter])
-def fig_afi_diurnal_cycle(inputs, outputs, season, region, method):
-    afi_mean = AFI_diurnalCyclePlotter(season, region, method)
+def fig_afi_diurnal_cycle(inputs, outputs, season, region, method, runids):
+    afi_mean = AFI_diurnalCyclePlotter(runids, season, region, method)
     cubes = {}
     for (runid, cube_name), cube_path in inputs.items():
         cubes[(runid, cube_name)] = iris.load_cube(str(cube_path), cube_name)
@@ -38,8 +38,7 @@ def fig_afi_diurnal_cycle(inputs, outputs, season, region, method):
 
 
 class AfiTask(Task):
-    def __init__(self, func, datadir, figsdir, duration, precip_thresh, season, region, method=None):
-        self.runids = ['cmorph_8km', 'ak543', 'al508']
+    def __init__(self, func, runids, datadir, figsdir, duration, precip_thresh, season, region, method=None):
         thresh_text = fmt_thresh_text(precip_thresh)
 
         # N.B. applies to nc file that is read in.
@@ -48,7 +47,7 @@ class AfiTask(Task):
             domain = 'asia'
         inputs = {}
 
-        for runid in self.runids:
+        for runid in runids:
             if runid == 'cmorph_8km':
                 if duration == 'short':
                     daterange = '200906-200908'
@@ -74,7 +73,7 @@ class AfiTask(Task):
             for mode in MODES:
                 inputs[(runid, f'{mode}_of_precip_{season}')] = datadir / rel_path / filename
 
-        output_path = (figsdir / 'AFI' /
+        output_path = (figsdir / 'AFI' / '_'.join(runids) /
                        f'{func.__name__}.{duration}.{season}.{region}.{method}.ppt_thresh_{thresh_text}.pdf')
         super().__init__(func, inputs, [output_path], func_args=(season, region, method))
 
@@ -83,6 +82,10 @@ class AfiTask(Task):
 def gen_task_ctrl():
     task_ctrl = TaskControl(__file__)
 
+    # Can only do 3 ATM.
+    all_runids = [['cmorph_8km', 'al508', 'ak543'],
+                  ['cmorph_8km', 'am754', 'ak543'],
+                  ['al508', 'aj399', 'az035']]
     season = 'jja'
     durations = ['long']
     for start_year in range(1998, 2016):
@@ -91,19 +94,19 @@ def gen_task_ctrl():
     methods = ['peak', 'harmonic']
     # regions = ['china', 'asia', 'europe']
     regions = ['china', 'asia']
-    for duration, precip_thresh, region in itertools.product(durations, precip_threshes, regions):
-        task = AfiTask(fig_afi_mean, PATHS['datadir'], PATHS['figsdir'],
+
+    # Run all durations for first runid.
+    task_data = list(itertools.product([all_runids[0]], durations, precip_threshes, regions))
+    # Run first duration for all other runids.
+    task_data.extend(itertools.product(all_runids[1:], [durations[0]], precip_threshes, regions))
+
+    for runids, duration, precip_thresh, region in task_data:
+        task = AfiTask(fig_afi_mean, runids, PATHS['datadir'], PATHS['figsdir'],
                        duration, precip_thresh, season, region)
         task_ctrl.add(task)
         for method in methods:
-            task = AfiTask(fig_afi_diurnal_cycle, PATHS['datadir'], PATHS['figsdir'],
+            task = AfiTask(fig_afi_diurnal_cycle, runids, PATHS['datadir'], PATHS['figsdir'],
                            duration, precip_thresh, season, region, method)
             task_ctrl.add(task)
 
     return task_ctrl
-
-
-if __name__ == '__main__':
-    task_ctrl = gen_task_ctrl()
-    task_ctrl.finalize().print_status()
-    # task_ctrl.run()

@@ -1,12 +1,8 @@
-import sys
-from pathlib import Path
 import string
 
-import iris
 import matplotlib.pyplot as plt
 import numpy as np
-
-from cosmic.util import load_cmap_data
+from cosmic.config import STANDARD_NAMES
 
 
 class AFI_basePlotter:
@@ -17,13 +13,8 @@ class AFI_basePlotter:
         'freq': 'frequency',
         'intensity': 'intensity',
     }
-    TITLE_RUNID_MAP = {
-        'cmorph_8km': 'CMORPH',
-        'al508': 'N1280',
-        'ak543': 'N1280-EC',
-    }
 
-    def __init__(self, season, domain, method='peak'):
+    def __init__(self, runids, season, domain, method='peak'):
         self.season = season
         self.method = method
         assert domain in ['china', 'asia', 'europe']
@@ -36,7 +27,7 @@ class AFI_basePlotter:
             self.fig = plt.figure(figsize=(10, 8))
         self.fig_axes, self.cb_axes = self.gen_axes()
         self.cubes = {}
-        self.runids = list(self.TITLE_RUNID_MAP.keys())
+        self.runids = runids
 
     def set_cubes(self, cubes):
         self.cubes = cubes
@@ -97,7 +88,7 @@ class AFI_basePlotter:
                     ax.get_xaxis().set_ticklabels([])
 
                 if j == 0:
-                    ax.set_ylabel(self.TITLE_RUNID_MAP[runid])
+                    ax.set_ylabel(STANDARD_NAMES[runid])
                 else:
                     ax.get_yaxis().set_ticklabels([])
                 c = string.ascii_lowercase[i * len(self.runids) + j]
