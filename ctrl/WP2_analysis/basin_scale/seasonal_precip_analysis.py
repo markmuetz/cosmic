@@ -34,6 +34,7 @@ def gen_seasonal_precip_analysis(inputs, outputs, season, precip_thresh, num_per
     season_cubes = iris.load([str(p) for p in inputs])
     # Needed for HadGEM cubes, won't adversely affect others.
     equalise_attributes(season_cubes)
+    coord_system = None
     # Needed for CMORPH N1280, for which only one has coord_system set.
     for cube in season_cubes:
         if cube.coord('latitude').coord_system:
@@ -41,13 +42,14 @@ def gen_seasonal_precip_analysis(inputs, outputs, season, precip_thresh, num_per
             assert cube.coord('longitude').coord_system == coord_system
             break
 
-    for cube in season_cubes:
-        if cube.coord('latitude').coord_system:
-            assert cube.coord('latitude').coord_system == coord_system
-            assert cube.coord('longitude').coord_system == coord_system
-        else:
-            cube.coord('latitude').coord_system = coord_system
-            cube.coord('longitude').coord_system = coord_system
+    if coord_system:
+        for cube in season_cubes:
+            if cube.coord('latitude').coord_system:
+                assert cube.coord('latitude').coord_system == coord_system
+                assert cube.coord('longitude').coord_system == coord_system
+            else:
+                cube.coord('latitude').coord_system = coord_system
+                cube.coord('longitude').coord_system = coord_system
 
     season_cube = season_cubes.concatenate_cube()
 
@@ -136,6 +138,11 @@ def gen_task_ctrl():
         start_year_month = (1998, 1)
         end_year_month = (2018, 12)
         task_ctrl.add(CmorphSpaTask(start_year_month, end_year_month, precip_thresh, season, region))
+
+        for start_year in range(1998, 2016):
+            start_year_month = (start_year, 6)
+            end_year_month = (start_year + 3, 8)
+            task_ctrl.add(CmorphSpaTask(start_year_month, end_year_month, precip_thresh, season, region))
 
         start_year_month = (2005, 6)
         end_year_month = (2008, 8)
