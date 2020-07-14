@@ -54,6 +54,8 @@ class AfiTask(Task):
                     daterange = '200906-200908'
                 elif duration == 'long':
                     daterange = '199801-201812'
+                else:
+                    daterange = duration
                 rel_path = 'cmorph_data/8km-30min'
                 filename = f'cmorph_8km_N1280.{daterange}.{season}.{domain}_precip_afi.ppt_thresh_{thresh_text}.nc'
                 # filename = f'cmorph_ppt_{season}.{daterange}.{region}_precip.ppt_thresh_{thresh_text}.N1280.nc'
@@ -81,6 +83,8 @@ def gen_task_ctrl():
 
     season = 'jja'
     durations = ['long']
+    for start_year in range(1998, 2016):
+        durations.append(f'{start_year}06-{start_year + 3}08')
     precip_threshes = [0.1]
     methods = ['peak', 'harmonic']
     # regions = ['china', 'asia', 'europe']
