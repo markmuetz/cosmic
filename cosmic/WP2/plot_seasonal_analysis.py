@@ -51,8 +51,11 @@ class SeasonAnalysisPlotter:
         for i, season in enumerate(self.seasons):
             if self.runid[:6] == 'cmorph':
                 if self.resolution:
-                    filename = f'cmorph_ppt_{season}.{self.daterange}.' \
-                               f'asia_precip.ppt_thresh_{self.thresh_text}.{self.resolution}.nc'
+                    # OLD.
+                    # filename = f'cmorph_ppt_{season}.{self.daterange}.' \
+                    #            f'asia_precip.ppt_thresh_{self.thresh_text}.{self.resolution}.nc'
+                    filename = f'cmorph_8km_{self.resolution}.{self.daterange}.{season}.' \
+                               f'asia_precip_afi.ppt_thresh_{self.thresh_text}.nc'
                 else:
                     filename = f'cmorph_ppt_{season}.{self.daterange}.' \
                                f'asia_precip.ppt_thresh_{self.thresh_text}.nc'
@@ -129,10 +132,10 @@ class SeasonAnalysisPlotter:
             cax0 = fig.add_axes([0.13, 0.1, 0.35, 0.01])
             cax1 = fig.add_axes([0.54, 0.1, 0.35, 0.01])
             if i == 3:
-                cb0 = plt.colorbar(im0, cax=cax0, 
+                cb0 = plt.colorbar(im0, cax=cax0,
                                    label='$\\mu$ precip. (mm hr$^{-1}$)',
                                    orientation='horizontal', extend='both')
-                cb1 = plt.colorbar(im1, cax=cax1, 
+                cb1 = plt.colorbar(im1, cax=cax1,
                                    label='$\\sigma$ precip. (mm hr$^{-1}$)',
                                    orientation='horizontal', extend='min')
         self.savefig(f'season_mean/asia_mean.png')
@@ -345,9 +348,9 @@ class SeasonAnalysisPlotter:
             season_strength_filtered = gaussian_filter(season_strength, 3)
             thresh_boundaries = [100 * 1 / 3, 100 * 2 / 3]
             # thresh_boundaries = [100 * 1 / 4, 100 * 1 / 3]
-            filtered_med_thresh, filtered_strong_thresh = np.percentile(season_strength_filtered, 
+            filtered_med_thresh, filtered_strong_thresh = np.percentile(season_strength_filtered,
                                                                         thresh_boundaries)
-            med_thresh, strong_thresh = np.percentile(season_strength, 
+            med_thresh, strong_thresh = np.percentile(season_strength,
                                                       thresh_boundaries)
 
             if cmap_name == 'li2018fig3':
@@ -367,7 +370,7 @@ class SeasonAnalysisPlotter:
                 peak_strong = np.ma.masked_array(season_phase_LST,
                                                  season_strength < strong_thresh)
                 peak_med = np.ma.masked_array(season_phase_LST,
-                                              ((season_strength > strong_thresh) | 
+                                              ((season_strength > strong_thresh) |
                                                (season_strength < med_thresh)))
                 peak_weak = np.ma.masked_array(season_phase_LST,
                                                season_strength > med_thresh)
@@ -379,7 +382,7 @@ class SeasonAnalysisPlotter:
                 ax.imshow(peak_weak, origin='lower', extent=extent, alpha=0.33,
                           vmin=0, vmax=24, **imshow_kwargs)
 
-            plt.colorbar(im0, label=f'{mode} peak (hr)', orientation='horizontal', 
+            plt.colorbar(im0, label=f'{mode} peak (hr)', orientation='horizontal',
                          **cbar_kwargs)
 
             if overlay_style == 'contour_overlay':
@@ -480,7 +483,7 @@ class SeasonAnalysisPlotter:
                 imshow_kwargs = {'cmap': cmap, 'norm': norm}
                 cbar_kwargs['norm'] = norm
             elif cmap_name == 'sky_colour':
-                cmap = LinearSegmentedColormap.from_list('cmap',['k','pink','cyan','blue','red','k'], 
+                cmap = LinearSegmentedColormap.from_list('cmap',['k','pink','cyan','blue','red','k'],
                                                          N=24)
                 imshow_kwargs = {'cmap': cmap}
                 cbar_kwargs = {}
@@ -496,7 +499,7 @@ class SeasonAnalysisPlotter:
             im0 = ax.imshow(ma_basin_mean_field, origin='lower', extent=extent,
                             vmin=0, vmax=24, **imshow_kwargs)
 
-            plt.colorbar(im0, label=f'{mode} peak (hr)', orientation='horizontal', 
+            plt.colorbar(im0, label=f'{mode} peak (hr)', orientation='horizontal',
                          **cbar_kwargs)
 
             rect = Rectangle((97.5, 18), 125 - 97.5, 41 - 18, linewidth=1, edgecolor='k', facecolor='none')

@@ -24,6 +24,9 @@ CMORPH_DATERANGE = [
     # '200906-200908',
     '199801-201812',
 ]
+for start_year in range(1998, 2016):
+    CMORPH_DATERANGE.append(f'{start_year}06-{start_year + 3}08')
+
 PRECIP_THRESHES = [
     # 0.05,
     0.1,
