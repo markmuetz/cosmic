@@ -85,6 +85,7 @@ def gen_task_ctrl():
     # Can only do 3 ATM.
     all_runids = [['cmorph', 'u-al508', 'u-ak543'],
                   ['cmorph', 'u-am754', 'u-ak543'],
+                  ['u-al508', 'u-am754', 'u-ak543'],
                   ['u-al508', 'u-aj399', 'u-az035']]
     season = 'jja'
     durations = ['long']
