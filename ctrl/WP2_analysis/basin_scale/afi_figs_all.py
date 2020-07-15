@@ -82,8 +82,9 @@ class AfiTask(Task):
 def gen_task_ctrl():
     task_ctrl = TaskControl(__file__)
 
-    # Can only do 3 ATM.
-    all_runids = [['cmorph', 'u-al508', 'u-ak543'],
+    # Can only do <3 ATM.
+    all_runids = [['cmorph'],
+                  ['cmorph', 'u-al508', 'u-ak543'],
                   ['cmorph', 'u-am754', 'u-ak543'],
                   ['u-al508', 'u-am754', 'u-ak543'],
                   ['u-al508', 'u-aj399', 'u-az035']]

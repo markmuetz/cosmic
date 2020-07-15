@@ -10,12 +10,14 @@ from cosmic.util import load_cmap_data
 class AFI_meanPlotter(AFI_basePlotter):
     def gen_axes(self):
         if self.domain == 'china':
-            gs = gridspec.GridSpec(4, 3, figure=self.fig, height_ratios=[1, 1, 1, 0.2])
+            gs = gridspec.GridSpec(len(self.runids) + 1, 3, figure=self.fig,
+                                   height_ratios=[1] * len(self.runids) + [0.2])
         elif self.domain in ['asia', 'europe']:
-            gs = gridspec.GridSpec(4, 3, figure=self.fig, height_ratios=[1, 1, 1, 0.3])
+            gs = gridspec.GridSpec(len(self.runids) + 1, 3, figure=self.fig,
+                                   height_ratios=[1] * len(self.runids) + [0.3])
         fig_axes = []
         cb_axes = []
-        for i in range(3):
+        for i in range(len(self.runids)):
             ax_row = []
             for j in range(3):
                 ax_row.append(plt.subplot(gs[i, j], projection=ccrs.PlateCarree()))

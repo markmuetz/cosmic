@@ -10,13 +10,11 @@ from cosmic.WP2.diurnal_cycle_analysis import calc_diurnal_cycle_phase_amp_peak,
 
 class AFI_diurnalCyclePlotter(AFI_basePlotter):
     def gen_axes(self):
-        if self.domain == 'china':
-            gs = gridspec.GridSpec(4, 3, figure=self.fig, height_ratios=[1, 1, 1, 0.3])
-        elif self.domain in ['asia', 'europe']:
-            gs = gridspec.GridSpec(4, 3, figure=self.fig, height_ratios=[1, 1, 1, 0.3])
+        gs = gridspec.GridSpec(len(self.runids) + 1, 3, figure=self.fig,
+                               height_ratios=[1] * len(self.runids) + [0.3])
         fig_axes = []
         cb_axes = []
-        for i in range(3):
+        for i in range(len(self.runids)):
             ax_row = []
             for j in range(3):
                 ax_row.append(self.fig.add_subplot(gs[i, j], projection=ccrs.PlateCarree()))

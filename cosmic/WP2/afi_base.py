@@ -19,15 +19,23 @@ class AFI_basePlotter:
         self.method = method
         assert domain in ['china', 'asia', 'europe']
         self.domain = domain
-        if self.domain == 'china':
-            self.fig = plt.figure(figsize=(10, 10))
-        elif self.domain == 'asia':
-            self.fig = plt.figure(figsize=(10, 8))
-        elif self.domain == 'europe':
-            self.fig = plt.figure(figsize=(10, 8))
+        self.runids = runids
+        if len(runids) == 3:
+            if self.domain == 'china':
+                self.fig = plt.figure(figsize=(10, 10))
+            elif self.domain == 'asia':
+                self.fig = plt.figure(figsize=(10, 8))
+            elif self.domain == 'europe':
+                self.fig = plt.figure(figsize=(10, 8))
+        elif len(runids) == 1:
+            if self.domain == 'china':
+                self.fig = plt.figure(figsize=(10, 4))
+            elif self.domain == 'asia':
+                self.fig = plt.figure(figsize=(10, 3))
+            elif self.domain == 'europe':
+                self.fig = plt.figure(figsize=(10, 3))
         self.fig_axes, self.cb_axes = self.gen_axes()
         self.cubes = {}
-        self.runids = runids
 
     def set_cubes(self, cubes):
         self.cubes = cubes
