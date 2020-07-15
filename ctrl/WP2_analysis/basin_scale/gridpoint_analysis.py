@@ -14,6 +14,7 @@ from basin_weighted_analysis import get_dataset_path
 DATASETS = [
     'cmorph',
     'u-al508',
+    'u-am754',
     'u-ak543',
 ]
 
@@ -30,15 +31,15 @@ def plot_gridpoint_mean_precip_asia(inputs, outputs):
         ppt_cubes.append(ppt_cube)
 
     extent = get_extent_from_cube(ppt_cube)
-    fig, axes = plt.subplots(1, 3, sharex=True, figsize=(10, 3),
+    fig, axes = plt.subplots(1, len(inputs), sharex=True, figsize=(10, 3),
                              subplot_kw=dict(projection=ccrs.PlateCarree()))
     for ax, cube, dataset in zip(axes, ppt_cubes, inputs.keys()):
         ax.set_title(STANDARD_NAMES[dataset])
         # Convert from mm hr-1 to mm day-1
         im = ax.imshow(cube.data * 24, extent=extent, norm=norm, cmap=cmap)
         configure_ax_asia(ax, tight_layout=False)
-    axes[1].get_yaxis().set_ticklabels([])
-    axes[2].get_yaxis().set_ticklabels([])
+    for ax in axes[1:]:
+        ax.get_yaxis().set_ticklabels([])
 
     for i, ax in enumerate(axes):
         c = string.ascii_lowercase[i]
