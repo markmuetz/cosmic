@@ -46,7 +46,7 @@ class AFI_meanPlotter(AFI_basePlotter):
                 units = 'mm hr$^{-1}$'
 
             plt.colorbar(im, ax=cax, label=f'{mode} precip. ({units})',
-                         **cbar_kwargs, spacing='uniform', 
+                         **cbar_kwargs, spacing='uniform',
                          orientation='horizontal', fraction=0.9)
 
     def plot_ax(self, ax, cube, runid, mode):
@@ -70,7 +70,7 @@ class AFI_meanPlotter(AFI_basePlotter):
             kwargs = {'vmin': 1e-2, 'vmax': 4, 'cmap': cmap}
         kwargs['norm'] = norm
 
-        if runid == 'cmorph_8km':
+        if runid == 'cmorph':
             Lat, Lon = np.meshgrid(cube.coord('latitude').points, cube.coord('longitude').points, indexing='ij')
             data = np.ma.masked_array(data, Lat > 59)
         im = ax.imshow(data, origin='lower', extent=extent, **kwargs)

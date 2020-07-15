@@ -62,14 +62,14 @@ class AFI_diurnalCyclePlotter(AFI_basePlotter):
         elif self.method == 'harmonic':
             season_phase_LST, amp = calc_diurnal_cycle_phase_amp_harmonic(cube)
         cmap, norm, bounds, cbar_kwargs = load_cmap_data('cmap_data/li2018_fig3_cb.pkl')
-        if runid == 'cmorph_8km':
+        if runid == 'cmorph':
             Lat, Lon = np.meshgrid(cube.coord('latitude').points, cube.coord('longitude').points, indexing='ij')
             season_phase_LST = np.ma.masked_array(season_phase_LST, Lat > 59)
             amp = np.ma.masked_array(amp, Lat > 59)
 
         if True:
             thresh_boundaries = [100 * 1 / 3, 100 * 2 / 3]
-            if runid == 'cmorph_8km':
+            if runid == 'cmorph':
                 med_thresh, strong_thresh = np.percentile(amp.compressed(),
                                                           thresh_boundaries)
             else:

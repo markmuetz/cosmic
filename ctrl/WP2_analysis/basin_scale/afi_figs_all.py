@@ -17,7 +17,7 @@ MODES = ['amount', 'freq', 'intensity']
 
 @remake_required(depends_on=[AFI_meanPlotter, AFI_basePlotter])
 def fig_afi_mean(inputs, outputs, season, region, method, runids):
-    afi_mean = AFI_meanPlotter(season, region, method, runids)
+    afi_mean = AFI_meanPlotter(runids, season, region, method)
     cubes = {}
     for (runid, cube_name), cube_path in inputs.items():
         cubes[(runid, cube_name)] = iris.load_cube(str(cube_path), cube_name)
@@ -48,7 +48,7 @@ class AfiTask(Task):
         inputs = {}
 
         for runid in runids:
-            if runid == 'cmorph_8km':
+            if runid == 'cmorph':
                 if duration == 'short':
                     daterange = '200906-200908'
                 elif duration == 'long':
@@ -66,16 +66,16 @@ class AfiTask(Task):
                 else:
                     daterange = '200506-200808'
 
-                rel_path = f'u-{runid}/ap9.pp'
+                rel_path = f'{runid}/ap9.pp'
                 # filename = f'{runid}a.p9{season}.{daterange}.{region}_precip.ppt_thresh_{thresh_text}.nc'
-                filename = f'{runid}.{daterange}.{season}.{domain}_precip_afi.ppt_thresh_{thresh_text}.nc'
+                filename = f'{runid[2:]}.{daterange}.{season}.{domain}_precip_afi.ppt_thresh_{thresh_text}.nc'
 
             for mode in MODES:
                 inputs[(runid, f'{mode}_of_precip_{season}')] = datadir / rel_path / filename
 
         output_path = (figsdir / 'AFI' / '_'.join(runids) /
                        f'{func.__name__}.{duration}.{season}.{region}.{method}.ppt_thresh_{thresh_text}.pdf')
-        super().__init__(func, inputs, [output_path], func_args=(season, region, method))
+        super().__init__(func, inputs, [output_path], func_args=(season, region, method, runids))
 
 
 @remake_task_control
@@ -83,9 +83,9 @@ def gen_task_ctrl():
     task_ctrl = TaskControl(__file__)
 
     # Can only do 3 ATM.
-    all_runids = [['cmorph_8km', 'al508', 'ak543'],
-                  ['cmorph_8km', 'am754', 'ak543'],
-                  ['al508', 'aj399', 'az035']]
+    all_runids = [['cmorph', 'u-al508', 'u-ak543'],
+                  ['cmorph', 'u-am754', 'u-ak543'],
+                  ['u-al508', 'u-aj399', 'u-az035']]
     season = 'jja'
     durations = ['long']
     for start_year in range(1998, 2016):
