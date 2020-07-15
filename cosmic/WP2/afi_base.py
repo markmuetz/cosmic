@@ -31,7 +31,7 @@ class AFI_basePlotter:
             if self.domain == 'china':
                 self.fig = plt.figure(figsize=(10, 4))
             elif self.domain == 'asia':
-                self.fig = plt.figure(figsize=(10, 3))
+                self.fig = plt.figure(figsize=(10, 3.5))
             elif self.domain == 'europe':
                 self.fig = plt.figure(figsize=(10, 3))
         self.fig_axes, self.cb_axes = self.gen_axes()
@@ -92,7 +92,7 @@ class AFI_basePlotter:
 
                 ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False,
                                bottom=True, top=True, left=True, right=True, which='both')
-                if i != 2:
+                if i != len(self.runids) - 1:
                     ax.get_xaxis().set_ticklabels([])
 
                 if j == 0:
@@ -106,7 +106,10 @@ class AFI_basePlotter:
 
         self.add_titles_colourbars()
 
-        self.fig.subplots_adjust(top=0.95, bottom=0.05, left=0.07, right=0.99, wspace=0.1, hspace=0.1)
+        if len(self.runids) == 3:
+            self.fig.subplots_adjust(top=0.95, bottom=0.05, left=0.07, right=0.99, wspace=0.1, hspace=0.1)
+        else:
+            self.fig.subplots_adjust(top=0.95, bottom=0.1, left=0.07, right=0.99, wspace=0.1, hspace=0.1)
 
     def save(self, path):
         plt.savefig(path)

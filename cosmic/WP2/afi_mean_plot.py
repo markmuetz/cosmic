@@ -11,10 +11,10 @@ class AFI_meanPlotter(AFI_basePlotter):
     def gen_axes(self):
         if self.domain == 'china':
             gs = gridspec.GridSpec(len(self.runids) + 1, 3, figure=self.fig,
-                                   height_ratios=[1] * len(self.runids) + [0.2])
+                                   height_ratios=[1.] * len(self.runids) + [0.2])
         elif self.domain in ['asia', 'europe']:
             gs = gridspec.GridSpec(len(self.runids) + 1, 3, figure=self.fig,
-                                   height_ratios=[1] * len(self.runids) + [0.3])
+                                   height_ratios=[1.] * len(self.runids) + [0.3])
         fig_axes = []
         cb_axes = []
         for i in range(len(self.runids)):

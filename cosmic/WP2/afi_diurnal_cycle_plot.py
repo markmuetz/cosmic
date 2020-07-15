@@ -10,8 +10,9 @@ from cosmic.WP2.diurnal_cycle_analysis import calc_diurnal_cycle_phase_amp_peak,
 
 class AFI_diurnalCyclePlotter(AFI_basePlotter):
     def gen_axes(self):
+
         gs = gridspec.GridSpec(len(self.runids) + 1, 3, figure=self.fig,
-                               height_ratios=[1] * len(self.runids) + [0.3])
+                               height_ratios=[1.] * len(self.runids) + [0.3])
         fig_axes = []
         cb_axes = []
         for i in range(len(self.runids)):
@@ -20,7 +21,10 @@ class AFI_diurnalCyclePlotter(AFI_basePlotter):
                 ax_row.append(self.fig.add_subplot(gs[i, j], projection=ccrs.PlateCarree()))
             fig_axes.append(ax_row)
         # cb_axes.append(plt.subplot(gs[-1, :]))
-        cb_axes.append(self.fig.add_axes([0.1, 0.06, 0.85, 0.06]))
+        if len(self.runids) == 1:
+            cb_axes.append(self.fig.add_axes([0.1, 0.12, 0.85, 0.18]))
+        else:
+            cb_axes.append(self.fig.add_axes([0.1, 0.06, 0.85, 0.06]))
         return np.array(fig_axes), np.array(cb_axes)
 
     def add_titles_colourbars(self):
