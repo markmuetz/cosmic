@@ -22,7 +22,7 @@ class AFI_diurnalCyclePlotter(AFI_basePlotter):
             fig_axes.append(ax_row)
         # cb_axes.append(plt.subplot(gs[-1, :]))
         if len(self.runids) == 1:
-            cb_axes.append(self.fig.add_axes([0.1, 0.12, 0.85, 0.18]))
+            cb_axes.append(self.fig.add_axes([0.1, 0.12, 0.85, 0.14]))
         else:
             cb_axes.append(self.fig.add_axes([0.1, 0.06, 0.85, 0.06]))
         return np.array(fig_axes), np.array(cb_axes)
