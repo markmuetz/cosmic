@@ -31,21 +31,25 @@ def plot_gridpoint_mean_precip_asia(inputs, outputs):
         ppt_cubes.append(ppt_cube)
 
     extent = get_extent_from_cube(ppt_cube)
-    fig, axes = plt.subplots(1, len(inputs), sharex=True, figsize=(10, 3),
+    fig, axes = plt.subplots(1, len(inputs), sharex=True, figsize=(10, 2.5),
                              subplot_kw=dict(projection=ccrs.PlateCarree()))
     for ax, cube, dataset in zip(axes, ppt_cubes, inputs.keys()):
         ax.set_title(STANDARD_NAMES[dataset])
         # Convert from mm hr-1 to mm day-1
         im = ax.imshow(cube.data * 24, extent=extent, norm=norm, cmap=cmap)
         configure_ax_asia(ax, tight_layout=False)
+        xticks = range(60, 160, 40)
+        ax.set_xticks(xticks)
+        ax.set_xticklabels([f'${t}\\degree$ E' for t in xticks])
+
     for ax in axes[1:]:
         ax.get_yaxis().set_ticklabels([])
 
     for i, ax in enumerate(axes):
         c = string.ascii_lowercase[i]
-        ax.text(0.01, 1.04, f'({c})', size=12, transform=ax.transAxes)
+        ax.text(0.01, 1.06, f'({c})', size=12, transform=ax.transAxes)
 
-    cax = fig.add_axes([0.12, 0.15, 0.74, 0.02])
+    cax = fig.add_axes([0.12, 0.20, 0.74, 0.02])
     plt.colorbar(im, cax=cax, orientation='horizontal', label='precipitation (mm day$^{-1}$)', **cbar_kwargs)
     plt.subplots_adjust(left=0.06, right=0.94, top=0.98, bottom=0.17, wspace=0.1)
     plt.savefig(outputs[0])
