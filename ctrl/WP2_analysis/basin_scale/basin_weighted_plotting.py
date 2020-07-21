@@ -498,9 +498,11 @@ def plot_cmorph_vs_all_datasets_phase_mag(inputs, outputs):
 
     all_rmse_filename = outputs[0]
 
-    fig, axes = plt.subplots(3, 3, sharex=True, num=str(all_rmse_filename), figsize=(12, 8))
+    # N.B. VRMSE no longer used (Vector RMSE -- combination of phase/amplitude)
+    # fig, axes = plt.subplots(3, 3, sharex=True, num=str(all_rmse_filename), figsize=(12, 8))
+    fig, axes = plt.subplots(2, 3, sharex=True, num=str(all_rmse_filename), figsize=(10, 6))
     for i, mode in enumerate(PRECIP_MODES):
-        ax1, ax2, ax3 = axes[:, i]
+        ax1, ax2 = axes[:, i]
         # ax1.set_ylim((0, 5))
         rmses_for_mode = all_rmses[mode]
         for dataset, (phase_rmses, mag_rmses, vrmses) in list(rmses_for_mode.items())[::-1]:
@@ -508,7 +510,7 @@ def plot_cmorph_vs_all_datasets_phase_mag(inputs, outputs):
                 continue
             p = ax1.plot(phase_rmses, label=STANDARD_NAMES[dataset])
             ax2.plot(mag_rmses, label=STANDARD_NAMES[dataset])
-            ax3.plot(vrmses, label=STANDARD_NAMES[dataset])
+            # ax3.plot(vrmses, label=STANDARD_NAMES[dataset])
             colour = p[0].get_color()
             if dataset == 'u-al508':
                 colour_N1280 = colour
@@ -516,23 +518,23 @@ def plot_cmorph_vs_all_datasets_phase_mag(inputs, outputs):
         # Shade all between parametrized N1280 sims.
         phase_rmses_N1280 = []
         mag_rmses_N1280 = []
-        vrmses_N1280 = []
+        # vrmses_N1280 = []
         for dataset in ['u-al508', 'u-aj399', 'u-az035']:
             phase_rmses_N1280.append(rmses_for_mode[dataset][0])
             mag_rmses_N1280.append(rmses_for_mode[dataset][1])
-            vrmses_N1280.append(rmses_for_mode[dataset][2])
+            # vrmses_N1280.append(rmses_for_mode[dataset][2])
         phase_rmses_N1280 = np.array(phase_rmses_N1280)
         mag_rmses_N1280 = np.array(mag_rmses_N1280)
-        vrmses_N1280 = np.array(vrmses_N1280)
+        # vrmses_N1280 = np.array(vrmses_N1280)
         ax1.fill_between(range(len(phase_rmses)),
                          phase_rmses_N1280.min(axis=0),
                          phase_rmses_N1280.max(axis=0), color=colour_N1280, alpha=0.5)
         ax2.fill_between(range(len(phase_rmses)),
                          mag_rmses_N1280.min(axis=0),
                          mag_rmses_N1280.max(axis=0), color=colour_N1280, alpha=0.5)
-        ax3.fill_between(range(len(phase_rmses)),
-                         vrmses_N1280.min(axis=0),
-                         vrmses_N1280.max(axis=0), color=colour_N1280, alpha=0.5)
+        # ax3.fill_between(range(len(phase_rmses)),
+        #                  vrmses_N1280.min(axis=0),
+        #                  vrmses_N1280.max(axis=0), color=colour_N1280, alpha=0.5)
 
         if len(vrmses) == 3:
             ax2.set_xticks([0, 1, 2])
@@ -551,9 +553,9 @@ def plot_cmorph_vs_all_datasets_phase_mag(inputs, outputs):
     axes[1, 0].set_ylabel('strength\nRMSE (-)')
     axes[1, 0].set_ylim((0.04, 0.145))
     axes[1, 0].get_yaxis().set_label_coords(-0.2, 0.5)
-    axes[2, 0].set_ylabel('combined\nVRMSE (-)')
-    axes[2, 0].get_yaxis().set_label_coords(-0.2, 0.5)
-    axes[2, 1].set_xlabel('basin size')
+    # axes[2, 0].set_ylabel('combined\nVRMSE (-)')
+    # axes[2, 0].get_yaxis().set_label_coords(-0.2, 0.5)
+    axes[1, 1].set_xlabel('basin size')
     axes[1, 0].legend()
 
     for i, ax in enumerate(axes.flatten()):
@@ -561,7 +563,6 @@ def plot_cmorph_vs_all_datasets_phase_mag(inputs, outputs):
         ax.text(0.01, 1.04, f'({c})', size=12, transform=ax.transAxes)
 
     plt.subplots_adjust(left=0.1, right=0.94, top=0.96, bottom=0.12, wspace=0.2, hspace=0.2)
-
     plt.savefig(all_rmse_filename)
 
 
