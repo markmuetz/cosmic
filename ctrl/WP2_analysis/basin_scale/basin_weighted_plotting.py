@@ -183,13 +183,17 @@ def plot_mean_precip_asia_combined(inputs, outputs, datasets, hb_names):
             ax.set_ylabel(f'{STANDARD_NAMES[dataset]} $-$ {STANDARD_NAMES["cmorph"]}')
     _configure_hb_name_dataset_map_grid(axes, hb_names, datasets)
 
-    cax = fig.add_axes([0.92, 0.66, 0.01, 0.3])
+    if len(datasets) == 3:
+        cax = fig.add_axes([0.92, 0.66, 0.01, 0.3])
+        cax2 = fig.add_axes([0.92, 0.02, 0.01, 0.6])
+    elif len(datasets) == 4:
+        cax = fig.add_axes([0.92, 0.75, 0.01, 0.2])
+        cax2 = fig.add_axes([0.92, 0.02, 0.01, 0.7])
     # plt.colorbar(cmorph_im, cax=cax, orientation='vertical', label='precipitation (mm day$^{-1}$)', **cbar_kwargs)
     plt.colorbar(cmorph_im, cax=cax, orientation='vertical', **cbar_kwargs)
     cax.text(5.8, 1, 'precipitation (mm day$^{-1}$)', rotation=90)
 
     # cax2 = fig.add_axes([0.46, 0.07, 0.4, 0.01])
-    cax2 = fig.add_axes([0.92, 0.02, 0.01, 0.6])
     # cb = plt.colorbar(dataset_im, cax=cax2, orientation='vertical', label='$\\Delta$ precipitation (mm hr$^{-1}$)')
     cb = plt.colorbar(dataset_im, cax=cax2, orientation='vertical')
     cax2.text(5.8, 0.8, '$\\Delta$ precipitation (mm day$^{-1}$)', rotation=90)
