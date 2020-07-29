@@ -550,7 +550,7 @@ def plot_cmorph_vs_all_datasets_phase_mag(inputs, outputs):
     axes[0, 2].set_title('intensity')
     axes[0, 0].set_ylabel('phase\ncircular RMSE (hr)')
     axes[0, 0].get_yaxis().set_label_coords(-0.2, 0.5)
-    axes[1, 0].set_ylabel('strength\nRMSE (-)')
+    axes[1, 0].set_ylabel('amplitude\nRMSE (-)')
     axes[1, 0].set_ylim((0.04, 0.145))
     axes[1, 0].get_yaxis().set_label_coords(-0.2, 0.5)
     # axes[2, 0].set_ylabel('combined\nVRMSE (-)')
