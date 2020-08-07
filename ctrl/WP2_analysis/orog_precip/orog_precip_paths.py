@@ -50,6 +50,12 @@ raw_data_fig_tpl = (PATHS['figsdir'] / 'orog_precip' / 'experiments' / 'raw_data
                     'u-{model}_raw_data.{year}.{month:02}.{day:02}.{hour:02}.{region}.png')
 raw_data_dc_fig_tpl = (PATHS['figsdir'] / 'orog_precip' / 'experiments' / 'raw_data' / 'diurnal_cycle' /
                        'u-{model}_raw_data.dc.{year}.{month:02}.{hour:02}.{region}.png')
+raw_data_dc_anom_wind_fig_tpl = (PATHS['figsdir'] / 'orog_precip' / 'experiments' / 'raw_data' /
+                                 'diurnal_cycle' /
+                                 'u-{model}_raw_data.dc_anom_wind.{year}.{month:02}.{hour:02}.{region}.png')
+anim_raw_data_dc_anom_wind_fig_tpl = (PATHS['figsdir'] / 'orog_precip' / 'experiments' / 'raw_data' /
+                                      'diurnal_cycle' / 'anim' /
+                                      'u-{model}_raw_data.dc_anom_wind.{year}.{month:02}.{region}.gif')
 
 
 def fmtp(path: Path, *args, **kwargs) -> Path:

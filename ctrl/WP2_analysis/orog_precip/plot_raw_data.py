@@ -10,7 +10,9 @@ from cosmic import util
 from cosmic.plotting_util import configure_ax_asia
 from remake import Task, TaskControl, remake_task_control, remake_required
 from orog_precip_paths import (orog_path, surf_wind_path_tpl, precip_path_tpl,
-                               raw_data_dc_fig_tpl, raw_data_fig_tpl, orog_mask_path_tpl, fmtp)
+                               raw_data_dc_fig_tpl, raw_data_dc_anom_wind_fig_tpl,
+                               anim_raw_data_dc_anom_wind_fig_tpl,
+                               raw_data_fig_tpl, orog_mask_path_tpl, fmtp)
 
 def get_region_box(region):
     if region == 'TP_southern_flank':
@@ -157,6 +159,45 @@ def plot_dc_region(inputs, outputs, region, num_per_day):
         plt.close('all')
 
 
+@remake_required(depends_on=[get_region_data, configure_ax_asia])
+def plot_dc_anom_wind_region(inputs, outputs, region, num_per_day):
+    (lon, lat, extent, lst_offset,
+     orog_region, precip_region, u_region, v_region) = get_region_data(inputs, region)
+
+    dc_u = dc(u_region, num_per_day)
+    dc_v = dc(v_region, num_per_day)
+    u_mean = u_region.data.mean(axis=0)
+    v_mean = v_region.data.mean(axis=0)
+    anom_dc_u = dc(u_region - u_mean, num_per_day)
+    anom_dc_v = dc(v_region - v_mean, num_per_day)
+
+    for h, output in enumerate(outputs):
+        print(h)
+        fig, axes = plt.subplots(1, 2, subplot_kw={'projection': ccrs.PlateCarree()})
+
+        fig.set_size_inches(10, 4.5)
+        lst = (h + lst_offset) % 24
+        fig.suptitle(f'LST: {lst:0.1f}')
+
+        for ax in axes.flatten():
+            configure_ax_asia(ax, extent=extent)
+            ax.contour(lon, lat, orog_region.data, [500, 1000, 2000, 3000, 4000, 5000, 6000],
+                       cmap='terrain')
+
+        im = axes[0].quiver(lon[::3], lat[::3], dc_u[h][::3, ::3], dc_v[h][::3, ::3])
+        im = axes[1].quiver(lon[::3], lat[::3], anom_dc_u[h][::3, ::3], anom_dc_v[h][::3, ::3])
+        plt.savefig(output)
+        plt.close('all')
+
+
+def create_animation(inputs, outputs, delay):
+    input_str = ' '.join([str(p) for p in inputs])
+    output = outputs[0]
+    cmd = f'convert -delay {delay} -loop 0 {input_str} {output}'
+    util.sysrun(cmd)
+
+
+
 @remake_task_control
 def gen_task_ctrl(test=False):
     tc = TaskControl(__file__)
@@ -205,6 +246,27 @@ def gen_task_ctrl(test=False):
                     },
                     raw_data_dc_fig_paths,
                     func_args=(region, 24)))
+
+        raw_data_dc_anom_wind_fig_paths = [fmtp(raw_data_dc_anom_wind_fig_tpl,
+                                                model=model, year=year, month=month,
+                                           hour=h, region=region)
+                                           for h in range(24)]
+        tc.add(Task(plot_dc_anom_wind_region,
+                    {
+                        'orog': orog_path,
+                        'surf_wind': surf_wind_path,
+                        'precip': precip_path,
+                        'orog_mask': orog_mask_path,
+                    },
+                    raw_data_dc_anom_wind_fig_paths,
+                    func_args=(region, 24)))
+        tc.add(Task(create_animation,
+                    raw_data_dc_anom_wind_fig_paths,
+                    [fmtp(anim_raw_data_dc_anom_wind_fig_tpl, model=model, year=year, month=month, region=region)],
+                    (120, )))
+
+
+
 
     return tc
 
