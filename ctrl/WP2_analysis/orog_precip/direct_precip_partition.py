@@ -203,8 +203,6 @@ def gen_task_ctrl():
                 combine_inputs,
                 combine_fracs_output,
                 func_args=(variables, columns)
-               ))
-
-
+                ))
 
     return tc
