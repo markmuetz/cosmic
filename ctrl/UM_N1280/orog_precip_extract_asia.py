@@ -4,7 +4,6 @@ from remake import Task, TaskControl, remake_task_control
 
 from cosmic.config import PATHS, CONSTRAINT_ASIA
 
-
 BSUB_KWARGS = {
     'queue': 'short-serial',
     'max_runtime': '02:30',
@@ -68,10 +67,9 @@ def gen_task_ctrl():
             nc_files = [PATHS['gcosmic'] / 'share' / 'ancils' / 'N1280' / 'qrparm.orog']
             nc_files.extend(sorted((PATHS['datadir'] / model / 'ap9.pp' /
                                     f'surface_wind_{year}{month:02}')
-                                    .glob(f'{model[2:]}a.p9????????.nc')))
+                                   .glob(f'{model[2:]}a.p9????????.nc')))
             outpath = (PATHS['datadir'] / model / 'ap9.pp' /
                        f'surface_wind_{year}{month:02}' / f'{model[2:]}a.p9{year}{month:02}.asia.nc')
             tc.add(Task(regrid_extract_asia, nc_files, [outpath]))
 
     return tc
-
