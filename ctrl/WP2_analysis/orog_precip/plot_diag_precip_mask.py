@@ -62,4 +62,3 @@ def gen_task_ctrl():
         tc.add(Task(plot_mean_orog_precip, diag_orog_precip_paths, diag_orog_precip_figs))
 
     return tc
-
