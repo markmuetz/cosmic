@@ -54,8 +54,8 @@ def plot_mean_orog_precip(inputs, outputs):
 
 @remake_required(depends_on=[configure_ax_asia])
 def plot_compare_mean_orog_precip(inputs, outputs, models, months):
-    inputs1 = [path for (key, path) in inputs if key[0] == models[0]]
-    inputs2 = [path for (key, path) in inputs if key[0] == models[1]]
+    inputs1 = [path for (key, path) in inputs.items() if key[0] == models[0]]
+    inputs2 = [path for (key, path) in inputs.items() if key[0] == models[1]]
 
     orog_precip_cubes1 = iris.load([str(p) for p in inputs1]).concatenate()
     orog_precip_cubes2 = iris.load([str(p) for p in inputs2]).concatenate()
@@ -71,8 +71,8 @@ def plot_compare_mean_orog_precip(inputs, outputs, models, months):
         ax = plt.axes(projection=ccrs.PlateCarree())
         configure_ax_asia(ax)
         im = ax.imshow(precip2 / precip1 * 100, origin='lower', extent=extent,
-                       vmin=0, vmax=100)
-        plt.colorbar(im, orientation='horizontal', label=f'% change {models[1] - models[0]} (%)', pad=0.1)
+                       vmin=0, vmax=200, cmap='bwr_r')
+        plt.colorbar(im, orientation='horizontal', label=f'% change {models[1]}/{models[0]} (%)', pad=0.1)
         plt.savefig(outputs[i])
 
 
