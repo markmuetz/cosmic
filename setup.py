@@ -33,6 +33,7 @@ setup(
         'bin/cosmic-retrieve-from-mass',
         'bin/cosmic-bsub-submit',
         'bin/cosmic-bsub-task-submit',
+        'bin/cosmic-remake-slurm-submit',
         ],
     python_requires='>=3.6',
     # These should all be met if you use the conda_env in envs.

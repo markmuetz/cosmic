@@ -1,0 +1,4 @@
+#!/usr/bin/env python
+from cosmic.processing import slurm_remake_run
+
+slurm_remake_run.main()
