@@ -31,7 +31,7 @@ ALL_PATHS = {
 
 def _short_hostname():
     hostname = socket.gethostname()
-    if hostname[:6] == 'jasmin':
+    if hostname.split('.')[1] == 'jasmin':
         return 'jasmin'
     return hostname
 
