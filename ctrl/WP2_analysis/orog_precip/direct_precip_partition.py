@@ -147,7 +147,8 @@ def combine_orog_precip_fracs(inputs, outputs, variables, columns):
 def gen_task_ctrl():
     tc = TaskControl(__file__)
 
-    year = 2006
+    years = [2006]
+    # years = [2006, 2007, 2008, 2009]
     models = ['al508', 'ak543']
     dist_threshs = [50, 100]
     dotprod_threshs = [0.05]
@@ -162,7 +163,8 @@ def gen_task_ctrl():
                     [cache_key],
                     func_args=(dist_thresh, )))
 
-    for model, dotprod_thresh, dist_thresh in product(models, dotprod_threshs, dist_threshs):
+    for year, model, dotprod_thresh, dist_thresh in product(years, models,
+                                                            dotprod_threshs, dist_threshs):
         cache_key = fmtp(cache_key_tpl, dist_thresh=dist_thresh)
         for month in months:
             surf_wind_path = fmtp(surf_wind_path_tpl, model=model, year=year, month=month)
