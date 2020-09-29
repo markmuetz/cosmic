@@ -20,3 +20,5 @@ docs/_build/
 
 # PyCharm
 .idea
+
+slurm_scripts
