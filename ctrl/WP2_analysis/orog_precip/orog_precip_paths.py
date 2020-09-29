@@ -64,6 +64,8 @@ anim_raw_data_dc_anom_wind_fig_tpl = (PATHS['figsdir'] / 'orog_precip' / 'experi
 
 D23_fig2 = (PATHS['figsdir'] / 'orog_precip' / 'D23_figs' / 'fig2.png')
 D23_fig3 = (PATHS['figsdir'] / 'orog_precip' / 'D23_figs' / 'fig3.png')
+D23_fig4 = (PATHS['figsdir'] / 'orog_precip' / 'D23_figs' / 'fig4.png')
+D23_fig5 = (PATHS['figsdir'] / 'orog_precip' / 'D23_figs' / 'fig5.png')
 
 
 def fmtp(path: Path, *args, **kwargs) -> Path:
