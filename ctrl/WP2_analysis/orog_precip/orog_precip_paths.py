@@ -2,6 +2,8 @@ from pathlib import Path
 
 from cosmic.config import PATHS
 
+
+
 orog_path = PATHS['gcosmic'] / 'share' / 'ancils' / 'N1280' / 'qrparm.orog'
 land_sea_mask = PATHS['gcosmic'] / 'share' / 'ancils' / 'N1280' / 'qrparm.landfrac'
 
@@ -25,6 +27,9 @@ orog_precip_path_tpl = (PATHS['datadir'] / 'orog_precip' / 'experiments' /
 orog_precip_fig_tpl = (PATHS['figsdir'] / 'orog_precip' / 'experiments' /
                        'u-{model}_direct_orog.dp_{dotprod_thresh}.dist_{dist_thresh}'
                        '.{year}{season}.asia.{precip_type}.png')
+
+orog_precip_mean_fields_tpl = (PATHS['datadir'] / 'orog_precip' / 'experiments' /
+                               'u-{model}_direct_orog.mean_fields.dp_{dotprod_thresh}.dist_{dist_thresh}.{year}{season}.asia.nc')
 
 extended_rclim_mask = PATHS['datadir'] / 'experimental' / 'extended_orog_mask.nc'
 
@@ -56,6 +61,9 @@ raw_data_dc_anom_wind_fig_tpl = (PATHS['figsdir'] / 'orog_precip' / 'experiments
 anim_raw_data_dc_anom_wind_fig_tpl = (PATHS['figsdir'] / 'orog_precip' / 'experiments' / 'raw_data' /
                                       'diurnal_cycle' / 'anim' /
                                       'u-{model}_raw_data.dc_anom_wind.{year}.{month:02}.{region}.gif')
+
+D23_fig2 = (PATHS['figsdir'] / 'orog_precip' / 'D23_figs' / 'fig2.png')
+D23_fig3 = (PATHS['figsdir'] / 'orog_precip' / 'D23_figs' / 'fig3.png')
 
 
 def fmtp(path: Path, *args, **kwargs) -> Path:
