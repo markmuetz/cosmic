@@ -148,7 +148,7 @@ def gen_task_ctrl():
     tc = TaskControl(__file__)
 
     years = [2006]
-    # years = [2006, 2007, 2008, 2009]
+    # years = [2005, 2006, 2007, 2008]
     models = ['al508', 'ak543']
     dist_threshs = [50, 100]
     dotprod_threshs = [0.05]

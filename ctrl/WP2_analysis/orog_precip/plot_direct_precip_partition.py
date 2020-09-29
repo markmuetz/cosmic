@@ -80,7 +80,7 @@ def plot_compare_mean_orog_precip(inputs, outputs, models, months):
 def gen_task_ctrl():
     tc = TaskControl(__file__)
     models = ['al508', 'ak543']
-    dist_threshs = [50]
+    dist_threshs = [100]
     dotprod_threshs = [0.05]
     months = [6, 7, 8]
     # dist_threshs = [20, 100]

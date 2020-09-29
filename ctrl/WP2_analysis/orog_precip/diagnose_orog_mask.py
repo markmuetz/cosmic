@@ -103,11 +103,12 @@ def gen_task_ctrl():
     tc = TaskControl(__file__)
     # /gws/nopw/j04/cosmic/mmuetz/data/era_interim_orog_precip
 
-    year = 2006
+    # years = [2006]
+    years = [2005, 2006, 2007, 2008]
     models = ['al508', 'ak543']
     months = [6, 7, 8]
 
-    for model, month in product(models, months):
+    for model, year, month in product(models, years, months):
         # al508a.p9200606.asia_precip.nc
         precip_path = fmtp(precip_path_tpl, model=model, year=year, month=month)
         orog_precip_inputs = {
