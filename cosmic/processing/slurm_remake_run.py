@@ -109,7 +109,7 @@ def main():
     parser = ArgumentParser()
     parser.add_argument('--config-filename', '-C')
     parser.add_argument('--queue', '-q', default='short-serial')
-    parser.add_argument('--max-runtime', '-W', default='04:00')
+    parser.add_argument('--max-runtime', '-W', default='04:00:00')
     parser.add_argument('--mem', '-M', default=16000)
     parser.add_argument('--ntasks', '-N', type=int, default=int(1e9))
     args = parser.parse_args()
