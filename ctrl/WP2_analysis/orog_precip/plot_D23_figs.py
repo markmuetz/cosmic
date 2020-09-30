@@ -39,7 +39,7 @@ def plot_fig2(inputs, outputs):
                                   [m1_extent, m2_extent, m1_extent, m2_extent]):
         configure_ax_asia(ax, tight_layout=False)
         im = ax.imshow(precip, origin='lower', extent=extent, norm=mpl.colors.LogNorm(),
-                       vmin=1e-2, vmax=1e2)
+                       vmin=1, vmax=1e2)
 
     for ax in axes[0, :].flatten():
         ax.get_xaxis().set_ticks([])
@@ -138,10 +138,10 @@ def plot_fig4(inputs, outputs):
         configure_ax_asia(ax, tight_layout=False)
     im0 = axes[0, 0].imshow(al508_mean,
                             origin='lower', extent=extent, norm=mpl.colors.LogNorm(),
-                            vmin=1e-2, vmax=1e2)
+                            vmin=1, vmax=1e2)
     im1 = axes[1, 0].imshow(ak543_mean,
                             origin='lower', extent=extent, norm=mpl.colors.LogNorm(),
-                            vmin=1e-2, vmax=1e2)
+                            vmin=1, vmax=1e2)
 
     im3 = axes[0, 1].imshow(al508_opf,
                             origin='lower', extent=extent,
