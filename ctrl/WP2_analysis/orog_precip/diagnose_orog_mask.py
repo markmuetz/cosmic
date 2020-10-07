@@ -103,8 +103,8 @@ def gen_task_ctrl():
     tc = TaskControl(__file__)
     # /gws/nopw/j04/cosmic/mmuetz/data/era_interim_orog_precip
 
-    # years = [2006]
-    years = [2005, 2006, 2007, 2008]
+    years = [2006]
+    # years = [2005, 2006, 2007, 2008]
     models = ['al508', 'ak543']
     months = [6, 7, 8]
 

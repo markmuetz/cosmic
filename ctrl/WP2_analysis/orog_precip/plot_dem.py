@@ -23,7 +23,7 @@ def plot_dem(inputs, outputs):
     extent = (bounds.left, bounds.right, bounds.bottom, bounds.top)
 
     ma_dem = np.ma.masked_array(dem, (mask == -1) | (raster == 0))
-    plt.figure(figsize=(10, 7.5))
+    plt.figure(figsize=(8, 6))
     ax = plt.axes(projection=ccrs.PlateCarree())
     cmap = plt.cm.get_cmap('terrain')
     # Fills masked values.
