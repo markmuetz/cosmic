@@ -88,9 +88,8 @@ def _configure_hb_name_dataset_map_grid(axes, hb_names, datasets):
         configure_ax_asia(ax, tight_layout=False)
     for ax, hb_name in zip(axes[0], hb_names):
         if hb_name == 'med':
-            ax.set_title('medium')
-        else:
-            ax.set_title(hb_name)
+            hb_name = 'medium'
+        ax.set_title(f'{hb_name} basins')
     for ax in axes[:, 2].flatten():
         ax.get_yaxis().tick_right()
     for ax in axes[:, :2].flatten():
@@ -190,6 +189,7 @@ def plot_mean_precip_asia_combined(inputs, outputs, datasets, hb_names):
         cax = fig.add_axes([0.92, 0.75, 0.01, 0.2])
         cax2 = fig.add_axes([0.92, 0.02, 0.01, 0.7])
     # plt.colorbar(cmorph_im, cax=cax, orientation='vertical', label='precipitation (mm day$^{-1}$)', **cbar_kwargs)
+    cbar_kwargs['extend'] = 'max'
     plt.colorbar(cmorph_im, cax=cax, orientation='vertical', **cbar_kwargs)
     cax.text(5.8, 1, 'precipitation (mm day$^{-1}$)', rotation=90)
 
@@ -420,7 +420,7 @@ def plot_obs_vs_all_datasets_mean_precip(inputs, outputs, disp_mae=False):
     all_rmse_filename, all_corr_filename = outputs
 
     plt.clf()
-    fig, ax = plt.subplots(1, 1, sharex=True, num=str(all_rmse_filename), figsize=(6, 3.75))
+    fig, ax = plt.subplots(1, 1, sharex=True, num=str(all_rmse_filename), figsize=(5, 3.5))
 
     # ax1.set_ylim((0, 5))
     for dataset, (rmses, maes, _) in list(all_rmses.items())[::-1]:
@@ -462,7 +462,7 @@ def plot_obs_vs_all_datasets_mean_precip(inputs, outputs, disp_mae=False):
     ax.set_xlabel('basin size')
     ax.legend()
     plt.tight_layout()
-    plt.subplots_adjust(bottom=0.12)
+    plt.subplots_adjust(bottom=0.18)
     plt.savefig(all_rmse_filename)
 
     plt.clf()

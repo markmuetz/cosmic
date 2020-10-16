@@ -47,6 +47,7 @@ class AFI_meanPlotter(AFI_basePlotter):
                 cbar_kwargs['norm'] = norm
                 units = 'mm hr$^{-1}$'
 
+            cbar_kwargs['extend'] = 'max'
             plt.colorbar(im, ax=cax, label=f'{mode} precip. ({units})',
                          **cbar_kwargs, spacing='uniform',
                          orientation='horizontal', fraction=0.9)

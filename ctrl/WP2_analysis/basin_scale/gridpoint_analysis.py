@@ -52,6 +52,8 @@ def plot_gridpoint_mean_precip_asia(inputs, outputs):
         ax.text(0.01, 1.06, f'({c})', size=12, transform=ax.transAxes)
 
     cax = fig.add_axes([0.12, 0.10, 0.74, 0.02])
+    cbar_kwargs['extend'] = 'max'
+    cbar_kwargs['ticks'] = [0] + cbar_kwargs['ticks']
     plt.colorbar(im, cax=cax, orientation='horizontal', label='precipitation (mm day$^{-1}$)', **cbar_kwargs)
     plt.subplots_adjust(left=0.06, right=0.95, top=0.95, bottom=0.2, wspace=0.08)
     # plt.subplots_adjust(left=0.06, right=0.94, top=0.98, bottom=0.17, wspace=0.1)
