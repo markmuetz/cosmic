@@ -6,7 +6,7 @@ from pathlib import Path
 from ftplib import FTP
 
 
-logging.basicConfig(stream=sys.stdout, level=os.getenv('COSMIC_LOGLEVEL', 'INFO'), 
+logging.basicConfig(stream=sys.stdout, level=os.getenv('COSMIC_LOGLEVEL', 'INFO'),
                     format='%(asctime)s %(levelname)8s: %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -49,8 +49,8 @@ class CmorphDownloader():
             ftp.retrbinary(f'RETR {ftp_filepath}', fp.write)
         ftp.quit()
 
-    def download_range_0p25deg_3hrly(self, 
-                                     start_date=dt.datetime(1998, 1, 1), 
+    def download_range_0p25deg_3hrly(self,
+                                     start_date=dt.datetime(1998, 1, 1),
                                      end_date=dt.datetime.now()):
         for year, month, day in range_years_months_days(start_date, end_date):
             self.download_0p25deg_3hrly(year, month, day)
@@ -69,15 +69,8 @@ class CmorphDownloader():
 
         self._download(ftp_filepath, compressed_filepath)
 
-    def download_range_8km_30min(self, 
-                                 start_date=dt.datetime(1998, 1, 1), 
-                                 end_date=dt.datetime.now()):
-        for year, month in range_years_months(start_date, end_date):
-            self.download_8km_30min(year, month)
-
-    def download_8km_30min(self, year, month):
+    def download_8km_30min(self, year, month, filepath):
         filename = Path(f'CMORPH_V1.0_ADJ_8km-30min_{year}{month:02}.tar')
-        filepath = self.download_dir / filename
 
         if filepath.exists():
             logger.info(f'{filepath} exists: skipping')
