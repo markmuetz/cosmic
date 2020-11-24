@@ -60,7 +60,7 @@ def gen_task_ctrl():
         filename = (BASEDIR / 'raw' /
                     f'precip_{year}{month:02}' /
                     f'CMORPH_V1.0_ADJ_8km-30min_{year}{month:02}.tar')
-        task_ctrl.add(Task(download_year, [], [filename]))
+        task_ctrl.add(Task(download_year, [], [filename], func_args=(year, month)))
 
         raw_filename = (BASEDIR / 'raw' /
                         f'precip_{year}{month:02}' /

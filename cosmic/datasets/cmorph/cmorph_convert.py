@@ -83,8 +83,6 @@ def convert_cmorph_8km_30min_to_netcdf4_month(raw_filename, output_filenames, ye
                                          long_name='precipitation', units='mm hr-1',
                                          dim_coords_and_dims=coords)
 
-        output_dir = Path(output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
         iris.save(cmorph_ppt_cube, output_filenames[day], zlib=True)
         end_time += dt.timedelta(days=1)
         day += 1
