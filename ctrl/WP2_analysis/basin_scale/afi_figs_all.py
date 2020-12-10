@@ -88,6 +88,7 @@ def gen_task_ctrl():
                   ['cmorph', 'u-am754', 'u-ak543'],
                   ['u-al508', 'u-am754', 'u-ak543'],
                   ['u-al508', 'u-aj399', 'u-az035']]
+
     season = 'jja'
     durations = ['long']
     for start_year in range(1998, 2016):

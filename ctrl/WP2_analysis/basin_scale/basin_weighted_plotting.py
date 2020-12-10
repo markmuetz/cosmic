@@ -88,9 +88,8 @@ def _configure_hb_name_dataset_map_grid(axes, hb_names, datasets):
         configure_ax_asia(ax, tight_layout=False)
     for ax, hb_name in zip(axes[0], hb_names):
         if hb_name == 'med':
-            ax.set_title('medium')
-        else:
-            ax.set_title(hb_name)
+            hb_name = 'medium'
+        ax.set_title(f'{hb_name} basins')
     for ax in axes[:, 2].flatten():
         ax.get_yaxis().tick_right()
     for ax in axes[:, :2].flatten():
@@ -190,6 +189,7 @@ def plot_mean_precip_asia_combined(inputs, outputs, datasets, hb_names):
         cax = fig.add_axes([0.92, 0.75, 0.01, 0.2])
         cax2 = fig.add_axes([0.92, 0.02, 0.01, 0.7])
     # plt.colorbar(cmorph_im, cax=cax, orientation='vertical', label='precipitation (mm day$^{-1}$)', **cbar_kwargs)
+    cbar_kwargs['extend'] = 'max'
     plt.colorbar(cmorph_im, cax=cax, orientation='vertical', **cbar_kwargs)
     cax.text(5.8, 1, 'precipitation (mm day$^{-1}$)', rotation=90)
 
@@ -420,7 +420,7 @@ def plot_obs_vs_all_datasets_mean_precip(inputs, outputs, disp_mae=False):
     all_rmse_filename, all_corr_filename = outputs
 
     plt.clf()
-    fig, ax = plt.subplots(1, 1, sharex=True, num=str(all_rmse_filename), figsize=(6, 3.75))
+    fig, ax = plt.subplots(1, 1, sharex=True, num=str(all_rmse_filename), figsize=(5, 3.5))
 
     # ax1.set_ylim((0, 5))
     for dataset, (rmses, maes, _) in list(all_rmses.items())[::-1]:
@@ -453,7 +453,7 @@ def plot_obs_vs_all_datasets_mean_precip(inputs, outputs, disp_mae=False):
         ax.set_xticks(range(11), minor=True)
     # ax.set_xticklabels(['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
     # ax.set_xticklabels(['small', 'medium', 'large'])
-    ax.set_xticklabels(['small\n5040 km${^2}$', 'medium\n54600 km${^2}$', 'large\n55300 km${^2}$'])
+    ax.set_xticklabels(['small\n5040 km${^2}$', 'medium\n54600 km${^2}$', 'large\n553000 km${^2}$'])
 
     if disp_mae:
         ax.set_ylabel('mean precip.\nRMSE/MAE (mm day$^{-1}$)')
@@ -462,7 +462,7 @@ def plot_obs_vs_all_datasets_mean_precip(inputs, outputs, disp_mae=False):
     ax.set_xlabel('basin size')
     ax.legend()
     plt.tight_layout()
-    plt.subplots_adjust(bottom=0.12)
+    plt.subplots_adjust(bottom=0.18)
     plt.savefig(all_rmse_filename)
 
     plt.clf()
@@ -485,7 +485,7 @@ def plot_obs_vs_all_datasets_mean_precip(inputs, outputs, disp_mae=False):
         ax.set_xticks(range(11), minor=True)
     # ax.set_xticklabels(['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
     # ax.set_xticklabels(['small', 'medium', 'large'])
-    ax.set_xticklabels(['small\n5040 km${^2}$', 'medium\n54600 km${^2}$', 'large\n55300 km${^2}$'])
+    ax.set_xticklabels(['small\n5040 km${^2}$', 'medium\n54600 km${^2}$', 'large\n553000 km${^2}$'])
 
     # ax.set_ylabel('correlations ($r^2$ - solid, slope - dashed)')
     ax.set_ylabel('correlations ($r^2$)')
@@ -547,7 +547,7 @@ def plot_cmorph_vs_all_datasets_phase_mag(inputs, outputs):
             ax2.set_xticks(range(11), minor=True)
         # ax2.set_xticklabels(['2000 - 20000', '20000 - 200000', '200000 - 2000000'])
         # ax2.set_xticklabels(['small', 'medium', 'large'])
-        ax2.set_xticklabels(['small\n5040 km${^2}$', 'medium\n54600 km${^2}$', 'large\n55300 km${^2}$'])
+        ax2.set_xticklabels(['small\n5040 km${^2}$', 'medium\n54600 km${^2}$', 'large\n553000 km${^2}$'])
 
     axes[0, 0].set_title('amount')
     axes[0, 1].set_title('frequency')
@@ -566,7 +566,7 @@ def plot_cmorph_vs_all_datasets_phase_mag(inputs, outputs):
         c = string.ascii_lowercase[i]
         ax.text(0.01, 1.04, f'({c})', size=12, transform=ax.transAxes)
 
-    plt.subplots_adjust(left=0.1, right=0.94, top=0.96, bottom=0.12, wspace=0.2, hspace=0.2)
+    plt.subplots_adjust(left=0.1, right=0.94, top=0.96, bottom=0.12, wspace=0.25, hspace=0.2)
     plt.savefig(all_rmse_filename)
 
 

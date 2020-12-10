@@ -43,7 +43,7 @@ def convert_cmorph_0p25deg_3hrly_to_netcdf4_month(data_dir, output_dir, year, mo
     iris.save(cmorph_ppt_cube, output_dir / f'cmorph_ppt_{year}{month:02}.nc', zlib=True)
 
 
-def convert_cmorph_8km_30min_to_netcdf4_month(data_dir, output_dir, year, month):
+def convert_cmorph_8km_30min_to_netcdf4_month(raw_filename, output_filenames, year, month):
     lon0 = 0.036378335
     dlon = 0.072756669
     nlon = 4948
@@ -76,16 +76,14 @@ def convert_cmorph_8km_30min_to_netcdf4_month(data_dir, output_dir, year, month)
         time_coord = iris.coords.Coord(times, standard_name='time',
                                        units=('hours since 1970-01-01 00:00:00'))
 
-        data = _load_raw_8km_3min_year(data_dir, year, month, day)
+        data = _load_raw_8km_3min_year(raw_filename, year, month, day)
 
         coords = [(time_coord, 0), (lat_coord, 1), (lon_coord, 2)]
         cmorph_ppt_cube = iris.cube.Cube(data.reshape(len(times), 1649, 4948),
                                          long_name='precipitation', units='mm hr-1',
                                          dim_coords_and_dims=coords)
 
-        output_dir = Path(output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
-        iris.save(cmorph_ppt_cube, output_dir / f'cmorph_ppt_{year}{month:02}{day:02}.nc', zlib=True)
+        iris.save(cmorph_ppt_cube, output_filenames[day], zlib=True)
         end_time += dt.timedelta(days=1)
         day += 1
 
@@ -100,13 +98,13 @@ def extract_asia(data_dir, year):
         iris.save(asia_cmorph_ppt_cube, str(output_filename), zlib=False)
 
 
-def extract_asia_8km_30min(data_dir, year, month):
+def extract_asia_8km_30min(filenames, output_filename, year, month):
     # Different from above.
     # N.B. run in dir for one month: only loads data for one month.
-    filenames = sorted(Path(data_dir).glob(f'cmorph_ppt_{year}????.nc'))
+    # filenames = sorted(Path(data_dir).glob(f'cmorph_ppt_{year}????.nc'))
 
-    asia_cmorph_ppt_cube = iris.load([str(f) for f in filenames], CONSTRAINT_ASIA).concatenate_cube()
-    output_filename = data_dir / (f'cmorph_ppt_{year}{month:02}.asia.nc')
+    asia_cmorph_ppt_cube = iris.load([str(f) for f in filenames.values()],
+                                     CONSTRAINT_ASIA).concatenate_cube()
     # Compression saves A LOT of space: 5.0G -> 67M.
     iris.save(asia_cmorph_ppt_cube, str(output_filename), zlib=True)
 
@@ -138,8 +136,7 @@ def _load_raw_0p25deg_3hrly_year(data_dir, year, month):
     return np.ma.masked_array(data)
 
 
-def _load_raw_8km_3min_year(data_dir, year, month, day):
-    filename = Path(data_dir) / f'CMORPH_V1.0_ADJ_8km-30min_{year}{month:02}.tar'
+def _load_raw_8km_3min_year(filename, year, month, day):
     data = []
     with tarfile.open(filename) as tar:
         for member in [m for m in sorted(tar.getmembers(), key=lambda ti: ti.name) if m.isfile()]:

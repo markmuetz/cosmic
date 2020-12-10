@@ -21,7 +21,7 @@ def plot_dem(inputs, outputs):
     extent = (bounds.left, bounds.right, bounds.bottom, bounds.top)
 
     ma_dem = np.ma.masked_array(dem, (mask == -1) | (raster == 0))
-    plt.figure(figsize=(10, 7.5))
+    plt.figure(figsize=(5, 3.6))
     ax = plt.axes(projection=ccrs.PlateCarree())
     cmap = plt.cm.get_cmap('terrain')
     # Fills masked values.
@@ -29,11 +29,11 @@ def plot_dem(inputs, outputs):
     im = ax.imshow(ma_dem[::-1, :], extent=extent, origin='lower', cmap=cmap)
 
     configure_ax_asia(ax, tight_layout=False)
-    rect = Rectangle((97.5, 18), 125 - 97.5, 41 - 18, linewidth=1, edgecolor='k', facecolor='none')
+    rect = Rectangle((97.5, 18), 125 - 97.5, 41 - 18, linewidth=1.5, edgecolor='k', facecolor='none')
     ax.add_patch(rect)
 
     plt.colorbar(im, orientation='horizontal', label='elevation (m)', pad=0.1)
-    plt.subplots_adjust(left=0.06, right=0.94, top=0.95, bottom=0.0)
+    plt.subplots_adjust(left=0.11, right=0.94, top=0.95, bottom=0.04)
 
     plt.savefig(outputs[0])
 
