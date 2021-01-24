@@ -85,14 +85,14 @@ class TaskSubmitter:
             dependencies = ''
 
         slurm_script = SLURM_SCRIPT_TPL.format(script_name=script_name,
-                                              script_path=script_path,
-                                              config_name=config_name,
-                                              config_path=self.config_path,
-                                              task_path_hash_key=task.path_hash_key(),
-                                              dependencies=dependencies,
-                                              config_path_hash=self.config_path_hash,
-                                              job_name=task.path_hash_key()[:10],  # Any longer and a leading * is added.
-                                              **self.slurm_kwargs)
+                                               script_path=script_path,
+                                               config_name=config_name,
+                                               config_path=self.config_path,
+                                               task_path_hash_key=task.path_hash_key(),
+                                               dependencies=dependencies,
+                                               config_path_hash=self.config_path_hash,
+                                               job_name=task.path_hash_key()[:10],  # Any longer and a leading * is added.
+                                               **self.slurm_kwargs)
 
         with open(slurm_script_filepath, 'w') as fp:
             fp.write(slurm_script)
