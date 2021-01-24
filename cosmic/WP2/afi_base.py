@@ -27,6 +27,13 @@ class AFI_basePlotter:
                 self.fig = plt.figure(figsize=(10, 8))
             elif self.domain == 'europe':
                 self.fig = plt.figure(figsize=(10, 8))
+        elif len(runids) == 4:
+            if self.domain == 'china':
+                self.fig = plt.figure(figsize=(10, 12))
+            elif self.domain == 'asia':
+                self.fig = plt.figure(figsize=(10, 10))
+            elif self.domain == 'europe':
+                self.fig = plt.figure(figsize=(10, 8))
         elif len(runids) == 1:
             if self.domain == 'china':
                 self.fig = plt.figure(figsize=(10, 4))

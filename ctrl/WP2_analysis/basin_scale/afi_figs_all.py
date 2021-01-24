@@ -87,6 +87,7 @@ def gen_task_ctrl():
                   ['cmorph'],
                   ['cmorph', 'u-am754', 'u-ak543'],
                   ['u-al508', 'u-am754', 'u-ak543'],
+                  ['cmorph', 'u-al508', 'u-am754', 'u-ak543'],
                   ['u-al508', 'u-aj399', 'u-az035']]
 
     season = 'jja'
