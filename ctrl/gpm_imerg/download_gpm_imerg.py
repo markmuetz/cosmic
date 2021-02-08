@@ -5,6 +5,8 @@ Downloads GMP IMERG (late/final) daily data for Asia.
 Will not download same file twice"""
 import datetime as dt
 from pathlib import Path
+from random import randint
+from time import sleep
 from timeit import default_timer as timer
 
 import requests
@@ -46,13 +48,25 @@ class GpmDatetime(dt.datetime):
         return f'{minutes:04d}'
 
 
-def get_from_gpm(url, filename):
+def get_from_gpm(url, filename, num_retries=6):
     """Retrive from NASA GPM IMERG data repository
 
     note: $HOME/.netrc must be set!
     https://disc.gsfc.nasa.gov/data-access#python-requests
     """
-    result = requests.get(url)
+    retries = num_retries
+    while True:
+        try:
+            result = requests.get(url)
+            break
+        except Exception as e:
+            print('Connection error')
+            print(e)
+            if not retries:
+                raise
+            retries -= 1
+            sleep((num_retries - retries) * 10 + randint(0, 20))
+
     try:
         result.raise_for_status()
         with open(filename,'wb') as f:
@@ -60,7 +74,6 @@ def get_from_gpm(url, filename):
     except:
         print('requests.get() returned an error code ' + str(result.status_code))
         raise
-
 
 
 def gen_dates_urls_filenames(filename_tpl, url_tpl, start_date, end_date):
@@ -83,6 +96,15 @@ downloader = Remake()
 
 
 class GpmImerg30MinDownload(TaskRule):
+    #@staticmethod
+    #def rule_inputs(year):
+    #    # Each year (bar 2000) depends on output from prev year.
+    #    # Ensures years run sequentially.
+    #    if year == 2000:
+    #        return {}
+    #    else:
+    #        return {'prev_year': (IMERG_FINAL_30MIN_DIR / f'{year - 1}' /
+    #                              f'download.{year - 1}.done')}
     rule_inputs = {}
     rule_outputs = {'output_filenames': IMERG_FINAL_30MIN_DIR / '{year}' / 'download.{year}.done'}
     var_matrix = {'year': YEARS}
