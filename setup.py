@@ -38,16 +38,17 @@ setup(
     python_requires='>=3.6',
     # These should all be met if you use the conda_env in envs.
     install_requires=[
-        'basmati',
-        'remake',
-        'cartopy',
-        'geopandas',
+        # Commented out for now.
+        # 'basmati',
+        # 'remake',
+        # 'cartopy',
+        # 'geopandas',
         # Causes problems with pip -e . installation and running scripts in bin.
         # 'iris',
-        'numpy',
-        'matplotlib',
-        'pandas',
-        'scipy',
+        # 'numpy',
+        # 'matplotlib',
+        # 'pandas',
+        # 'scipy',
         ],
     # url='https://github.com/markmuetz/cosmic',
     classifiers=[
