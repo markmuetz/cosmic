@@ -90,7 +90,7 @@ def gen_task_ctrl():
         ['cmorph', 'u-al508', 'u-ak543'],
         # ['cmorph', 'u-am754', 'u-ak543'],
         # ['u-al508', 'u-am754', 'u-ak543'],
-        # For supplement (China).
+        # For main paper (Asia) and supplement (China).
         ['cmorph', 'u-al508', 'u-am754', 'u-ak543'],
         # ['u-al508', 'u-aj399', 'u-az035']
     ]
@@ -105,8 +105,8 @@ def gen_task_ctrl():
     # methods = ['peak', 'harmonic']
     methods = ['harmonic']
     # regions = ['china', 'asia', 'europe']
-    # regions = ['china', 'asia']
-    regions = ['china']
+    regions = ['china', 'asia']
+    # regions = ['asia']
 
     # Run all durations for first runid.
     task_data = list(itertools.product([all_runids[0]], durations, precip_threshes, regions))
