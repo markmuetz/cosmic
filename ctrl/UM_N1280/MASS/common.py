@@ -8,6 +8,10 @@ LOWLEVEL_V = '0003'
 SURF_U = '3209'
 SURF_V = '3210'
 
+U_PLEV_UVGRID = '30201'
+V_PLEV_UVGRID = '30202'
+W_PLEV_UVGRID = '30203'
+
 LS_RAINFALL = 4203
 LS_SNOWFALL = 4204
 
@@ -19,6 +23,18 @@ AP8_LOWLEVEL_WIND = {
     'stashcodes': [LOWLEVEL_U, LOWLEVEL_V],
     'extra_elements': {},
     'output_name': 'lowlevel_wind',
+}
+
+APC_V_WIND = {
+    'stashcodes': [V_PLEV_UVGRID],
+    'extra_elements': {},
+    'output_name': 'v_wind_dp6',
+}
+
+APC_UVW_WIND = {
+    'stashcodes': [U_PLEV_UVGRID, V_PLEV_UVGRID, W_PLEV_UVGRID],
+    'extra_elements': {},
+    'output_name': 'uvw_wind_dp6',
 }
 
 AP9_SURF_WIND = {
