@@ -29,7 +29,7 @@ class AFI_basePlotter:
                 self.fig = plt.figure(figsize=(10, 8))
         elif len(runids) == 4:
             if self.domain == 'china':
-                self.fig = plt.figure(figsize=(10, 12))
+                self.fig = plt.figure(figsize=(10, 13))
             elif self.domain == 'asia':
                 self.fig = plt.figure(figsize=(10, 10))
             elif self.domain == 'europe':
@@ -115,6 +115,8 @@ class AFI_basePlotter:
 
         if len(self.runids) == 3:
             self.fig.subplots_adjust(top=0.95, bottom=0.05, left=0.07, right=0.99, wspace=0.1, hspace=0.1)
+        elif len(self.runids) == 4:
+            self.fig.subplots_adjust(top=0.95, bottom=0.05, left=0.07, right=0.99, wspace=0.1, hspace=0.15)
         else:
             self.fig.subplots_adjust(top=0.95, bottom=0.1, left=0.07, right=0.99, wspace=0.1, hspace=0.1)
 

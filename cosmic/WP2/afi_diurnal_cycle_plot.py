@@ -10,9 +10,12 @@ from cosmic.WP2.diurnal_cycle_analysis import calc_diurnal_cycle_phase_amp_peak,
 
 class AFI_diurnalCyclePlotter(AFI_basePlotter):
     def gen_axes(self):
-
-        gs = gridspec.GridSpec(len(self.runids) + 1, 3, figure=self.fig,
-                               height_ratios=[1.] * len(self.runids) + [0.3])
+        if len(self.runids) == 4:
+            gs = gridspec.GridSpec(len(self.runids) + 1, 3, figure=self.fig,
+                                   height_ratios=[1.] * len(self.runids) + [0.5])
+        else:
+            gs = gridspec.GridSpec(len(self.runids) + 1, 3, figure=self.fig,
+                                   height_ratios=[1.] * len(self.runids) + [0.3])
         fig_axes = []
         cb_axes = []
         for i in range(len(self.runids)):

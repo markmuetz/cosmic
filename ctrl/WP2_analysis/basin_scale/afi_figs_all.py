@@ -82,22 +82,31 @@ class AfiTask(Task):
 def gen_task_ctrl():
     task_ctrl = TaskControl(__file__)
 
-    # Can only do 1 or 3 runids ATM.
-    all_runids = [['cmorph', 'u-al508', 'u-ak543'],
-                  ['cmorph'],
-                  ['cmorph', 'u-am754', 'u-ak543'],
-                  ['u-al508', 'u-am754', 'u-ak543'],
-                  ['cmorph', 'u-al508', 'u-am754', 'u-ak543'],
-                  ['u-al508', 'u-aj399', 'u-az035']]
+    # Can only do 1, 3 or 4 runids ATM.
+    all_runids = [
+        # For supplement
+        ['cmorph'],
+        # For main paper (China).
+        ['cmorph', 'u-al508', 'u-ak543'],
+        # ['cmorph', 'u-am754', 'u-ak543'],
+        # ['u-al508', 'u-am754', 'u-ak543'],
+        # For supplement (China).
+        ['cmorph', 'u-al508', 'u-am754', 'u-ak543'],
+        # ['u-al508', 'u-aj399', 'u-az035']
+    ]
 
     season = 'jja'
     durations = ['long']
-    for start_year in range(1998, 2016):
+    # for start_year in range(1998, 2016):
+    # Only 2006 is required for supplement figure (S6).
+    for start_year in [2006]:
         durations.append(f'{start_year}06-{start_year + 3}08')
     precip_threshes = [0.1]
-    methods = ['peak', 'harmonic']
+    # methods = ['peak', 'harmonic']
+    methods = ['harmonic']
     # regions = ['china', 'asia', 'europe']
-    regions = ['china', 'asia']
+    # regions = ['china', 'asia']
+    regions = ['china']
 
     # Run all durations for first runid.
     task_data = list(itertools.product([all_runids[0]], durations, precip_threshes, regions))
